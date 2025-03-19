@@ -1,0 +1,178 @@
+
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useAuth } from './AuthContext';
+import { toast } from 'sonner';
+
+interface MiningContextType {
+  isMining: boolean;
+  startMining: () => void;
+  stopMining: () => void;
+  miningProgress: number;
+  timeUntilNextMining: number | null;
+  coinsMinedInSession: number;
+  miningRate: number;
+  totalCoinsFromMining: number;
+  resetMiningCooldown: () => void;
+}
+
+const MiningContext = createContext<MiningContextType | undefined>(undefined);
+
+export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, updateUser } = useAuth();
+  const [isMining, setIsMining] = useState(false);
+  const [miningProgress, setMiningProgress] = useState(0);
+  const [timeUntilNextMining, setTimeUntilNextMining] = useState<number | null>(null);
+  const [coinsMinedInSession, setCoinsMinedInSession] = useState(0);
+  const [lastMiningDate, setLastMiningDate] = useState<Date | null>(null);
+  const [totalCoinsFromMining, setTotalCoinsFromMining] = useState(0);
+  
+  const miningRate = 2; // 2 coins per hour
+  const miningDuration = 24; // 24 hours
+  const hourInMs = 3600000; // 1 hour in milliseconds
+  
+  // Load saved mining state on mount
+  useEffect(() => {
+    const savedState = localStorage.getItem('miningState');
+    if (savedState) {
+      try {
+        const { 
+          isMining: savedIsMining, 
+          miningProgress: savedProgress, 
+          lastMiningDate: savedLastMiningDate,
+          coinsMinedInSession: savedCoinsMinedInSession,
+          totalCoinsFromMining: savedTotalCoinsFromMining
+        } = JSON.parse(savedState);
+        
+        setIsMining(savedIsMining);
+        setMiningProgress(savedProgress);
+        setLastMiningDate(savedLastMiningDate ? new Date(savedLastMiningDate) : null);
+        setCoinsMinedInSession(savedCoinsMinedInSession || 0);
+        setTotalCoinsFromMining(savedTotalCoinsFromMining || 0);
+      } catch (error) {
+        console.error('Failed to parse saved mining state', error);
+      }
+    }
+  }, []);
+  
+  // Save mining state when it changes
+  useEffect(() => {
+    localStorage.setItem('miningState', JSON.stringify({
+      isMining,
+      miningProgress,
+      lastMiningDate: lastMiningDate?.toISOString(),
+      coinsMinedInSession,
+      totalCoinsFromMining
+    }));
+  }, [isMining, miningProgress, lastMiningDate, coinsMinedInSession, totalCoinsFromMining]);
+  
+  // Mining progress effect
+  useEffect(() => {
+    if (!isMining) return;
+    
+    const interval = setInterval(() => {
+      setMiningProgress(prev => {
+        const newProgress = prev + (100 / (miningDuration * 60)); // Increment by small amount each minute
+        
+        if (newProgress >= 100) {
+          // Mining completed
+          setIsMining(false);
+          
+          // Calculate coins mined
+          const coins = miningRate * miningDuration;
+          setCoinsMinedInSession(coins);
+          setTotalCoinsFromMining(prevTotal => prevTotal + coins);
+          
+          // Add coins to user's balance
+          if (user) {
+            updateUser({ coins: (user.coins || 0) + coins });
+          }
+          
+          // Set cooldown time
+          setLastMiningDate(new Date());
+          
+          toast.success(`Mining completed! You earned ${coins} Infinium coins.`);
+          return 0;
+        }
+        
+        // Every hour (when progress increases by 100/24), award coins
+        if (Math.floor((newProgress * miningDuration) / 100) > Math.floor((prev * miningDuration) / 100)) {
+          // Every hour milestone reached
+          toast.success(`You mined ${miningRate} Infinium coins!`);
+        }
+        
+        return newProgress;
+      });
+    }, 60000); // Update every minute
+    
+    return () => clearInterval(interval);
+  }, [isMining, user, updateUser, miningRate, miningDuration]);
+  
+  // Cooldown timer effect
+  useEffect(() => {
+    if (!lastMiningDate) return;
+    
+    const interval = setInterval(() => {
+      const now = new Date();
+      const elapsed = now.getTime() - lastMiningDate.getTime();
+      const cooldownTime = 24 * hourInMs; // 24 hours cooldown
+      
+      if (elapsed >= cooldownTime) {
+        setTimeUntilNextMining(null);
+        setLastMiningDate(null);
+        clearInterval(interval);
+      } else {
+        setTimeUntilNextMining(cooldownTime - elapsed);
+      }
+    }, 1000);
+    
+    return () => clearInterval(interval);
+  }, [lastMiningDate]);
+  
+  const startMining = () => {
+    if (timeUntilNextMining !== null) {
+      toast.error('Mining is on cooldown. Please wait until the cooldown ends.');
+      return;
+    }
+    
+    setIsMining(true);
+    setMiningProgress(0);
+    setCoinsMinedInSession(0);
+    toast.success('Mining started!');
+  };
+  
+  const stopMining = () => {
+    if (!isMining) return;
+    
+    setIsMining(false);
+    toast.info('Mining stopped.');
+  };
+  
+  const resetMiningCooldown = () => {
+    // This would normally require admin privileges or be a paid feature
+    setLastMiningDate(null);
+    setTimeUntilNextMining(null);
+    toast.success('Mining cooldown reset!');
+  };
+  
+  const value = {
+    isMining,
+    startMining,
+    stopMining,
+    miningProgress,
+    timeUntilNextMining,
+    coinsMinedInSession,
+    miningRate,
+    totalCoinsFromMining,
+    resetMiningCooldown,
+  };
+  
+  return <MiningContext.Provider value={value}>{children}</MiningContext.Provider>;
+};
+
+export const useMining = () => {
+  const context = useContext(MiningContext);
+  if (context === undefined) {
+    throw new Error('useMining must be used within a MiningProvider');
+  }
+  return context;
+};

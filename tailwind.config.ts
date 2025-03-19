@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,6 +62,21 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
+				},
+				brand: {
+					blue: '#007AFF',
+					indigo: '#5856D6',
+					teal: '#5AC8FA',
+					green: '#34C759',
+					yellow: '#FFCC00',
+					orange: '#FF9500',
+					pink: '#FF2D55',
+					red: '#FF3B30',
+					gray: '#8E8E93',
+					darkgray: '#636366',
+					lightgray: '#AEAEB2',
+					background: '#F2F2F7',
+					card: '#FFFFFF',
 				}
 			},
 			borderRadius: {
@@ -84,11 +100,59 @@ export default {
 					to: {
 						height: '0'
 					}
+				},
+				'pulse-subtle': {
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0.8' }
+				},
+				'float': {
+					'0%, 100%': { transform: 'translateY(0)' },
+					'50%': { transform: 'translateY(-10px)' }
+				},
+				'slide-up': {
+					'0%': { transform: 'translateY(100%)', opacity: '0' },
+					'100%': { transform: 'translateY(0)', opacity: '1' }
+				},
+				'slide-down': {
+					'0%': { transform: 'translateY(-100%)', opacity: '0' },
+					'100%': { transform: 'translateY(0)', opacity: '1' }
+				},
+				'fade-in': {
+					'0%': { opacity: '0' },
+					'100%': { opacity: '1' }
+				},
+				'scale-up': {
+					'0%': { transform: 'scale(0.9)', opacity: '0' },
+					'100%': { transform: 'scale(1)', opacity: '1' }
+				},
+				'shimmer': {
+					'0%': { backgroundPosition: '-1000px 0' },
+					'100%': { backgroundPosition: '1000px 0' }
+				},
+				'coin-spin': {
+					'0%': { transform: 'rotateY(0deg)' },
+					'100%': { transform: 'rotateY(360deg)' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'pulse-subtle': 'pulse-subtle 3s infinite ease-in-out',
+				'float': 'float 6s infinite ease-in-out',
+				'slide-up': 'slide-up 0.4s ease-out',
+				'slide-down': 'slide-down 0.4s ease-out',
+				'fade-in': 'fade-in 0.4s ease-out',
+				'scale-up': 'scale-up 0.3s ease-out',
+				'shimmer': 'shimmer 2s infinite linear',
+				'coin-spin': 'coin-spin 1.5s infinite linear'
+			},
+			backdropFilter: {
+				'none': 'none',
+				'blur': 'blur(20px)'
+			},
+			fontFamily: {
+				sans: ['SF Pro Display', 'sans-serif'],
+				mono: ['SF Mono', 'monospace']
 			}
 		}
 	},
