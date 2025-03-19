@@ -42,12 +42,11 @@ const Index: React.FC = () => {
       <main className="container px-4 py-12 max-w-lg mx-auto">
         <div className="text-center mb-12 animate-fade-in">
           <div className="inline-block mb-6">
-            <div className="relative">
-              <div className="coin w-24 h-24 mx-auto text-3xl animate-coin-spin">₹</div>
-              <div className="absolute -top-2 -right-2 bg-brand-green text-white text-xs px-2 py-1 rounded-full">
-                New
-              </div>
-            </div>
+            <img 
+              src="/lovable-uploads/e6693d03-b7d5-40c8-a973-c0c99c55a8fe.png" 
+              alt="Infinium" 
+              className="h-28 w-auto mx-auto"
+            />
           </div>
           
           <h1 className="text-4xl font-bold mb-4 text-gradient">Infinium Miner</h1>

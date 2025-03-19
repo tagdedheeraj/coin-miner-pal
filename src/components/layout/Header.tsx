@@ -13,10 +13,14 @@ const Header: React.FC = () => {
     <header className="fixed top-0 left-0 right-0 h-16 bg-white/80 backdrop-blur-lg z-50 border-b border-slate-100 shadow-sm animate-slide-down">
       <div className="container h-full mx-auto px-4 flex items-center justify-between">
         <div 
-          className="text-xl font-semibold text-gradient" 
+          className="flex items-center cursor-pointer" 
           onClick={() => navigate('/')}
         >
-          Infinium
+          <img 
+            src="/lovable-uploads/e6693d03-b7d5-40c8-a973-c0c99c55a8fe.png" 
+            alt="Infinium" 
+            className="h-10 w-auto"
+          />
         </div>
         
         {isAuthenticated && user ? (
