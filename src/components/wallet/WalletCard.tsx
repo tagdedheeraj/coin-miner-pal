@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Wallet, CreditCard, ArrowUpRight, Download, Copy, Check } from 'lucide-react';
+import { Wallet, CreditCard, ArrowUpRight, Download, Copy, Check, Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
