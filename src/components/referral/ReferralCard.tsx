@@ -24,7 +24,7 @@ const ReferralCard: React.FC = () => {
     if (navigator.share) {
       navigator.share({
         title: 'Join Infinium Mining',
-        text: `Use my referral code ${user.referralCode} to get 250 coins when you sign up!`,
+        text: `Use my referral code ${user.referralCode} to sign up! I'll get 250 bonus coins when you do.`,
         url: window.location.origin,
       }).catch((error) => {
         console.error('Error sharing:', error);
@@ -68,7 +68,7 @@ const ReferralCard: React.FC = () => {
           </div>
           
           <div className="text-center bg-white/10 rounded-lg p-4">
-            <p className="text-sm mb-1">Reward per referral</p>
+            <p className="text-sm mb-1">You earn per referral</p>
             <p className="text-2xl font-bold">250 coins</p>
           </div>
         </div>
@@ -120,9 +120,9 @@ const ReferralCard: React.FC = () => {
               3
             </div>
             <div className="ml-8">
-              <p className="font-medium text-sm">Both earn rewards</p>
+              <p className="font-medium text-sm">You earn rewards</p>
               <p className="text-xs text-gray-500 mt-1">
-                You get 250 coins and they get 250 bonus coins
+                You receive 250 coins when someone uses your code
               </p>
             </div>
           </div>

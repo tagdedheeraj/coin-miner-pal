@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -11,6 +12,7 @@ export interface User {
   hasBiometrics: boolean;
   withdrawalAddress: string | null;
   appliedReferralCode?: string;
+  notifications?: Array<{id: string, message: string, read: boolean, createdAt: string}>;
 }
 
 interface AuthContextType {
@@ -43,6 +45,7 @@ const mockUsers = [
     hasBiometrics: false,
     withdrawalAddress: null,
     appliedReferralCode: null,
+    notifications: [],
   },
 ];
 
@@ -210,23 +213,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Add bonus to the referrer (250 coins)
     const referrerIndex = mockUsers.findIndex(u => u.id === referrerUser.id);
     if (referrerIndex !== -1) {
+      // Add the referral bonus to the referrer (not the current user)
       mockUsers[referrerIndex].coins += 250;
+      
+      // Add notification to the referrer
+      if (!mockUsers[referrerIndex].notifications) {
+        mockUsers[referrerIndex].notifications = [];
+      }
+      
+      mockUsers[referrerIndex].notifications.push({
+        id: Date.now().toString(),
+        message: `${user.name} used your referral code! You received 250 bonus coins.`,
+        read: false,
+        createdAt: new Date().toISOString()
+      });
     }
     
-    // Update current user with applied referral code and bonus (250 coins)
+    // Update current user with applied referral code
     const currentUserIndex = mockUsers.findIndex(u => u.id === user.id);
     if (currentUserIndex !== -1) {
       mockUsers[currentUserIndex].appliedReferralCode = code;
-      mockUsers[currentUserIndex].coins += 250;
+      // We don't add coins to the current user anymore
     }
     
-    // Update the current user state
+    // Update the current user state - only update the appliedReferralCode field
     updateUser({ 
-      coins: user.coins + 250, 
       appliedReferralCode: code 
     });
     
-    toast.success('Referral code applied successfully! You received 250 bonus coins.');
+    toast.success('Referral code applied successfully!');
   };
 
   const value = {

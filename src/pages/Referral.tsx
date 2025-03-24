@@ -28,7 +28,6 @@ const Referral: React.FC = () => {
     setIsSubmitting(true);
     try {
       await applyReferralCode(referralCode.trim());
-      toast.success('Referral code applied successfully!');
       setReferralCode('');
     } catch (error) {
       console.error('Referral Error:', error);
@@ -45,7 +44,7 @@ const Referral: React.FC = () => {
       <main className="container px-4 py-6 max-w-lg mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold mb-1">Refer & Earn</h1>
-          <p className="text-gray-500">Invite friends and earn 250 coins per referral</p>
+          <p className="text-gray-500">Invite friends and earn 250 coins when they use your code</p>
         </div>
         
         {!user?.appliedReferralCode ? (
@@ -66,6 +65,9 @@ const Referral: React.FC = () => {
                 Apply
               </Button>
             </div>
+            <p className="text-sm text-gray-500 mt-2">
+              The 250 coin bonus will be added to the referrer's account
+            </p>
           </Card>
         ) : (
           <Card className="p-4 mb-6 animate-scale-up">
