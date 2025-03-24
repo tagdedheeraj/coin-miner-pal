@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 
@@ -11,6 +10,7 @@ export interface User {
   hasSetupPin: boolean;
   hasBiometrics: boolean;
   withdrawalAddress: string | null;
+  appliedReferralCode?: string;
 }
 
 interface AuthContextType {
@@ -25,6 +25,7 @@ interface AuthContextType {
   setupPin: (pin: string) => Promise<void>;
   toggleBiometrics: () => Promise<void>;
   setWithdrawalAddress: (address: string) => void;
+  applyReferralCode: (code: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -41,6 +42,7 @@ const mockUsers = [
     hasSetupPin: false,
     hasBiometrics: false,
     withdrawalAddress: null,
+    appliedReferralCode: null,
   },
 ];
 
@@ -113,6 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         hasSetupPin: false,
         hasBiometrics: false,
         withdrawalAddress: null,
+        appliedReferralCode: null,
       };
       
       mockUsers.push(newUser);
@@ -181,6 +184,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     toast.success('Withdrawal address updated');
   };
 
+  const applyReferralCode = async (code: string): Promise<void> => {
+    if (!user) throw new Error('Not authenticated');
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    // Check if user has already applied a referral code
+    if (user.appliedReferralCode) {
+      throw new Error('You have already applied a referral code');
+    }
+    
+    // Validate referral code
+    if (code === user.referralCode) {
+      throw new Error('You cannot use your own referral code');
+    }
+    
+    // Find the user with the given referral code
+    const referrerUser = mockUsers.find(u => u.referralCode === code);
+    
+    if (!referrerUser) {
+      throw new Error('Invalid referral code');
+    }
+    
+    // Add bonus to the referrer (250 coins)
+    const referrerIndex = mockUsers.findIndex(u => u.id === referrerUser.id);
+    if (referrerIndex !== -1) {
+      mockUsers[referrerIndex].coins += 250;
+    }
+    
+    // Update current user with applied referral code and bonus (250 coins)
+    const currentUserIndex = mockUsers.findIndex(u => u.id === user.id);
+    if (currentUserIndex !== -1) {
+      mockUsers[currentUserIndex].appliedReferralCode = code;
+      mockUsers[currentUserIndex].coins += 250;
+    }
+    
+    // Update the current user state
+    updateUser({ 
+      coins: user.coins + 250, 
+      appliedReferralCode: code 
+    });
+    
+    toast.success('Referral code applied successfully! You received 250 bonus coins.');
+  };
+
   const value = {
     user,
     isAuthenticated: !!user,
@@ -193,6 +241,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setupPin,
     toggleBiometrics,
     setWithdrawalAddress,
+    applyReferralCode,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
