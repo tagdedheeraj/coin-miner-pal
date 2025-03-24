@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Share2, Copy, Check, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 const ReferralCard: React.FC = () => {

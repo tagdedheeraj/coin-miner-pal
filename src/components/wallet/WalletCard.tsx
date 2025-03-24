@@ -4,7 +4,7 @@ import { Wallet, CreditCard, ArrowUpRight, Download, Copy, Check, Gift, Lock, Ba
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { formatCoins, formatUSD, formatWalletAddress } from '@/utils/formatters';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';

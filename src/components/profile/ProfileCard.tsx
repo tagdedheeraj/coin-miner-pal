@@ -4,7 +4,7 @@ import { User, LockKeyhole, Fingerprint, ChevronRight, LogOut } from 'lucide-rea
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
 const ProfileCard: React.FC = () => {

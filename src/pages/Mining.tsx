@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/layout/Header';
 import BottomNav from '@/components/layout/BottomNav';
 import MiningCard from '@/components/mining/MiningCard';

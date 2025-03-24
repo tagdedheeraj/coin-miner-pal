@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/hooks/useAuth';
 import { ChevronRight, Shield, Activity, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
