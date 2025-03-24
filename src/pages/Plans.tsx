@@ -19,8 +19,8 @@ const Plans: React.FC = () => {
       
       <main className="container px-4 py-6 max-w-lg mx-auto">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold mb-1">Plans</h1>
-          <p className="text-gray-500">Boost your mining with premium plans</p>
+          <h1 className="text-2xl font-bold mb-1">Mining Plans</h1>
+          <p className="text-gray-500">Boost your mining with premium plans and earn USDT daily</p>
         </div>
         
         <PlansCard />

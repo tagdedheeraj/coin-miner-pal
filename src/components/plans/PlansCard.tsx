@@ -1,9 +1,253 @@
 
-import React from 'react';
-import { LayoutGrid, ChevronRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { LayoutGrid, ChevronRight, Check, Clock, Zap, RefreshCw, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
+import { formatUSD } from '@/utils/formatters';
 
 const PlansCard: React.FC = () => {
+  const [activeTab, setActiveTab] = useState('plans'); // 'plans' or 'earnings'
+  
+  const plans = [
+    {
+      name: "Arbitrage & Starter Plan",
+      price: 20,
+      duration: 28,
+      dailyEarnings: 0.96,
+      totalEarnings: 27,
+      miningSpeed: "1.2x",
+      withdrawal: "24 hour",
+      color: "blue",
+      limited: false
+    },
+    {
+      name: "Pro Miner Plan",
+      price: 50,
+      duration: 28,
+      dailyEarnings: 4.46,
+      totalEarnings: 125,
+      miningSpeed: "2x",
+      withdrawal: "24 hour",
+      color: "green",
+      limited: false
+    },
+    {
+      name: "Expert Miner Plan",
+      price: 200,
+      duration: 39,
+      dailyEarnings: 7.18,
+      totalEarnings: 280,
+      miningSpeed: "3x",
+      withdrawal: "24 hour",
+      color: "purple",
+      limited: false
+    },
+    {
+      name: "Master Miner Plan",
+      price: 500,
+      duration: 59,
+      dailyEarnings: 13.56,
+      totalEarnings: 800,
+      miningSpeed: "4x",
+      withdrawal: "Instant",
+      color: "red",
+      limited: false
+    },
+    {
+      name: "Diamond Miner Plan",
+      price: 1000,
+      duration: 90,
+      dailyEarnings: 24.44,
+      totalEarnings: 2200,
+      miningSpeed: "5x",
+      withdrawal: "Instant",
+      color: "cyan",
+      limited: true,
+      limitedTo: 300
+    },
+    {
+      name: "Ultimate Miner Plan",
+      price: 2000,
+      duration: 102,
+      dailyEarnings: 44.12,
+      totalEarnings: 4500,
+      miningSpeed: "6x",
+      withdrawal: "Instant",
+      color: "amber",
+      limited: true,
+      limitedTo: 200
+    },
+    {
+      name: "Legend Miner Plan",
+      price: 5000,
+      duration: 125,
+      dailyEarnings: 96,
+      totalEarnings: 11200,
+      miningSpeed: "7x",
+      withdrawal: "Instant",
+      color: "gold",
+      limited: true,
+      limitedTo: 100
+    },
+    {
+      name: "Supreme Miner Plan",
+      price: 10000,
+      duration: 169,
+      dailyEarnings: 130.18,
+      totalEarnings: 22000,
+      miningSpeed: "20x",
+      withdrawal: "Instant",
+      color: "pink",
+      limited: true,
+      limitedTo: 50
+    }
+  ];
+
+  // Mock arbitrage earnings data
+  const earningsData = [
+    { date: "2023-10-01", amount: 0.96, status: "Paid" },
+    { date: "2023-10-02", amount: 0.96, status: "Paid" },
+    { date: "2023-10-03", amount: 0.96, status: "Paid" },
+    { date: "2023-10-04", amount: 0.96, status: "Processing" },
+    { date: "2023-10-05", amount: 0.96, status: "Pending" },
+  ];
+
+  // Get Indian time formatted as a string
+  const getIndianTime = () => {
+    const options: Intl.DateTimeFormatOptions = {
+      timeZone: 'Asia/Kolkata',
+      hour12: true,
+      hour: 'numeric',
+      minute: 'numeric',
+    };
+    return new Date().toLocaleString('en-IN', options) + ' IST';
+  };
+
+  // Render the color badge based on plan color
+  const getColorClass = (color: string) => {
+    switch(color) {
+      case 'blue': return 'bg-brand-blue text-white';
+      case 'green': return 'bg-brand-green text-white';
+      case 'purple': return 'bg-purple-600 text-white';
+      case 'red': return 'bg-red-600 text-white';
+      case 'cyan': return 'bg-cyan-500 text-white';
+      case 'amber': return 'bg-amber-500 text-white';
+      case 'gold': return 'bg-yellow-500 text-white';
+      case 'pink': return 'bg-pink-600 text-white';
+      default: return 'bg-gray-600 text-white';
+    }
+  };
+
+  const renderPlans = () => (
+    <div className="space-y-6">
+      {plans.map((plan, index) => (
+        <Card 
+          key={index} 
+          className="w-full overflow-hidden border-t-4 shadow-md animate-scale-up"
+          style={{ 
+            borderTopColor: plan.color === 'blue' ? '#3B82F6' :
+                            plan.color === 'green' ? '#10B981' :
+                            plan.color === 'purple' ? '#8B5CF6' :
+                            plan.color === 'red' ? '#EF4444' :
+                            plan.color === 'cyan' ? '#06B6D4' :
+                            plan.color === 'amber' ? '#F59E0B' :
+                            plan.color === 'gold' ? '#EAB308' :
+                            plan.color === 'pink' ? '#EC4899' : '#6B7280',
+            animationDelay: `${index * 100}ms`
+          }}
+        >
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-xl font-bold">{plan.name}</CardTitle>
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getColorClass(plan.color)}`}>${plan.price}</span>
+            </div>
+            <CardDescription>
+              Duration: {plan.duration} days
+              {plan.limited && (
+                <span className="ml-2 inline-block bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                  Limited to first {plan.limitedTo} users
+                </span>
+              )}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <RefreshCw size={18} className="text-brand-blue" />
+                <span>Daily Earnings: <strong>${plan.dailyEarnings}</strong></span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Zap size={18} className="text-brand-orange" />
+                <span>Mining Speed: <strong>{plan.miningSpeed} faster</strong></span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Timer size={18} className="text-green-500" />
+                <span>Total Earnings: <strong>${plan.totalEarnings}</strong></span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Clock size={18} className="text-purple-500" />
+                <span>Withdrawal: <strong>{plan.withdrawal}</strong></span>
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button 
+              className="w-full rounded-xl h-12 bg-brand-orange hover:bg-brand-orange/90 font-medium transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+            >
+              Subscribe Now
+            </Button>
+          </CardFooter>
+        </Card>
+      ))}
+    </div>
+  );
+
+  const renderEarnings = () => (
+    <div className="glass-card rounded-2xl p-6 animate-scale-up">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="font-semibold text-lg">Arbitrage Plan Earnings</h3>
+        <span className="text-sm text-gray-500">Next payout: {getIndianTime()}</span>
+      </div>
+      
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Date</TableHead>
+            <TableHead>Amount</TableHead>
+            <TableHead>Status</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {earningsData.map((earning, i) => (
+            <TableRow key={i}>
+              <TableCell>{earning.date}</TableCell>
+              <TableCell>${earning.amount.toFixed(2)}</TableCell>
+              <TableCell>
+                <span className={`px-2 py-1 rounded-full text-xs ${
+                  earning.status === 'Paid' 
+                    ? 'bg-green-100 text-green-800' 
+                    : earning.status === 'Processing' 
+                      ? 'bg-blue-100 text-blue-800' 
+                      : 'bg-yellow-100 text-yellow-800'
+                }`}>
+                  {earning.status}
+                </span>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      
+      <div className="mt-4 border-t pt-4">
+        <div className="flex justify-between items-center">
+          <span className="font-medium">Total Earnings:</span>
+          <span className="font-bold text-brand-green">${earningsData.reduce((sum, item) => sum + item.amount, 0).toFixed(2)}</span>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="w-full">
       <div className="glass-card rounded-2xl p-6 mb-6 animate-scale-up">
@@ -17,21 +261,22 @@ const PlansCard: React.FC = () => {
           </div>
         </div>
         
-        <div className="space-y-4 mb-6">
-          <div className="bg-gray-50 rounded-xl p-4 border-l-4 border-brand-blue">
-            <p className="font-medium">Coming Soon!</p>
-            <p className="text-sm text-gray-500 mt-1">
-              Boosting plans and arbitrage plans will be available soon.
-            </p>
-          </div>
+        <div className="flex space-x-2 border-b mb-6">
+          <button
+            className={`pb-2 px-4 font-medium ${activeTab === 'plans' ? 'border-b-2 border-brand-blue text-brand-blue' : 'text-gray-500'}`}
+            onClick={() => setActiveTab('plans')}
+          >
+            Plans
+          </button>
+          <button
+            className={`pb-2 px-4 font-medium ${activeTab === 'earnings' ? 'border-b-2 border-brand-blue text-brand-blue' : 'text-gray-500'}`}
+            onClick={() => setActiveTab('earnings')}
+          >
+            Earnings
+          </button>
         </div>
         
-        <Button 
-          disabled
-          className="w-full rounded-xl h-12 bg-brand-orange hover:bg-brand-orange/90 font-medium transition-all transform hover:scale-[1.02] active:scale-[0.98]"
-        >
-          Coming Soon
-        </Button>
+        {activeTab === 'plans' ? renderPlans() : renderEarnings()}
       </div>
       
       <div className="glass-card rounded-2xl p-6 animate-scale-up animation-delay-100">
