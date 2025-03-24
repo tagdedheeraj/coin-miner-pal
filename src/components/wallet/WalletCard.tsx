@@ -1,13 +1,15 @@
 
 import React, { useState } from 'react';
-import { Wallet, CreditCard, ArrowUpRight, Download, Copy, Check, Gift, Lock, BarChart4 } from 'lucide-react';
+import { Wallet, CreditCard, ArrowUpRight, Download, Copy, Check, Gift, Lock, BarChart4, History, ArrowUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { formatCoins, formatUSD, formatWalletAddress } from '@/utils/formatters';
 import { toast } from 'sonner';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 // Mock data for USDT earnings from arbitrage plans
 const mockUsdtEarnings = [
@@ -15,6 +17,15 @@ const mockUsdtEarnings = [
   { id: 'e-2', planName: 'Arbitrage Plan', amount: 0.96, date: '2023-05-14 09:30:00', status: 'credited' },
   { id: 'e-3', planName: 'Arbitrage Plan', amount: 0.96, date: '2023-05-15 09:30:00', status: 'credited' },
   { id: 'e-4', planName: 'Arbitrage Plan', amount: 0.96, date: '2023-05-16 09:30:00', status: 'credited' }
+];
+
+// Mock data for transaction history
+const mockUsdtTransactions = [
+  { id: 't-1', type: 'Earning', amount: 0.96, date: '2023-05-16 09:30:00', status: 'completed', description: 'Daily arbitrage earning' },
+  { id: 't-2', type: 'Earning', amount: 0.96, date: '2023-05-15 09:30:00', status: 'completed', description: 'Daily arbitrage earning' },
+  { id: 't-3', type: 'Withdrawal', amount: -25.00, date: '2023-05-10 14:20:00', status: 'completed', description: 'USDT withdrawal' },
+  { id: 't-4', type: 'Earning', amount: 0.96, date: '2023-05-09 09:30:00', status: 'completed', description: 'Daily arbitrage earning' },
+  { id: 't-5', type: 'Earning', amount: 0.96, date: '2023-05-08 09:30:00', status: 'completed', description: 'Daily arbitrage earning' }
 ];
 
 // Format date to Indian Time (IST)
@@ -34,15 +45,68 @@ const formatToIndianTime = (dateString: string) => {
 const WalletCard: React.FC = () => {
   const { user, setWithdrawalAddress } = useAuth();
   const [withdrawalAddressInput, setWithdrawalAddressInput] = useState('');
+  const [usdtAddressInput, setUsdtAddressInput] = useState('');
   const [addressCopied, setAddressCopied] = useState(false);
   const [showAddressForm, setShowAddressForm] = useState(false);
+  const [showUsdtAddressForm, setShowUsdtAddressForm] = useState(false);
+  const [withdrawalAmount, setWithdrawalAmount] = useState('');
+  const [showWithdrawalForm, setShowWithdrawalForm] = useState(false);
   const [activeTab, setActiveTab] = useState('wallet');
   
   // Calculate total USDT earnings
   const totalUsdtEarnings = mockUsdtEarnings.reduce((sum, earning) => sum + earning.amount, 0);
   
-  const handleWithdrawal = () => {
+  // Function to calculate available USDT balance (earnings minus withdrawals)
+  const calculateAvailableUsdtBalance = () => {
+    const withdrawals = mockUsdtTransactions
+      .filter(tx => tx.type === 'Withdrawal')
+      .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
+    
+    const earnings = mockUsdtTransactions
+      .filter(tx => tx.type === 'Earning')
+      .reduce((sum, tx) => sum + tx.amount, 0);
+    
+    return earnings - withdrawals;
+  };
+  
+  const availableUsdtBalance = calculateAvailableUsdtBalance();
+  
+  const handleInfiniumWithdrawal = () => {
     toast.error('Infinium coins are locked and cannot be withdrawn');
+  };
+  
+  const handleUsdtWithdrawal = () => {
+    if (!user?.withdrawalAddress) {
+      toast.error('Please set a USDT withdrawal address first');
+      setShowUsdtAddressForm(true);
+      return;
+    }
+    
+    setShowWithdrawalForm(true);
+  };
+  
+  const processUsdtWithdrawal = () => {
+    const amount = parseFloat(withdrawalAmount);
+    
+    if (isNaN(amount) || amount <= 0) {
+      toast.error('Please enter a valid withdrawal amount');
+      return;
+    }
+    
+    if (amount < 50) {
+      toast.error('Minimum withdrawal amount is $50');
+      return;
+    }
+    
+    if (amount > availableUsdtBalance) {
+      toast.error(`Insufficient balance. You have $${availableUsdtBalance.toFixed(2)} available`);
+      return;
+    }
+    
+    // In a real app, this would call an API to process the withdrawal
+    toast.success(`Withdrawal of $${amount.toFixed(2)} USDT initiated. It will be processed within 24 hours.`);
+    setShowWithdrawalForm(false);
+    setWithdrawalAmount('');
   };
   
   const handleSetAddress = () => {
@@ -54,6 +118,20 @@ const WalletCard: React.FC = () => {
     setWithdrawalAddress(withdrawalAddressInput);
     setShowAddressForm(false);
     setWithdrawalAddressInput('');
+    toast.success('Infinium coin withdrawal address updated');
+  };
+  
+  const handleSetUsdtAddress = () => {
+    if (!usdtAddressInput.trim()) {
+      toast.error('Please enter a valid BEP-20 address for USDT');
+      return;
+    }
+    
+    // In a real app, this would update the user's USDT withdrawal address in the backend
+    setWithdrawalAddress(usdtAddressInput); // Using the same function for demo purposes
+    setShowUsdtAddressForm(false);
+    setUsdtAddressInput('');
+    toast.success('USDT withdrawal address updated');
   };
   
   const copyAddress = () => {
@@ -70,7 +148,7 @@ const WalletCard: React.FC = () => {
   return (
     <div className="w-full">
       <Tabs defaultValue="wallet" className="w-full" onValueChange={setActiveTab}>
-        <TabsList className="grid grid-cols-2 mb-4">
+        <TabsList className="grid grid-cols-3 mb-4">
           <TabsTrigger value="wallet">
             <Wallet className="h-4 w-4 mr-2" />
             Wallet
@@ -78,6 +156,10 @@ const WalletCard: React.FC = () => {
           <TabsTrigger value="usdt-earnings">
             <BarChart4 className="h-4 w-4 mr-2" />
             USDT Earnings
+          </TabsTrigger>
+          <TabsTrigger value="history">
+            <History className="h-4 w-4 mr-2" />
+            History
           </TabsTrigger>
         </TabsList>
         
@@ -110,7 +192,7 @@ const WalletCard: React.FC = () => {
                 <Button 
                   variant="ghost" 
                   className="bg-white/10 hover:bg-white/20 text-white rounded-lg h-12 border-none"
-                  onClick={handleWithdrawal}
+                  onClick={handleInfiniumWithdrawal}
                 >
                   <Lock size={16} className="mr-2" />
                   Locked
@@ -231,8 +313,8 @@ const WalletCard: React.FC = () => {
               <div className="flex justify-between items-start mb-6">
                 <div>
                   <p className="text-xs text-white/70 mb-1">Total USDT Earned</p>
-                  <p className="text-2xl font-bold">${totalUsdtEarnings.toFixed(2)}</p>
-                  <p className="text-sm text-white/70">From Arbitrage Plan</p>
+                  <p className="text-2xl font-bold">${availableUsdtBalance.toFixed(2)}</p>
+                  <p className="text-sm text-white/70">Available for withdrawal</p>
                 </div>
                 <div className="p-2 bg-white/10 rounded-full">
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -242,17 +324,89 @@ const WalletCard: React.FC = () => {
                 </div>
               </div>
               
-              <div className="grid grid-cols-1 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <Button 
                   variant="ghost" 
                   className="bg-white/10 hover:bg-white/20 text-white rounded-lg h-12 border-none"
-                  onClick={() => setActiveTab('wallet')}
+                  onClick={handleUsdtWithdrawal}
+                >
+                  <ArrowUpRight size={16} className="mr-2" />
+                  Withdraw
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="bg-white/10 hover:bg-white/20 text-white rounded-lg h-12 border-none"
+                  onClick={() => setShowUsdtAddressForm(!showUsdtAddressForm)}
                 >
                   <CreditCard size={16} className="mr-2" />
-                  Manage Withdrawal Address
+                  Address
                 </Button>
               </div>
             </div>
+            
+            {showUsdtAddressForm && (
+              <div className="mb-6 bg-gray-50 p-4 rounded-xl animate-scale-up">
+                <p className="font-medium text-sm mb-2">USDT Withdrawal Address (BEP-20)</p>
+                <div className="flex space-x-2">
+                  <Input 
+                    value={usdtAddressInput}
+                    onChange={(e) => setUsdtAddressInput(e.target.value)}
+                    placeholder="Enter your BEP-20 address for USDT"
+                    className="flex-1"
+                  />
+                  <Button onClick={handleSetUsdtAddress}>Save</Button>
+                </div>
+              </div>
+            )}
+            
+            {showWithdrawalForm && (
+              <div className="mb-6 bg-gray-50 p-4 rounded-xl animate-scale-up">
+                <p className="font-medium text-sm mb-3">Withdraw USDT (Minimum $50)</p>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="amount">Amount in USDT</Label>
+                    <div className="flex mt-1">
+                      <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500">$</span>
+                      <Input
+                        id="amount"
+                        type="number"
+                        min="50"
+                        step="0.01"
+                        className="rounded-l-none"
+                        placeholder="50.00"
+                        value={withdrawalAmount}
+                        onChange={(e) => setWithdrawalAmount(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="text-xs text-gray-500">
+                    <p>• Minimum withdrawal amount: $50</p>
+                    <p>• Network fee: 1 USDT</p>
+                    <p>• Processing time: 24 hours</p>
+                  </div>
+                  
+                  <div className="flex space-x-3">
+                    <Button 
+                      className="flex-1" 
+                      onClick={processUsdtWithdrawal}
+                    >
+                      Withdraw
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => {
+                        setShowWithdrawalForm(false);
+                        setWithdrawalAmount('');
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
             
             <div className="bg-white rounded-xl p-4 shadow-sm">
               <h4 className="font-medium text-gray-800 mb-4">Earnings History</h4>
@@ -276,6 +430,59 @@ const WalletCard: React.FC = () => {
                   </TableBody>
                 </Table>
               </div>
+            </div>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="history" className="mt-0">
+          <div className="glass-card rounded-2xl p-6 animate-scale-up">
+            <div className="flex items-center mb-6">
+              <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center mr-3">
+                <History className="text-purple-500" size={20} />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg">Transaction History</h3>
+                <p className="text-sm text-gray-500">All your USDT transactions</p>
+              </div>
+            </div>
+            
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Date (IST)</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {mockUsdtTransactions.map((tx) => (
+                    <TableRow key={tx.id}>
+                      <TableCell className="font-medium">{formatToIndianTime(tx.date)}</TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          tx.type === 'Earning' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          {tx.type}
+                        </span>
+                      </TableCell>
+                      <TableCell>{tx.description}</TableCell>
+                      <TableCell className={`text-right ${
+                        tx.amount > 0 ? 'text-green-600' : 'text-blue-600'
+                      }`}>
+                        {tx.amount > 0 ? '+' : ''}${tx.amount.toFixed(2)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+            
+            <div className="mt-6 bg-gray-50 p-4 rounded-xl">
+              <p className="text-sm text-gray-700">
+                <span className="font-medium">Note:</span> Withdrawals are processed within 24 hours. The minimum withdrawal amount is $50 USDT.
+              </p>
             </div>
           </div>
         </TabsContent>
