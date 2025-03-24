@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 const Referral: React.FC = () => {
-  const { isAuthenticated, applyReferralCode } = useAuth();
+  const { isAuthenticated, applyReferralCode, user } = useAuth();
   const [referralCode, setReferralCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -28,8 +28,10 @@ const Referral: React.FC = () => {
     setIsSubmitting(true);
     try {
       await applyReferralCode(referralCode.trim());
+      toast.success('Referral code applied successfully!');
       setReferralCode('');
     } catch (error) {
+      console.error('Referral Error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to apply referral code');
     } finally {
       setIsSubmitting(false);
@@ -46,24 +48,31 @@ const Referral: React.FC = () => {
           <p className="text-gray-500">Invite friends and earn 250 coins per referral</p>
         </div>
         
-        <Card className="p-4 mb-6 animate-scale-up">
-          <h2 className="text-lg font-semibold mb-3">Apply Referral Code</h2>
-          <div className="flex space-x-2">
-            <Input 
-              placeholder="Enter referral code" 
-              value={referralCode} 
-              onChange={(e) => setReferralCode(e.target.value)}
-              className="flex-1"
-            />
-            <Button 
-              onClick={handleApplyReferralCode} 
-              disabled={isSubmitting}
-              className="bg-brand-indigo hover:bg-brand-indigo/90"
-            >
-              Apply
-            </Button>
-          </div>
-        </Card>
+        {!user?.appliedReferralCode ? (
+          <Card className="p-4 mb-6 animate-scale-up">
+            <h2 className="text-lg font-semibold mb-3">Apply Referral Code</h2>
+            <div className="flex space-x-2">
+              <Input 
+                placeholder="Enter referral code" 
+                value={referralCode} 
+                onChange={(e) => setReferralCode(e.target.value)}
+                className="flex-1"
+              />
+              <Button 
+                onClick={handleApplyReferralCode} 
+                disabled={isSubmitting}
+                className="bg-brand-indigo hover:bg-brand-indigo/90"
+              >
+                Apply
+              </Button>
+            </div>
+          </Card>
+        ) : (
+          <Card className="p-4 mb-6 animate-scale-up">
+            <h2 className="text-lg font-semibold mb-3">Referral Applied</h2>
+            <p className="text-green-600">You have successfully applied a referral code!</p>
+          </Card>
+        )}
         
         <ReferralCard />
       </main>
