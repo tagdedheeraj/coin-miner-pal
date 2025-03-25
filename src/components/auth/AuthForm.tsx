@@ -17,20 +17,19 @@ interface AuthFormProps {
   onSuccess: () => void;
 }
 
-// Define the validation schema
-const createAuthSchema = (isSignUp: boolean) => {
-  const baseSchema = {
-    email: z.string().email({ message: "Please enter a valid email address" }),
-    password: z.string().min(6, { message: "Password must be at least 6 characters long" }),
-  };
+// Define the validation schemas
+const signInSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email address" }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters long" }),
+});
 
-  return isSignUp
-    ? z.object({
-        ...baseSchema,
-        name: z.string().min(2, { message: "Name must be at least 2 characters long" }),
-      })
-    : z.object(baseSchema);
-};
+const signUpSchema = signInSchema.extend({
+  name: z.string().min(2, { message: "Name must be at least 2 characters long" }),
+});
+
+// Define types based on the schemas
+type SignInFormValues = z.infer<typeof signInSchema>;
+type SignUpFormValues = z.infer<typeof signUpSchema>;
 
 const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
   const { signIn, signUp, isLoading } = useAuth();
@@ -38,12 +37,17 @@ const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
   const { toast } = useToast();
   const isSignUp = type === 'sign-up';
   
-  // Create form with validation
-  const authSchema = createAuthSchema(isSignUp);
-  type AuthFormValues = z.infer<typeof authSchema>;
-  
-  const form = useForm<AuthFormValues>({
-    resolver: zodResolver(authSchema),
+  // Create the appropriate form based on type
+  const signInForm = useForm<SignInFormValues>({
+    resolver: zodResolver(signInSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
+
+  const signUpForm = useForm<SignUpFormValues>({
+    resolver: zodResolver(signUpSchema),
     defaultValues: {
       name: '',
       email: '',
@@ -51,12 +55,18 @@ const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
     },
   });
 
-  const onSubmit = async (values: AuthFormValues) => {
+  // Use the appropriate form
+  const form = isSignUp ? signUpForm : signInForm;
+
+  const onSubmit = async (values: SignInFormValues | SignUpFormValues) => {
     try {
       if (isSignUp) {
-        await signUp(values.name, values.email, values.password);
+        // Safe to cast since we're in sign-up mode
+        const signUpValues = values as SignUpFormValues;
+        await signUp(signUpValues.name, signUpValues.email, signUpValues.password);
       } else {
-        await signIn(values.email, values.password);
+        const signInValues = values as SignInFormValues;
+        await signIn(signInValues.email, signInValues.password);
       }
       onSuccess();
     } catch (error) {
