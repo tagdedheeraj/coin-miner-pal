@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -6,10 +5,13 @@ import AuthForm from '@/components/auth/AuthForm';
 import { ArrowLeft } from 'lucide-react';
 
 const SignIn: React.FC = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   
   if (isAuthenticated) {
+    if (user?.isAdmin) {
+      return <Navigate to="/admin" replace />;
+    }
     return <Navigate to="/dashboard" replace />;
   }
   
@@ -33,7 +35,9 @@ const SignIn: React.FC = () => {
           
           <AuthForm 
             type="sign-in" 
-            onSuccess={() => navigate('/dashboard')}
+            onSuccess={() => {
+              // This callback will now be handled by the redirect logic above
+            }}
           />
           
           <div className="mt-8 text-center animate-fade-in">
