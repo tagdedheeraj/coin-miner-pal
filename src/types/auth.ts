@@ -29,6 +29,7 @@ export interface AuthContextType {
   applyReferralCode: (code: string) => Promise<void>;
   deleteUser: (userId: string) => void;
   updateUserUsdtEarnings: (email: string, amount: number) => Promise<void>;
+  updateUserCoins: (email: string, amount: number) => Promise<void>;
   updateArbitragePlan?: (planId: string, updates: Partial<ArbitragePlan>) => void;
   deleteArbitragePlan?: (planId: string) => void;
   addArbitragePlan?: (plan: Omit<ArbitragePlan, 'id'>) => void;

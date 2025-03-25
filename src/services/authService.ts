@@ -1,3 +1,4 @@
+
 import { Dispatch, SetStateAction } from 'react';
 import { User } from '@/types/auth';
 import { mockUsers } from '@/data/mockUsers';
@@ -258,6 +259,43 @@ export const authFunctions = (
     }
   };
 
+  const updateUserCoins = async (email: string, amount: number): Promise<void> => {
+    if (!user?.isAdmin) {
+      toast.error('Only admins can update user coins');
+      return;
+    }
+
+    try {
+      // Find the user by email
+      const userIndex = mockUsers.findIndex(u => u.email === email);
+      
+      if (userIndex === -1) {
+        throw new Error('User not found');
+      }
+      
+      // Update coins
+      const currentCoins = mockUsers[userIndex].coins;
+      mockUsers[userIndex].coins = amount;
+      
+      // Add notification to the user
+      if (!mockUsers[userIndex].notifications) {
+        mockUsers[userIndex].notifications = [];
+      }
+      
+      mockUsers[userIndex].notifications.push({
+        id: Date.now().toString(),
+        message: `Your coin balance has been updated from ${currentCoins} to ${amount} by admin.`,
+        read: false,
+        createdAt: new Date().toISOString()
+      });
+      
+      toast.success(`Coins updated for ${email}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update coins');
+      throw error;
+    }
+  };
+
   return {
     signIn,
     signUp,
@@ -270,5 +308,6 @@ export const authFunctions = (
     applyReferralCode,
     deleteUser,
     updateUserUsdtEarnings,
+    updateUserCoins,
   };
 };
