@@ -8,14 +8,17 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Trash2, User, Search, LayoutGrid } from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { Trash2, User, Search, LayoutGrid, DollarSign } from 'lucide-react';
 import { mockUsers } from '@/data/mockUsers';
 import ArbitragePlanManagement from '@/components/admin/ArbitragePlanManagement';
 
 const AdminPanel: React.FC = () => {
-  const { user, isAuthenticated, deleteUser } = useAuth();
+  const { user, isAuthenticated, deleteUser, updateUserUsdtEarnings } = useAuth();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+  const [usdtAmount, setUsdtAmount] = useState('');
   
   // If not authenticated or not admin, redirect to sign-in
   if (!isAuthenticated || !user?.isAdmin) {
@@ -30,6 +33,20 @@ const AdminPanel: React.FC = () => {
   const handleDeleteUser = (userId: string) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       deleteUser(userId);
+    }
+  };
+
+  const handleUpdateUsdtEarnings = async () => {
+    if (!userEmail || !usdtAmount) {
+      return;
+    }
+
+    try {
+      await updateUserUsdtEarnings(userEmail, parseFloat(usdtAmount));
+      setUserEmail('');
+      setUsdtAmount('');
+    } catch (error) {
+      console.error('Failed to update USDT earnings:', error);
     }
   };
   
@@ -50,6 +67,9 @@ const AdminPanel: React.FC = () => {
             </TabsTrigger>
             <TabsTrigger value="plans" className="flex items-center gap-2">
               <LayoutGrid className="h-4 w-4" /> Arbitrage Plans
+            </TabsTrigger>
+            <TabsTrigger value="usdt" className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4" /> USDT Earnings
             </TabsTrigger>
           </TabsList>
           
@@ -80,6 +100,7 @@ const AdminPanel: React.FC = () => {
                         <TableHead>Name</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Coins</TableHead>
+                        <TableHead>USDT Earnings</TableHead>
                         <TableHead>Referral Code</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
@@ -92,6 +113,7 @@ const AdminPanel: React.FC = () => {
                             <TableCell className="font-medium">{u.name}</TableCell>
                             <TableCell>{u.email}</TableCell>
                             <TableCell>{u.coins}</TableCell>
+                            <TableCell>{u.usdtEarnings || 0}</TableCell>
                             <TableCell className="font-mono text-xs">{u.referralCode}</TableCell>
                             <TableCell>
                               <Button 
@@ -107,7 +129,7 @@ const AdminPanel: React.FC = () => {
                         ))
                       ) : (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center py-6 text-gray-500">
+                          <TableCell colSpan={7} className="text-center py-6 text-gray-500">
                             No users found
                           </TableCell>
                         </TableRow>
@@ -121,6 +143,43 @@ const AdminPanel: React.FC = () => {
           
           <TabsContent value="plans">
             <ArbitragePlanManagement />
+          </TabsContent>
+          
+          <TabsContent value="usdt">
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Update USDT Earnings</CardTitle>
+                <CardDescription>Manually update a user's USDT earnings</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">User Email</Label>
+                    <Input
+                      id="email"
+                      placeholder="Enter user email"
+                      value={userEmail}
+                      onChange={(e) => setUserEmail(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="amount">USDT Amount</Label>
+                    <Input
+                      id="amount"
+                      type="number"
+                      placeholder="Enter USDT amount"
+                      value={usdtAmount}
+                      onChange={(e) => setUsdtAmount(e.target.value)}
+                    />
+                  </div>
+                  
+                  <Button onClick={handleUpdateUsdtEarnings} className="w-full">
+                    Update USDT Earnings
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </main>

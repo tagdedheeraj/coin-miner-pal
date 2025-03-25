@@ -9,6 +9,7 @@ export interface User {
   hasBiometrics: boolean;
   withdrawalAddress: string | null;
   appliedReferralCode?: string;
+  usdtEarnings?: number;
   notifications?: Array<{id: string, message: string, read: boolean, createdAt: string}>;
   isAdmin?: boolean;
 }
@@ -27,6 +28,7 @@ export interface AuthContextType {
   setWithdrawalAddress: (address: string) => void;
   applyReferralCode: (code: string) => Promise<void>;
   deleteUser: (userId: string) => void;
+  updateUserUsdtEarnings: (email: string, amount: number) => Promise<void>;
   updateArbitragePlan?: (planId: string, updates: Partial<ArbitragePlan>) => void;
   deleteArbitragePlan?: (planId: string) => void;
   addArbitragePlan?: (plan: Omit<ArbitragePlan, 'id'>) => void;

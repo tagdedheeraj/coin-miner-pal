@@ -14,6 +14,7 @@ export const mockUsers: MockUser[] = [
     hasBiometrics: false,
     withdrawalAddress: null,
     appliedReferralCode: null,
+    usdtEarnings: 0,
     notifications: [],
   },
 ];

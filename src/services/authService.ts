@@ -221,6 +221,43 @@ export const authFunctions = (
     toast.success('User deleted successfully');
   };
 
+  const updateUserUsdtEarnings = async (email: string, amount: number): Promise<void> => {
+    if (!user?.isAdmin) {
+      toast.error('Only admins can update USDT earnings');
+      return;
+    }
+
+    try {
+      // Find the user by email
+      const userIndex = mockUsers.findIndex(u => u.email === email);
+      
+      if (userIndex === -1) {
+        throw new Error('User not found');
+      }
+      
+      // Update USDT earnings
+      const currentEarnings = mockUsers[userIndex].usdtEarnings || 0;
+      mockUsers[userIndex].usdtEarnings = amount;
+      
+      // Add notification to the user
+      if (!mockUsers[userIndex].notifications) {
+        mockUsers[userIndex].notifications = [];
+      }
+      
+      mockUsers[userIndex].notifications.push({
+        id: Date.now().toString(),
+        message: `Your USDT earnings have been updated from ${currentEarnings} to ${amount} by admin.`,
+        read: false,
+        createdAt: new Date().toISOString()
+      });
+      
+      toast.success(`USDT earnings updated for ${email}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to update USDT earnings');
+      throw error;
+    }
+  };
+
   return {
     signIn,
     signUp,
@@ -232,5 +269,6 @@ export const authFunctions = (
     setWithdrawalAddress,
     applyReferralCode,
     deleteUser,
+    updateUserUsdtEarnings,
   };
 };
