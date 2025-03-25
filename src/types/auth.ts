@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -48,9 +47,9 @@ export interface AuthContextType {
   sendNotificationToAllUsers: (message: string) => void;
   markNotificationAsRead: (notificationId: string) => void;
   requestWithdrawal: (amount: number) => Promise<void>;
-  getWithdrawalRequests: () => WithdrawalRequest[];
-  approveWithdrawalRequest: (requestId: string) => void;
-  rejectWithdrawalRequest: (requestId: string) => void;
+  getWithdrawalRequests: () => Promise<WithdrawalRequest[]>;
+  approveWithdrawalRequest: (requestId: string) => Promise<void>;
+  rejectWithdrawalRequest: (requestId: string) => Promise<void>;
 }
 
 export interface MockUser extends User {

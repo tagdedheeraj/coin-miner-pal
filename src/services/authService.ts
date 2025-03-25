@@ -1,4 +1,3 @@
-
 import { Dispatch, SetStateAction } from 'react';
 import { User, WithdrawalRequest } from '@/types/auth';
 import { mockUsers } from '@/data/mockUsers';
@@ -558,7 +557,7 @@ export const authFunctions = (
     }
   };
   
-  const approveWithdrawalRequest = async (requestId: string): void => {
+  const approveWithdrawalRequest = async (requestId: string): Promise<void> => {
     if (!user?.isAdmin) {
       toast.error('Only admins can approve withdrawal requests');
       return;
@@ -622,7 +621,7 @@ export const authFunctions = (
     }
   };
   
-  const rejectWithdrawalRequest = async (requestId: string): void => {
+  const rejectWithdrawalRequest = async (requestId: string): Promise<void> => {
     if (!user?.isAdmin) {
       toast.error('Only admins can reject withdrawal requests');
       return;

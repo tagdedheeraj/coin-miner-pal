@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/layout/Header';
@@ -34,14 +33,30 @@ const AdminPanel: React.FC = () => {
   const [coinEmail, setCoinEmail] = useState('');
   const [coinAmount, setCoinAmount] = useState('');
   const [notificationMessage, setNotificationMessage] = useState('');
+  const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  // If not authenticated or not admin, redirect to sign-in
+  useEffect(() => {
+    const fetchWithdrawalRequests = async () => {
+      if (user?.isAdmin) {
+        try {
+          const requests = await getWithdrawalRequests();
+          setWithdrawalRequests(requests);
+        } catch (error) {
+          console.error('Error fetching withdrawal requests:', error);
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    
+    fetchWithdrawalRequests();
+  }, [user, getWithdrawalRequests]);
+  
   if (!isAuthenticated || !user?.isAdmin) {
     return <Navigate to="/sign-in" replace />;
   }
   
-  // Get all withdrawal requests
-  const withdrawalRequests = getWithdrawalRequests();
   const pendingRequests = withdrawalRequests.filter(req => req.status === 'pending');
   
   const filteredUsers = mockUsers.filter(user => 
@@ -92,19 +107,30 @@ const AdminPanel: React.FC = () => {
     setNotificationMessage('');
   };
   
-  const handleApproveWithdrawal = (requestId: string) => {
+  const handleApproveWithdrawal = async (requestId: string) => {
     if (window.confirm('Are you sure you want to approve this withdrawal request?')) {
-      approveWithdrawalRequest(requestId);
+      try {
+        await approveWithdrawalRequest(requestId);
+        const updatedRequests = await getWithdrawalRequests();
+        setWithdrawalRequests(updatedRequests);
+      } catch (error) {
+        console.error('Error approving withdrawal:', error);
+      }
     }
   };
   
-  const handleRejectWithdrawal = (requestId: string) => {
+  const handleRejectWithdrawal = async (requestId: string) => {
     if (window.confirm('Are you sure you want to reject this withdrawal request?')) {
-      rejectWithdrawalRequest(requestId);
+      try {
+        await rejectWithdrawalRequest(requestId);
+        const updatedRequests = await getWithdrawalRequests();
+        setWithdrawalRequests(updatedRequests);
+      } catch (error) {
+        console.error('Error rejecting withdrawal:', error);
+      }
     }
   };
   
-  // Format date to local string
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleString('en-IN', {
@@ -334,7 +360,12 @@ const AdminPanel: React.FC = () => {
                 <CardDescription>Manage user withdrawal requests</CardDescription>
               </CardHeader>
               <CardContent>
-                {withdrawalRequests.length > 0 ? (
+                {loading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+                    <p className="text-gray-500">Loading withdrawal requests...</p>
+                  </div>
+                ) : withdrawalRequests.length > 0 ? (
                   <div className="rounded-md border">
                     <Table>
                       <TableHeader>
