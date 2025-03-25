@@ -9,18 +9,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
-import { Trash2, User, Search, LayoutGrid, DollarSign, Coins } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Trash2, User, Search, LayoutGrid, DollarSign, Coins, BellRing } from 'lucide-react';
 import { mockUsers } from '@/data/mockUsers';
 import ArbitragePlanManagement from '@/components/admin/ArbitragePlanManagement';
 
 const AdminPanel: React.FC = () => {
-  const { user, isAuthenticated, deleteUser, updateUserUsdtEarnings, updateUserCoins } = useAuth();
+  const { user, isAuthenticated, deleteUser, updateUserUsdtEarnings, updateUserCoins, sendNotificationToAllUsers } = useAuth();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [usdtAmount, setUsdtAmount] = useState('');
   const [coinEmail, setCoinEmail] = useState('');
   const [coinAmount, setCoinAmount] = useState('');
+  const [notificationMessage, setNotificationMessage] = useState('');
   
   // If not authenticated or not admin, redirect to sign-in
   if (!isAuthenticated || !user?.isAdmin) {
@@ -65,6 +67,15 @@ const AdminPanel: React.FC = () => {
       console.error('Failed to update coins:', error);
     }
   };
+
+  const handleSendNotification = () => {
+    if (!notificationMessage.trim()) {
+      return;
+    }
+
+    sendNotificationToAllUsers(notificationMessage.trim());
+    setNotificationMessage('');
+  };
   
   return (
     <div className="min-h-screen bg-gray-50 pb-20 pt-16">
@@ -89,6 +100,9 @@ const AdminPanel: React.FC = () => {
             </TabsTrigger>
             <TabsTrigger value="coins" className="flex items-center gap-2">
               <Coins className="h-4 w-4" /> Coins
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="flex items-center gap-2">
+              <BellRing className="h-4 w-4" /> Notifications
             </TabsTrigger>
           </TabsList>
           
@@ -232,6 +246,33 @@ const AdminPanel: React.FC = () => {
                   
                   <Button onClick={handleUpdateCoins} className="w-full">
                     Update Coins
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="notifications">
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Send Global Notification</CardTitle>
+                <CardDescription>Send a notification to all users in the system</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="notificationMessage">Notification Message</Label>
+                    <Textarea
+                      id="notificationMessage"
+                      placeholder="Enter notification message"
+                      value={notificationMessage}
+                      onChange={(e) => setNotificationMessage(e.target.value)}
+                      className="min-h-[100px]"
+                    />
+                  </div>
+                  
+                  <Button onClick={handleSendNotification} className="w-full">
+                    Send Notification to All Users
                   </Button>
                 </div>
               </CardContent>

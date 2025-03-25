@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -33,6 +32,8 @@ export interface AuthContextType {
   updateArbitragePlan?: (planId: string, updates: Partial<ArbitragePlan>) => void;
   deleteArbitragePlan?: (planId: string) => void;
   addArbitragePlan?: (plan: Omit<ArbitragePlan, 'id'>) => void;
+  sendNotificationToAllUsers: (message: string) => void;
+  markNotificationAsRead: (notificationId: string) => void;
 }
 
 export interface MockUser extends User {

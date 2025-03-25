@@ -1,4 +1,3 @@
-
 import { Dispatch, SetStateAction } from 'react';
 import { User } from '@/types/auth';
 import { mockUsers } from '@/data/mockUsers';
@@ -296,6 +295,75 @@ export const authFunctions = (
     }
   };
 
+  const sendNotificationToAllUsers = (message: string) => {
+    if (!user?.isAdmin) {
+      toast.error('Only admins can send notifications');
+      return;
+    }
+    
+    try {
+      // Create notification object
+      const notification = {
+        id: Date.now().toString(),
+        message,
+        read: false,
+        createdAt: new Date().toISOString()
+      };
+      
+      // Add notification to all users
+      mockUsers.forEach(mockUser => {
+        if (!mockUser.notifications) {
+          mockUser.notifications = [];
+        }
+        mockUser.notifications.push(notification);
+      });
+      
+      // Also update current user if they have notifications
+      if (user) {
+        const currentUserNotifications = [...(user.notifications || []), notification];
+        setUser({
+          ...user,
+          notifications: currentUserNotifications
+        });
+      }
+      
+      toast.success('Notification sent to all users');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to send notification');
+    }
+  };
+
+  const markNotificationAsRead = (notificationId: string) => {
+    if (!user) return;
+    
+    // Update the notification in the current user's state
+    const updatedNotifications = user.notifications?.map(notification => 
+      notification.id === notificationId 
+        ? { ...notification, read: true } 
+        : notification
+    );
+    
+    // Update the user state
+    setUser({
+      ...user,
+      notifications: updatedNotifications
+    });
+    
+    // Also update in mock database
+    const userIndex = mockUsers.findIndex(u => u.id === user.id);
+    if (userIndex !== -1) {
+      if (!mockUsers[userIndex].notifications) {
+        mockUsers[userIndex].notifications = [];
+      }
+      
+      mockUsers[userIndex].notifications = mockUsers[userIndex].notifications.map(notification => 
+        notification.id === notificationId 
+          ? { ...notification, read: true } 
+          : notification
+      );
+    }
+  };
+
   return {
     signIn,
     signUp,
@@ -309,5 +377,7 @@ export const authFunctions = (
     deleteUser,
     updateUserUsdtEarnings,
     updateUserCoins,
+    sendNotificationToAllUsers,
+    markNotificationAsRead,
   };
 };
