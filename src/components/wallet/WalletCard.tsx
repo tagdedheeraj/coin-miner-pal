@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Wallet, CreditCard, ArrowUpRight, Download, Copy, Check, Gift, Lock, BarChart4, History, ArrowUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,37 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
-// Mock data for USDT earnings from arbitrage plans
-const mockUsdtEarnings = [
-  { id: 'e-1', planName: 'Arbitrage Plan', amount: 0.96, date: '2023-05-13 09:30:00', status: 'credited' },
-  { id: 'e-2', planName: 'Arbitrage Plan', amount: 0.96, date: '2023-05-14 09:30:00', status: 'credited' },
-  { id: 'e-3', planName: 'Arbitrage Plan', amount: 0.96, date: '2023-05-15 09:30:00', status: 'credited' },
-  { id: 'e-4', planName: 'Arbitrage Plan', amount: 0.96, date: '2023-05-16 09:30:00', status: 'credited' }
-];
-
-// Mock data for transaction history
-const mockUsdtTransactions = [
-  { id: 't-1', type: 'Earning', amount: 0.96, date: '2023-05-16 09:30:00', status: 'completed', description: 'Daily arbitrage earning' },
-  { id: 't-2', type: 'Earning', amount: 0.96, date: '2023-05-15 09:30:00', status: 'completed', description: 'Daily arbitrage earning' },
-  { id: 't-3', type: 'Withdrawal', amount: -25.00, date: '2023-05-10 14:20:00', status: 'completed', description: 'USDT withdrawal' },
-  { id: 't-4', type: 'Earning', amount: 0.96, date: '2023-05-09 09:30:00', status: 'completed', description: 'Daily arbitrage earning' },
-  { id: 't-5', type: 'Earning', amount: 0.96, date: '2023-05-08 09:30:00', status: 'completed', description: 'Daily arbitrage earning' }
-];
-
-// Format date to Indian Time (IST)
-const formatToIndianTime = (dateString: string) => {
-  const date = new Date(dateString);
-  return date.toLocaleString('en-IN', {
-    timeZone: 'Asia/Kolkata',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true
-  });
-};
-
 const WalletCard: React.FC = () => {
   const { user, setWithdrawalAddress, requestWithdrawal } = useAuth();
   const [withdrawalAddressInput, setWithdrawalAddressInput] = useState('');
@@ -52,23 +22,15 @@ const WalletCard: React.FC = () => {
   const [showWithdrawalForm, setShowWithdrawalForm] = useState(false);
   const [activeTab, setActiveTab] = useState('wallet');
   
-  // Calculate total USDT earnings
-  const totalUsdtEarnings = mockUsdtEarnings.reduce((sum, earning) => sum + earning.amount, 0);
+  // नए उपयोगकर्ता के लिए डेटा
+  const usdtEarnings = user?.usdtEarnings || 0;
   
-  // Function to calculate available USDT balance (earnings minus withdrawals)
-  const calculateAvailableUsdtBalance = () => {
-    const withdrawals = mockUsdtTransactions
-      .filter(tx => tx.type === 'Withdrawal')
-      .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
-    
-    const earnings = mockUsdtTransactions
-      .filter(tx => tx.type === 'Earning')
-      .reduce((sum, tx) => sum + tx.amount, 0);
-    
-    return earnings - withdrawals;
-  };
+  // मॉक डेटा - केवल उदाहरण के लिए, वास्तविक डेटा से बदला जाना चाहिए
+  const mockUsdtEarnings = [];
+  const mockUsdtTransactions = [];
   
-  const availableUsdtBalance = calculateAvailableUsdtBalance();
+  // Calculate available USDT balance - अब हम user की वास्तविक usdtEarnings का उपयोग करेंगे
+  const availableUsdtBalance = user?.usdtEarnings || 0;
   
   const handleInfiniumWithdrawal = () => {
     toast.error('Infinium coins are locked and cannot be withdrawn');
@@ -147,6 +109,39 @@ const WalletCard: React.FC = () => {
   };
   
   if (!user) return null;
+  
+  // Format date to Indian Time (IST)
+  const formatToIndianTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+  
+  // उदाहरण के लिए, हम कुछ हाल के लेनदेन दिखाएंगे
+  const recentTransactions = [];
+  
+  // Only show the recent signup bonus if coins are exactly 200 (most likely a new account)
+  if (user.coins === 200) {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    
+    recentTransactions.push({
+      id: 'signup-bonus',
+      type: 'Signup bonus',
+      amount: 200,
+      date: yesterday.toISOString(),
+      icon: Gift,
+      iconBg: 'bg-brand-pink/10',
+      iconColor: 'text-brand-pink'
+    });
+  }
   
   return (
     <div className="w-full">
@@ -258,44 +253,27 @@ const WalletCard: React.FC = () => {
             <h3 className="font-semibold text-lg mb-6">Transaction History</h3>
             
             <div className="space-y-4">
-              <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                <div className="flex items-center">
-                  <div className="w-8 h-8 rounded-full bg-brand-green/10 flex items-center justify-center mr-3">
-                    <Download size={16} className="text-brand-green" />
+              {recentTransactions.length > 0 ? (
+                recentTransactions.map(tx => (
+                  <div key={tx.id} className="flex items-center justify-between py-3 border-b border-gray-100">
+                    <div className="flex items-center">
+                      <div className={`w-8 h-8 rounded-full ${tx.iconBg} flex items-center justify-center mr-3`}>
+                        <tx.icon size={16} className={tx.iconColor} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium">{tx.type}</p>
+                        <p className="text-xs text-gray-500">{formatToIndianTime(tx.date)}</p>
+                      </div>
+                    </div>
+                    <p className="font-medium text-brand-pink">+{tx.amount.toFixed(2)}</p>
                   </div>
-                  <div>
-                    <p className="text-sm font-medium">Mining reward</p>
-                    <p className="text-xs text-gray-500">Today, 09:45 AM</p>
-                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No transactions yet</p>
+                  <p className="text-sm mt-2">Your transaction history will appear here</p>
                 </div>
-                <p className="font-medium text-brand-green">+48.00</p>
-              </div>
-              
-              <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                <div className="flex items-center">
-                  <div className="w-8 h-8 rounded-full bg-brand-blue/10 flex items-center justify-center mr-3">
-                    <Gift size={16} className="text-brand-blue" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Ad reward</p>
-                    <p className="text-xs text-gray-500">Today, 08:30 AM</p>
-                  </div>
-                </div>
-                <p className="font-medium text-brand-blue">+1.00</p>
-              </div>
-              
-              <div className="flex items-center justify-between py-3">
-                <div className="flex items-center">
-                  <div className="w-8 h-8 rounded-full bg-brand-pink/10 flex items-center justify-center mr-3">
-                    <Gift size={16} className="text-brand-pink" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium">Signup bonus</p>
-                    <p className="text-xs text-gray-500">Yesterday, 02:15 PM</p>
-                  </div>
-                </div>
-                <p className="font-medium text-brand-pink">+200.00</p>
-              </div>
+              )}
             </div>
           </div>
         </TabsContent>
@@ -411,29 +389,45 @@ const WalletCard: React.FC = () => {
               </div>
             )}
             
-            <div className="bg-white rounded-xl p-4 shadow-sm">
-              <h4 className="font-medium text-gray-800 mb-4">Earnings History</h4>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date (IST)</TableHead>
-                      <TableHead>Plan</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {mockUsdtEarnings.map((earning) => (
-                      <TableRow key={earning.id}>
-                        <TableCell className="font-medium">{formatToIndianTime(earning.date)}</TableCell>
-                        <TableCell>{earning.planName}</TableCell>
-                        <TableCell className="text-right text-green-600">${earning.amount.toFixed(2)}</TableCell>
+            {mockUsdtEarnings.length > 0 ? (
+              <div className="bg-white rounded-xl p-4 shadow-sm">
+                <h4 className="font-medium text-gray-800 mb-4">Earnings History</h4>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Date (IST)</TableHead>
+                        <TableHead>Plan</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {mockUsdtEarnings.map((earning) => (
+                        <TableRow key={earning.id}>
+                          <TableCell className="font-medium">{formatToIndianTime(earning.date)}</TableCell>
+                          <TableCell>{earning.planName}</TableCell>
+                          <TableCell className="text-right text-green-600">${earning.amount.toFixed(2)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="bg-white rounded-xl p-6 shadow-sm text-center">
+                <BarChart4 className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <h4 className="font-medium text-gray-800 mb-2">No Earnings Yet</h4>
+                <p className="text-sm text-gray-500">
+                  Purchase an arbitrage plan to start earning USDT daily.
+                </p>
+                <Button 
+                  className="mt-4"
+                  onClick={() => navigate('/plans')}
+                >
+                  View Arbitrage Plans
+                </Button>
+              </div>
+            )}
           </div>
         </TabsContent>
         
@@ -449,38 +443,48 @@ const WalletCard: React.FC = () => {
               </div>
             </div>
             
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Date (IST)</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mockUsdtTransactions.map((tx) => (
-                    <TableRow key={tx.id}>
-                      <TableCell className="font-medium">{formatToIndianTime(tx.date)}</TableCell>
-                      <TableCell>
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          tx.type === 'Earning' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-                        }`}>
-                          {tx.type}
-                        </span>
-                      </TableCell>
-                      <TableCell>{tx.description}</TableCell>
-                      <TableCell className={`text-right ${
-                        tx.amount > 0 ? 'text-green-600' : 'text-blue-600'
-                      }`}>
-                        {tx.amount > 0 ? '+' : ''}${tx.amount.toFixed(2)}
-                      </TableCell>
+            {mockUsdtTransactions.length > 0 ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date (IST)</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {mockUsdtTransactions.map((tx) => (
+                      <TableRow key={tx.id}>
+                        <TableCell className="font-medium">{formatToIndianTime(tx.date)}</TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            tx.type === 'Earning' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                          }`}>
+                            {tx.type}
+                          </span>
+                        </TableCell>
+                        <TableCell>{tx.description}</TableCell>
+                        <TableCell className={`text-right ${
+                          tx.amount > 0 ? 'text-green-600' : 'text-blue-600'
+                        }`}>
+                          {tx.amount > 0 ? '+' : ''}${tx.amount.toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <History className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <h4 className="font-medium text-gray-800 mb-2">No Transaction History</h4>
+                <p className="text-sm text-gray-500">
+                  Your USDT transactions will appear here once you start earning or making withdrawals.
+                </p>
+              </div>
+            )}
             
             <div className="mt-6 bg-gray-50 p-4 rounded-xl">
               <p className="text-sm text-gray-700">
