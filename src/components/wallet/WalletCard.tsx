@@ -1,5 +1,5 @@
-
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Wallet, CreditCard, ArrowUpRight, Download, Copy, Check, Gift, Lock, BarChart4, History, ArrowUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 
 const WalletCard: React.FC = () => {
+  const navigate = useNavigate();
   const { user, setWithdrawalAddress, requestWithdrawal } = useAuth();
   const [withdrawalAddressInput, setWithdrawalAddressInput] = useState('');
   const [usdtAddressInput, setUsdtAddressInput] = useState('');

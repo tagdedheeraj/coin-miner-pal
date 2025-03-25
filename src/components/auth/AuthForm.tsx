@@ -23,8 +23,10 @@ const signInSchema = z.object({
   password: z.string().min(6, { message: "Password must be at least 6 characters long" }),
 });
 
-const signUpSchema = signInSchema.extend({
+const signUpSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters long" }),
+  email: z.string().email({ message: "Please enter a valid email address" }),
+  password: z.string().min(6, { message: "Password must be at least 6 characters long" }),
 });
 
 // Define types based on the schemas
@@ -91,7 +93,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             {isSignUp && (
               <FormField
-                control={form.control}
+                control={signUpForm.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
