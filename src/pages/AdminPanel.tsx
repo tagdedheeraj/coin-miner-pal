@@ -7,8 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Trash2, User, Search } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Trash2, User, Search, LayoutGrid } from 'lucide-react';
 import { mockUsers } from '@/data/mockUsers';
+import ArbitragePlanManagement from '@/components/admin/ArbitragePlanManagement';
 
 const AdminPanel: React.FC = () => {
   const { user, isAuthenticated, deleteUser } = useAuth();
@@ -41,69 +43,86 @@ const AdminPanel: React.FC = () => {
           <p className="text-gray-500">Manage users and system settings</p>
         </div>
         
-        <Card className="mb-6">
-          <CardHeader>
-            <CardTitle>User Management</CardTitle>
-            <CardDescription>View and manage all users in the system</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-4 mb-6">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input 
-                  placeholder="Search users..." 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Coins</TableHead>
-                    <TableHead>Referral Code</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredUsers.length > 0 ? (
-                    filteredUsers.map(u => (
-                      <TableRow key={u.id}>
-                        <TableCell className="font-mono text-xs">{u.id}</TableCell>
-                        <TableCell className="font-medium">{u.name}</TableCell>
-                        <TableCell>{u.email}</TableCell>
-                        <TableCell>{u.coins}</TableCell>
-                        <TableCell className="font-mono text-xs">{u.referralCode}</TableCell>
-                        <TableCell>
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => handleDeleteUser(u.id)}
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
+        <Tabs defaultValue="users" className="w-full">
+          <TabsList className="mb-6">
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <User className="h-4 w-4" /> Users
+            </TabsTrigger>
+            <TabsTrigger value="plans" className="flex items-center gap-2">
+              <LayoutGrid className="h-4 w-4" /> Arbitrage Plans
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="users">
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>User Management</CardTitle>
+                <CardDescription>View and manage all users in the system</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input 
+                      placeholder="Search users..." 
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>ID</TableHead>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Coins</TableHead>
+                        <TableHead>Referral Code</TableHead>
+                        <TableHead>Actions</TableHead>
                       </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-6 text-gray-500">
-                        No users found
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredUsers.length > 0 ? (
+                        filteredUsers.map(u => (
+                          <TableRow key={u.id}>
+                            <TableCell className="font-mono text-xs">{u.id}</TableCell>
+                            <TableCell className="font-medium">{u.name}</TableCell>
+                            <TableCell>{u.email}</TableCell>
+                            <TableCell>{u.coins}</TableCell>
+                            <TableCell className="font-mono text-xs">{u.referralCode}</TableCell>
+                            <TableCell>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => handleDeleteUser(u.id)}
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-6 text-gray-500">
+                            No users found
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="plans">
+            <ArbitragePlanManagement />
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

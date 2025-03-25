@@ -27,8 +27,25 @@ export interface AuthContextType {
   setWithdrawalAddress: (address: string) => void;
   applyReferralCode: (code: string) => Promise<void>;
   deleteUser: (userId: string) => void;
+  updateArbitragePlan?: (planId: string, updates: Partial<ArbitragePlan>) => void;
+  deleteArbitragePlan?: (planId: string) => void;
+  addArbitragePlan?: (plan: Omit<ArbitragePlan, 'id'>) => void;
 }
 
 export interface MockUser extends User {
   password: string;
+}
+
+export interface ArbitragePlan {
+  id: string;
+  name: string;
+  price: number;
+  duration: number;
+  dailyEarnings: number;
+  totalEarnings: number;
+  miningSpeed: string;
+  withdrawal: string;
+  color: string;
+  limited: boolean;
+  limitedTo?: number;
 }
