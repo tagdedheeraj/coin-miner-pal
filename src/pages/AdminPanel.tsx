@@ -10,12 +10,23 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Trash2, User, Search, LayoutGrid, DollarSign, Coins, BellRing } from 'lucide-react';
+import { Trash2, User, Search, LayoutGrid, DollarSign, Coins, BellRing, CheckCircle, XCircle, FileText } from 'lucide-react';
 import { mockUsers } from '@/data/mockUsers';
 import ArbitragePlanManagement from '@/components/admin/ArbitragePlanManagement';
+import { WithdrawalRequest } from '@/types/auth';
 
 const AdminPanel: React.FC = () => {
-  const { user, isAuthenticated, deleteUser, updateUserUsdtEarnings, updateUserCoins, sendNotificationToAllUsers } = useAuth();
+  const { 
+    user, 
+    isAuthenticated, 
+    deleteUser, 
+    updateUserUsdtEarnings, 
+    updateUserCoins, 
+    sendNotificationToAllUsers,
+    getWithdrawalRequests,
+    approveWithdrawalRequest,
+    rejectWithdrawalRequest
+  } = useAuth();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [userEmail, setUserEmail] = useState('');
@@ -28,6 +39,10 @@ const AdminPanel: React.FC = () => {
   if (!isAuthenticated || !user?.isAdmin) {
     return <Navigate to="/sign-in" replace />;
   }
+  
+  // Get all withdrawal requests
+  const withdrawalRequests = getWithdrawalRequests();
+  const pendingRequests = withdrawalRequests.filter(req => req.status === 'pending');
   
   const filteredUsers = mockUsers.filter(user => 
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -77,6 +92,31 @@ const AdminPanel: React.FC = () => {
     setNotificationMessage('');
   };
   
+  const handleApproveWithdrawal = (requestId: string) => {
+    if (window.confirm('Are you sure you want to approve this withdrawal request?')) {
+      approveWithdrawalRequest(requestId);
+    }
+  };
+  
+  const handleRejectWithdrawal = (requestId: string) => {
+    if (window.confirm('Are you sure you want to reject this withdrawal request?')) {
+      rejectWithdrawalRequest(requestId);
+    }
+  };
+  
+  // Format date to local string
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-IN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+  
   return (
     <div className="min-h-screen bg-gray-50 pb-20 pt-16">
       <Header />
@@ -103,6 +143,14 @@ const AdminPanel: React.FC = () => {
             </TabsTrigger>
             <TabsTrigger value="notifications" className="flex items-center gap-2">
               <BellRing className="h-4 w-4" /> Notifications
+            </TabsTrigger>
+            <TabsTrigger value="withdrawals" className="flex items-center gap-2">
+              <FileText className="h-4 w-4" /> Withdrawal Requests
+              {pendingRequests.length > 0 && (
+                <span className="ml-1 px-2 py-0.5 text-xs bg-red-500 text-white rounded-full">
+                  {pendingRequests.length}
+                </span>
+              )}
             </TabsTrigger>
           </TabsList>
           
@@ -275,6 +323,88 @@ const AdminPanel: React.FC = () => {
                     Send Notification to All Users
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="withdrawals">
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Withdrawal Requests</CardTitle>
+                <CardDescription>Manage user withdrawal requests</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {withdrawalRequests.length > 0 ? (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>User</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Withdrawal Address</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {withdrawalRequests.map(request => (
+                          <TableRow key={request.id}>
+                            <TableCell>{formatDate(request.createdAt)}</TableCell>
+                            <TableCell className="font-medium">{request.userName}</TableCell>
+                            <TableCell>{request.userEmail}</TableCell>
+                            <TableCell>${request.amount.toFixed(2)}</TableCell>
+                            <TableCell className="font-mono text-xs max-w-[150px] truncate">
+                              {request.address}
+                            </TableCell>
+                            <TableCell>
+                              {request.status === 'pending' ? (
+                                <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">
+                                  Pending
+                                </span>
+                              ) : request.status === 'approved' ? (
+                                <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+                                  Approved
+                                </span>
+                              ) : (
+                                <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs">
+                                  Rejected
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {request.status === 'pending' && (
+                                <div className="flex space-x-2">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => handleApproveWithdrawal(request.id)}
+                                    className="text-green-500 hover:text-green-700 hover:bg-green-50"
+                                  >
+                                    <CheckCircle className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => handleRejectWithdrawal(request.id)}
+                                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                  >
+                                    <XCircle className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    No withdrawal requests found
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

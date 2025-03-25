@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Wallet, CreditCard, ArrowUpRight, Download, Copy, Check, Gift, Lock, BarChart4, History, ArrowUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -43,7 +42,7 @@ const formatToIndianTime = (dateString: string) => {
 };
 
 const WalletCard: React.FC = () => {
-  const { user, setWithdrawalAddress } = useAuth();
+  const { user, setWithdrawalAddress, requestWithdrawal } = useAuth();
   const [withdrawalAddressInput, setWithdrawalAddressInput] = useState('');
   const [usdtAddressInput, setUsdtAddressInput] = useState('');
   const [addressCopied, setAddressCopied] = useState(false);
@@ -85,7 +84,7 @@ const WalletCard: React.FC = () => {
     setShowWithdrawalForm(true);
   };
   
-  const processUsdtWithdrawal = () => {
+  const processUsdtWithdrawal = async () => {
     const amount = parseFloat(withdrawalAmount);
     
     if (isNaN(amount) || amount <= 0) {
@@ -103,10 +102,14 @@ const WalletCard: React.FC = () => {
       return;
     }
     
-    // In a real app, this would call an API to process the withdrawal
-    toast.success(`Withdrawal of $${amount.toFixed(2)} USDT initiated. It will be processed within 24 hours.`);
-    setShowWithdrawalForm(false);
-    setWithdrawalAmount('');
+    try {
+      await requestWithdrawal(amount);
+      setShowWithdrawalForm(false);
+      setWithdrawalAmount('');
+      toast.success('Your withdrawal request has been submitted and is pending approval');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to process withdrawal');
+    }
   };
   
   const handleSetAddress = () => {

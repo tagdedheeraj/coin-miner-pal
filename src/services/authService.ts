@@ -1,6 +1,7 @@
 import { Dispatch, SetStateAction } from 'react';
-import { User } from '@/types/auth';
+import { User, WithdrawalRequest } from '@/types/auth';
 import { mockUsers } from '@/data/mockUsers';
+import { mockWithdrawalRequests } from '@/data/mockWithdrawalRequests';
 import { toast } from 'sonner';
 
 // Admin credentials
@@ -364,6 +365,162 @@ export const authFunctions = (
     }
   };
 
+  const requestWithdrawal = async (amount: number): Promise<void> => {
+    if (!user) throw new Error('Not authenticated');
+    
+    if (!user.withdrawalAddress) {
+      throw new Error('Please set a withdrawal address first');
+    }
+    
+    // Calculate available USDT balance (in a real app, this would be done server-side)
+    const availableBalance = user.usdtEarnings || 0;
+    
+    if (amount > availableBalance) {
+      throw new Error('Insufficient balance');
+    }
+    
+    if (amount < 50) {
+      throw new Error('Minimum withdrawal amount is $50');
+    }
+    
+    // Create withdrawal request
+    const withdrawalRequest: WithdrawalRequest = {
+      id: Date.now().toString(),
+      userId: user.id,
+      userEmail: user.email,
+      userName: user.name,
+      amount,
+      address: user.withdrawalAddress,
+      status: 'pending',
+      createdAt: new Date().toISOString()
+    };
+    
+    // Add to mock data
+    mockWithdrawalRequests.push(withdrawalRequest);
+    
+    // Notify the user
+    if (!user.notifications) {
+      updateUser({ notifications: [] });
+    }
+    
+    const notification = {
+      id: Date.now().toString(),
+      message: `Your withdrawal request for $${amount.toFixed(2)} USDT has been submitted and is awaiting approval.`,
+      read: false,
+      createdAt: new Date().toISOString()
+    };
+    
+    const currentNotifications = [...(user.notifications || [])];
+    updateUser({ notifications: [...currentNotifications, notification] });
+    
+    toast.success('Withdrawal request submitted successfully');
+  };
+  
+  const getWithdrawalRequests = (): WithdrawalRequest[] => {
+    if (!user?.isAdmin) {
+      return [];
+    }
+    
+    return [...mockWithdrawalRequests];
+  };
+  
+  const approveWithdrawalRequest = (requestId: string): void => {
+    if (!user?.isAdmin) {
+      toast.error('Only admins can approve withdrawal requests');
+      return;
+    }
+    
+    const requestIndex = mockWithdrawalRequests.findIndex(req => req.id === requestId);
+    
+    if (requestIndex === -1) {
+      toast.error('Withdrawal request not found');
+      return;
+    }
+    
+    const request = mockWithdrawalRequests[requestIndex];
+    
+    if (request.status !== 'pending') {
+      toast.error('This request has already been processed');
+      return;
+    }
+    
+    // Update request status
+    mockWithdrawalRequests[requestIndex] = {
+      ...request,
+      status: 'approved',
+      updatedAt: new Date().toISOString()
+    };
+    
+    // Find the user and update their USDT earnings
+    const userIndex = mockUsers.findIndex(u => u.id === request.userId);
+    
+    if (userIndex !== -1) {
+      const currentEarnings = mockUsers[userIndex].usdtEarnings || 0;
+      mockUsers[userIndex].usdtEarnings = currentEarnings - request.amount;
+      
+      // Add notification to the user
+      if (!mockUsers[userIndex].notifications) {
+        mockUsers[userIndex].notifications = [];
+      }
+      
+      mockUsers[userIndex].notifications.push({
+        id: Date.now().toString(),
+        message: `Your withdrawal request for $${request.amount.toFixed(2)} USDT has been approved and processed.`,
+        read: false,
+        createdAt: new Date().toISOString()
+      });
+    }
+    
+    toast.success('Withdrawal request approved successfully');
+  };
+  
+  const rejectWithdrawalRequest = (requestId: string): void => {
+    if (!user?.isAdmin) {
+      toast.error('Only admins can reject withdrawal requests');
+      return;
+    }
+    
+    const requestIndex = mockWithdrawalRequests.findIndex(req => req.id === requestId);
+    
+    if (requestIndex === -1) {
+      toast.error('Withdrawal request not found');
+      return;
+    }
+    
+    const request = mockWithdrawalRequests[requestIndex];
+    
+    if (request.status !== 'pending') {
+      toast.error('This request has already been processed');
+      return;
+    }
+    
+    // Update request status
+    mockWithdrawalRequests[requestIndex] = {
+      ...request,
+      status: 'rejected',
+      updatedAt: new Date().toISOString()
+    };
+    
+    // Find the user and send notification
+    const userIndex = mockUsers.findIndex(u => u.id === request.userId);
+    
+    if (userIndex !== -1) {
+      // Add notification to the user
+      if (!mockUsers[userIndex].notifications) {
+        mockUsers[userIndex].notifications = [];
+      }
+      
+      mockUsers[userIndex].notifications.push({
+        id: Date.now().toString(),
+        message: `Your withdrawal request for $${request.amount.toFixed(2)} USDT has been rejected. Please contact support for more information.`,
+        read: false,
+        createdAt: new Date().toISOString()
+      });
+    }
+    
+    toast.success('Withdrawal request rejected successfully');
+  };
+
   return {
     signIn,
     signUp,
@@ -379,5 +536,9 @@ export const authFunctions = (
     updateUserCoins,
     sendNotificationToAllUsers,
     markNotificationAsRead,
+    requestWithdrawal,
+    getWithdrawalRequests,
+    approveWithdrawalRequest,
+    rejectWithdrawalRequest,
   };
 };

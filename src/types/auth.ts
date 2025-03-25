@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   name: string;
@@ -11,6 +12,18 @@ export interface User {
   usdtEarnings?: number;
   notifications?: Array<{id: string, message: string, read: boolean, createdAt: string}>;
   isAdmin?: boolean;
+}
+
+export interface WithdrawalRequest {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  amount: number;
+  address: string;
+  status: 'pending' | 'approved' | 'rejected';
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface AuthContextType {
@@ -34,6 +47,10 @@ export interface AuthContextType {
   addArbitragePlan?: (plan: Omit<ArbitragePlan, 'id'>) => void;
   sendNotificationToAllUsers: (message: string) => void;
   markNotificationAsRead: (notificationId: string) => void;
+  requestWithdrawal: (amount: number) => Promise<void>;
+  getWithdrawalRequests: () => WithdrawalRequest[];
+  approveWithdrawalRequest: (requestId: string) => void;
+  rejectWithdrawalRequest: (requestId: string) => void;
 }
 
 export interface MockUser extends User {
