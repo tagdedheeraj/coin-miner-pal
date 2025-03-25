@@ -1,8 +1,11 @@
-
 import { Dispatch, SetStateAction } from 'react';
 import { User } from '@/types/auth';
 import { mockUsers } from '@/data/mockUsers';
 import { toast } from 'sonner';
+
+// Admin credentials
+const ADMIN_EMAIL = 'admin@infinium.com';
+const ADMIN_PASSWORD = 'Infinium@123';
 
 export const authFunctions = (
   user: User | null, 
@@ -12,7 +15,29 @@ export const authFunctions = (
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Simulate API call
+      // Check if this is an admin login
+      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+        // Create admin user object
+        const adminUser = {
+          id: 'admin-id',
+          name: 'Admin',
+          email: ADMIN_EMAIL,
+          coins: 0,
+          referralCode: '',
+          hasSetupPin: true,
+          hasBiometrics: false,
+          withdrawalAddress: null,
+          appliedReferralCode: null,
+          notifications: [],
+          isAdmin: true
+        };
+        
+        setUser(adminUser);
+        toast.success('Signed in as Admin');
+        return;
+      }
+      
+      // Regular user login
       await new Promise(resolve => setTimeout(resolve, 800));
       
       const foundUser = mockUsers.find(u => u.email === email && u.password === password);
@@ -179,6 +204,23 @@ export const authFunctions = (
     toast.success('Referral code applied successfully!');
   };
 
+  const deleteUser = (userId: string) => {
+    if (!user?.isAdmin) {
+      toast.error('Only admins can delete users');
+      return;
+    }
+
+    const userIndex = mockUsers.findIndex(u => u.id === userId);
+    
+    if (userIndex === -1) {
+      toast.error('User not found');
+      return;
+    }
+    
+    mockUsers.splice(userIndex, 1);
+    toast.success('User deleted successfully');
+  };
+
   return {
     signIn,
     signUp,
@@ -189,5 +231,6 @@ export const authFunctions = (
     toggleBiometrics,
     setWithdrawalAddress,
     applyReferralCode,
+    deleteUser,
   };
 };

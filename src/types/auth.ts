@@ -10,6 +10,7 @@ export interface User {
   withdrawalAddress: string | null;
   appliedReferralCode?: string;
   notifications?: Array<{id: string, message: string, read: boolean, createdAt: string}>;
+  isAdmin?: boolean;
 }
 
 export interface AuthContextType {
@@ -25,6 +26,7 @@ export interface AuthContextType {
   toggleBiometrics: () => Promise<void>;
   setWithdrawalAddress: (address: string) => void;
   applyReferralCode: (code: string) => Promise<void>;
+  deleteUser: (userId: string) => void;
 }
 
 export interface MockUser extends User {

@@ -19,6 +19,7 @@ import Wallet from "./pages/Wallet";
 import Profile from "./pages/Profile";
 import Referral from "./pages/Referral";
 import Plans from "./pages/Plans";
+import AdminPanel from "./pages/AdminPanel";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ const App = () => (
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/referral" element={<Referral />} />
                 <Route path="/plans" element={<Plans />} />
+                <Route path="/admin" element={<AdminPanel />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <Toaster />
