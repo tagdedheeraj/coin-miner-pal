@@ -1,10 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Gift, ChevronRight, Play } from 'lucide-react';
+import { Gift, Video } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { formatTime } from '@/utils/formatters';
 import { toast } from 'sonner';
+import { useRewardedAd, useInterstitialAd } from '@/hooks/useAdMob';
+import AdWatcherProgress from './AdWatcherProgress';
+import AdWatcherStatus from './AdWatcherStatus';
+import OfferwallSection from './OfferwallSection';
 
 const RewardsCard: React.FC = () => {
   const { user, updateUser } = useAuth();
@@ -12,6 +15,8 @@ const RewardsCard: React.FC = () => {
   const [isWatchingAd, setIsWatchingAd] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [lastAdTime, setLastAdTime] = useState<Date | null>(null);
+  const [processingOfferwall, setProcessingOfferwall] = useState(false);
+  const MAX_DAILY_ADS = 10;
   
   // Load saved state
   useEffect(() => {
@@ -41,7 +46,7 @@ const RewardsCard: React.FC = () => {
     
     const now = new Date();
     const timeDiff = now.getTime() - lastAdTime.getTime();
-    return timeDiff >= 60000; // 1 minute
+    return timeDiff >= 60000; // 1 minute cooldown
   };
   
   // Countdown timer
@@ -64,36 +69,6 @@ const RewardsCard: React.FC = () => {
     }
   }, [isWatchingAd, lastAdTime]);
   
-  // Simulate watching an ad
-  const watchAd = () => {
-    if (!canWatchAd()) {
-      toast.error('Please wait for the cooldown to finish');
-      return;
-    }
-    
-    if (adWatched >= 10) {
-      toast.error('You have reached the daily limit of 10 ads');
-      return;
-    }
-    
-    setIsWatchingAd(true);
-    toast.info('Ad started... This will take 5 seconds');
-    
-    // Simulate an ad that takes 5 seconds to watch
-    setTimeout(() => {
-      setIsWatchingAd(false);
-      setAdWatched(prev => prev + 1);
-      setLastAdTime(new Date());
-      
-      // Give reward to user
-      if (user) {
-        updateUser({ coins: (user.coins || 0) + 1 });
-      }
-      
-      toast.success('Ad completed! You earned 1 Infinium coin');
-    }, 5000);
-  };
-  
   // Reset daily count at midnight
   useEffect(() => {
     const resetDaily = () => {
@@ -114,6 +89,75 @@ const RewardsCard: React.FC = () => {
     resetDaily();
   }, []);
   
+  // Handle rewarded ad completion
+  const onRewardedAdCompleted = () => {
+    setAdWatched(prev => prev + 1);
+    setLastAdTime(new Date());
+    
+    // Give reward to user
+    if (user) {
+      updateUser({ coins: (user.coins || 0) + 1 });
+    }
+    
+    setIsWatchingAd(false);
+    toast.success('Ad completed! You earned 1 Infinium coin');
+  };
+  
+  // Setup AdMob hooks
+  const { showRewardedAd, isLoading: isRewardedAdLoading } = useRewardedAd(
+    onRewardedAdCompleted,
+    () => setIsWatchingAd(false)
+  );
+  
+  const { showInterstitialAd, isLoading: isInterstitialAdLoading } = useInterstitialAd();
+  
+  // Watch Ad button handler
+  const handleWatchAd = async () => {
+    if (!canWatchAd()) {
+      toast.error('Please wait for the cooldown to finish');
+      return;
+    }
+    
+    if (adWatched >= MAX_DAILY_ADS) {
+      toast.error(`You have reached the daily limit of ${MAX_DAILY_ADS} ads`);
+      return;
+    }
+    
+    setIsWatchingAd(true);
+    await showRewardedAd();
+  };
+  
+  // Offerwall item click handler
+  const handleOfferwallItemClick = async (reward: number, type: string) => {
+    if (processingOfferwall) return;
+    
+    setProcessingOfferwall(true);
+    toast.info(`Starting ${type}...`);
+    
+    try {
+      await showInterstitialAd();
+      
+      // Give reward to user
+      if (user) {
+        updateUser({ coins: (user.coins || 0) + reward });
+      }
+      toast.success(`You earned ${reward} Infinium coins!`);
+    } catch (error) {
+      console.error('Error with offerwall:', error);
+      toast.error('Failed to complete offer. Please try again.');
+    } finally {
+      setProcessingOfferwall(false);
+    }
+  };
+  
+  // Helper for button text
+  const getWatchButtonText = () => {
+    if (isWatchingAd || isRewardedAdLoading) return 'Loading Ad...';
+    if (adWatched >= MAX_DAILY_ADS) return 'Limit Reached';
+    if (countdown > 0) return 'Cooldown';
+    return 'Watch Ad';
+  };
+  
   return (
     <div className="w-full">
       <div className="glass-card rounded-2xl p-6 mb-6 animate-scale-up">
@@ -127,91 +171,24 @@ const RewardsCard: React.FC = () => {
           </div>
         </div>
         
-        <div className="bg-gray-50 rounded-xl p-4 mb-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <p className="text-sm font-medium">Daily Progress</p>
-              <p className="text-xs text-gray-500">10 ads maximum per day</p>
-            </div>
-            <div className="text-right">
-              <p className="text-xl font-semibold">{adWatched} <span className="text-sm text-gray-400">/ 10</span></p>
-            </div>
-          </div>
-          
-          <div className="w-full bg-gray-200 h-2 rounded-full mt-3">
-            <div
-              className="bg-brand-pink h-2 rounded-full transition-all duration-500"
-              style={{ width: `${(adWatched / 10) * 100}%` }}
-            ></div>
-          </div>
-        </div>
+        <AdWatcherProgress adWatched={adWatched} maxAds={MAX_DAILY_ADS} />
         
-        {isWatchingAd ? (
-          <div className="text-center p-4 bg-gray-50 rounded-xl mb-6">
-            <p className="text-sm font-medium mb-2">Watching ad...</p>
-            <div className="animate-pulse-subtle">
-              <div className="w-12 h-12 bg-brand-pink/20 rounded-full mx-auto flex items-center justify-center">
-                <Play size={24} className="text-brand-pink ml-1" />
-              </div>
-            </div>
-          </div>
-        ) : (
-          countdown > 0 ? (
-            <div className="text-center p-4 bg-gray-50 rounded-xl mb-6">
-              <p className="text-sm font-medium mb-2">Next ad in</p>
-              <p className="text-2xl font-bold text-brand-pink">{formatTime(countdown)}</p>
-            </div>
-          ) : null
-        )}
+        <AdWatcherStatus isWatchingAd={isWatchingAd} countdown={countdown} />
         
         <Button 
-          onClick={watchAd}
-          disabled={isWatchingAd || adWatched >= 10 || !canWatchAd()}
+          onClick={handleWatchAd}
+          disabled={isWatchingAd || isRewardedAdLoading || adWatched >= MAX_DAILY_ADS || !canWatchAd()}
           className="w-full rounded-xl h-12 bg-brand-pink hover:bg-brand-pink/90 font-medium transition-all transform hover:scale-[1.02] active:scale-[0.98]"
         >
-          {isWatchingAd ? 'Watching...' : adWatched >= 10 ? 'Limit Reached' : countdown > 0 ? 'Cooldown' : 'Watch Ad'}
+          {getWatchButtonText()}
+          <Video className="ml-1" size={18} />
         </Button>
       </div>
       
-      <div className="glass-card rounded-2xl p-6 animate-scale-up animation-delay-100">
-        <h3 className="font-semibold text-lg mb-3">Offerwall</h3>
-        <p className="text-sm text-gray-500 mb-6">Complete offers to earn extra coins</p>
-        
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer">
-            <div>
-              <p className="font-medium text-sm">Complete a survey</p>
-              <p className="text-xs text-gray-500">5-10 minutes</p>
-            </div>
-            <div className="flex items-center">
-              <p className="font-semibold text-brand-pink mr-2">+10</p>
-              <ChevronRight size={16} className="text-gray-400" />
-            </div>
-          </div>
-          
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer">
-            <div>
-              <p className="font-medium text-sm">Install an app</p>
-              <p className="text-xs text-gray-500">2-3 minutes</p>
-            </div>
-            <div className="flex items-center">
-              <p className="font-semibold text-brand-pink mr-2">+5</p>
-              <ChevronRight size={16} className="text-gray-400" />
-            </div>
-          </div>
-          
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer">
-            <div>
-              <p className="font-medium text-sm">Watch a video</p>
-              <p className="text-xs text-gray-500">30 seconds</p>
-            </div>
-            <div className="flex items-center">
-              <p className="font-semibold text-brand-pink mr-2">+2</p>
-              <ChevronRight size={16} className="text-gray-400" />
-            </div>
-          </div>
-        </div>
-      </div>
+      <OfferwallSection 
+        isDisabled={processingOfferwall || isInterstitialAdLoading} 
+        onItemClick={handleOfferwallItemClick}
+      />
     </div>
   );
 };
