@@ -13,9 +13,9 @@ const Plans: React.FC = () => {
     return <Navigate to="/sign-in" replace />;
   }
   
-  // Verify the QR code image is accessible
+  // Verify the new QR code image is accessible
   useEffect(() => {
-    const qrCodePath = '/lovable-uploads/e6693d03-b7d5-40c8-a973-c0c99c55a8fe.png';
+    const qrCodePath = '/lovable-uploads/8d28d83b-7d3b-464b-9af1-0fc4132befc1.png';
     console.log('Verifying QR code at path:', qrCodePath);
     
     const img = new Image();
