@@ -9,7 +9,8 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
-  updatePassword
+  updatePassword,
+  UserCredential
 } from 'firebase/auth';
 
 // Admin credentials
@@ -53,7 +54,7 @@ export const coreAuthFunctions = (
       
       // Fetch user data from Firestore will be handled by the user service
       // This will be implemented in the userService file
-      throw new Error('This function should be overridden by the auth service');
+      return userCredential;
     } catch (error) {
       console.error(error);
       toast.error(error instanceof Error ? error.message : 'Failed to sign in');
@@ -63,15 +64,12 @@ export const coreAuthFunctions = (
     }
   };
 
-  const signUp = async (name: string, email: string, password: string) => {
+  const signUp = async (name: string, email: string, password: string): Promise<UserCredential> => {
     setIsLoading(true);
     try {
       // Create new user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const firebaseUser = userCredential.user;
-      
-      // Further implementation is provided by the auth service
-      throw new Error('This function should be overridden by the auth service');
+      return userCredential;
     } catch (error) {
       console.error(error);
       toast.error(error instanceof Error ? error.message : 'Failed to sign up');

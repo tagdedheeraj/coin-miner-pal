@@ -51,11 +51,11 @@ export const authFunctions = (
   const signUp = async (name: string, email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Call core signUp to create Firebase Auth user
-      await coreAuth.signUp(name, email, password);
+      // First create the Firebase Auth user
+      const userCredential = await coreAuth.signUp(name, email, password);
       
-      // Get the newly created Firebase user
-      const firebaseUser = globalThis.auth?.currentUser;
+      // Get the newly created Firebase user ID
+      const firebaseUser = userCredential.user;
       
       if (!firebaseUser) {
         throw new Error('Failed to create user');
@@ -86,6 +86,7 @@ export const authFunctions = (
       });
       
       toast.success('Account created successfully! You received 200 coins as a signup bonus.');
+      return userCredential;
     } catch (error) {
       console.error(error);
       toast.error(error instanceof Error ? error.message : 'Failed to sign up');
