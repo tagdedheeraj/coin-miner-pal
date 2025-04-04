@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowDown, Check, Clock, Copy, QrCode } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -28,9 +29,16 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
   const walletAddress = '0xCce6b6b80C957aB0fB60FD91e32e336b1Ee83018';
+  // Ensure we have the correct path to QR code
   const qrCodeUrl = '/lovable-uploads/4a50216d-605c-490b-9895-b24721e207fa.png';
+  const [qrCodeError, setQrCodeError] = useState(false);
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Log QR path for debugging purposes
+  useEffect(() => {
+    console.log(`Loading QR code from: ${qrCodeUrl}`);
+  }, []);
   
   useEffect(() => {
     if (open) {
@@ -38,6 +46,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       setCopied(false);
       setTimeLeft(600);
       setIsSubmitting(false);
+      setQrCodeError(false);
       
       intervalRef.current = setInterval(() => {
         setTimeLeft(prev => {
@@ -151,15 +160,22 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           
           <div className="flex flex-col items-center space-y-3">
             <div className="bg-white p-3 rounded-lg border">
-              <img 
-                src={qrCodeUrl} 
-                alt="Payment QR Code" 
-                className="w-48 h-48 object-contain"
-                onError={(e) => {
-                  console.error('QR Code failed to load:', e);
-                  e.currentTarget.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23f0f0f0"/><text x="50%" y="50%" font-family="Arial" font-size="16" text-anchor="middle" fill="%23999">QR Code</text></svg>';
-                }}
-              />
+              {!qrCodeError ? (
+                <img 
+                  src={qrCodeUrl} 
+                  alt="Payment QR Code" 
+                  className="w-48 h-48 object-contain"
+                  onLoad={() => console.log('QR code loaded successfully')}
+                  onError={(e) => {
+                    console.error('QR Code failed to load:', e);
+                    setQrCodeError(true);
+                  }}
+                />
+              ) : (
+                <div className="w-48 h-48 flex items-center justify-center bg-gray-100 text-gray-500 text-sm">
+                  QR Code could not be loaded
+                </div>
+              )}
             </div>
             <div className="text-center">
               <p className="text-sm text-gray-500">Scan QR code to pay</p>
