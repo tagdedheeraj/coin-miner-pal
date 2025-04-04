@@ -5,7 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
+import { CombinedAuthProvider } from "./contexts/auth/AuthProvider";
 import { MiningProvider } from "./contexts/MiningContext";
 
 // Pages
@@ -28,7 +28,7 @@ const App = () => (
   <React.StrictMode>
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
+        <CombinedAuthProvider>
           <MiningProvider>
             <TooltipProvider>
               <Routes>
@@ -49,7 +49,7 @@ const App = () => (
               <Sonner />
             </TooltipProvider>
           </MiningProvider>
-        </AuthProvider>
+        </CombinedAuthProvider>
       </QueryClientProvider>
     </BrowserRouter>
   </React.StrictMode>
