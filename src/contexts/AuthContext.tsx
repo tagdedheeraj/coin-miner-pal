@@ -11,6 +11,9 @@ import {
   signOut as firebaseSignOut,
   updateProfile,
   updatePassword,
+  User as FirebaseUser,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { MockUser, User, AuthContextType, ArbitragePlan, WithdrawalRequest, DepositRequest } from '@/types/auth';
@@ -186,13 +189,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     try {
       // Re-authenticate the user
-      // Fix this line to use EmailAuthProvider from firebase/auth
-      const { EmailAuthProvider } = await import('firebase/auth');
+      if (!auth.currentUser) {
+        throw new Error("Authentication error");
+      }
+      
       const credential = EmailAuthProvider.credential(user.email, currentPassword);
-      await auth.currentUser?.reauthenticateWithCredential(credential);
+      await reauthenticateWithCredential(auth.currentUser, credential);
 
       // Update the password
-      await updatePassword(auth.currentUser!, newPassword);
+      await updatePassword(auth.currentUser, newPassword);
       console.log("Password updated successfully!");
     } catch (error: any) {
       toast({
@@ -210,10 +215,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     updateUser({ hasSetupPin: true });
   };
 
-  const toggleBiometrics = (): void => {
+  const toggleBiometrics = async (): Promise<void> => {
     // Mock implementation
     console.log("Toggling biometrics");
     updateUser({ hasBiometrics: !user?.hasBiometrics });
+    return Promise.resolve();
   };
 
   const setWithdrawalAddress = (address: string): void => {
@@ -372,7 +378,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const getDepositRequests = useCallback(async (): Promise<DepositRequest[]> => {
-    // In a real application, this would be an API call
     console.log('Getting deposit requests');
     return depositRequests;
   }, [depositRequests]);
@@ -536,8 +541,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
