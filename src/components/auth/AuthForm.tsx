@@ -35,8 +35,8 @@ type SignInFormValues = z.infer<typeof signInSchema>;
 type SignUpFormValues = z.infer<typeof signUpSchema>;
 
 const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
-  const { signIn, signUp, isLoading } = useAuth();
-  const [submitting, setSubmitting] = useState(false);
+  const { signIn, signUp } = useAuth(); // Remove isLoading from here as we'll manage it locally
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const isSignUp = type === 'sign-up';
@@ -63,7 +63,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
   const form = isSignUp ? signUpForm : signInForm;
 
   const onSubmit = async (values: SignInFormValues | SignUpFormValues) => {
-    setSubmitting(true);
+    setIsSubmitting(true);
+    
     try {
       if (isSignUp) {
         // Safe to cast since we're in sign-up mode
@@ -73,20 +74,21 @@ const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
         const signInValues = values as SignInFormValues;
         await signIn(signInValues.email, signInValues.password);
       }
+      
+      // If we get here, it was successful
       onSuccess();
     } catch (error) {
+      console.error("Auth error:", error);
+      
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : 'Authentication failed',
         variant: "destructive",
       });
     } finally {
-      setSubmitting(false);
+      setIsSubmitting(false);
     }
   };
-
-  // Calculate if we're currently loading
-  const isProcessing = isLoading || submitting;
 
   return (
     <Card className="w-full">
@@ -109,7 +111,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
                     <FormControl>
                       <Input 
                         placeholder="Enter your name" 
-                        disabled={isProcessing}
+                        disabled={isSubmitting}
                         {...field}
                       />
                     </FormControl>
@@ -128,7 +130,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
                     <Input 
                       placeholder="Enter your email" 
                       type="email"
-                      disabled={isProcessing}
+                      disabled={isSubmitting}
                       {...field}
                     />
                   </FormControl>
@@ -146,7 +148,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
                     <Input
                       placeholder="Enter your password"
                       type="password"
-                      disabled={isProcessing}
+                      disabled={isSubmitting}
                       {...field}
                     />
                   </FormControl>
@@ -154,8 +156,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full" disabled={isProcessing}>
-              {isProcessing ? (
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              {isSubmitting ? (
                 <span className="flex items-center gap-2">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Loading...
