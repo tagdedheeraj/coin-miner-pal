@@ -1,5 +1,6 @@
 
 import { User, WithdrawalRequest, DepositRequest, ArbitragePlan } from '@/types/auth';
+import { UserCredential } from 'firebase/auth';
 
 export interface AuthStateType {
   user: User | null;
@@ -11,7 +12,7 @@ export interface AuthBasicContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (name: string, email: string, password: string) => Promise<void>;
+  signUp: (name: string, email: string, password: string) => Promise<UserCredential>;
   signOut: () => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }
