@@ -12,7 +12,7 @@ import {
   updateProfile,
   updatePassword,
 } from 'firebase/auth';
-import { auth } from '@/firebase';
+import { auth } from '@/lib/firebase';
 import { MockUser, User, AuthContextType, ArbitragePlan, WithdrawalRequest, DepositRequest } from '@/types/auth';
 import { mockUsers } from '@/data/mockUsers';
 import { mockArbitragePlans } from '@/data/mockArbitragePlans';
@@ -26,7 +26,7 @@ interface AuthProviderProps {
   children: React.ReactNode;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+export const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -36,6 +36,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [depositRequests, setDepositRequests] = useState<DepositRequest[]>(mockDepositRequests);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+
+  // Define addNotification before it's used
+  const addNotification = ({ title, description }: { title: string; description: string }) => {
+    if (!user) {
+      console.error("No user is currently logged in.");
+      return;
+    }
+
+    setUsers(prevUsers =>
+      prevUsers.map(u => {
+        if (u.id === user.id) {
+          const newNotification = {
+            id: uuidv4(),
+            message: `${title}: ${description}`,
+            read: false,
+            createdAt: new Date().toISOString()
+          };
+          const updatedNotifications = u.notifications ? [...u.notifications, newNotification] : [newNotification];
+          return { ...u, notifications: updatedNotifications };
+        }
+        return u;
+      })
+    );
+    
+    toast({
+      title: title,
+      description: description,
+    })
+  };
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(firebaseUser => {
@@ -157,11 +186,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     try {
       // Re-authenticate the user
-      const credential = auth.EmailAuthProvider.credential(user.email, currentPassword);
+      // Fix this line to use EmailAuthProvider from firebase/auth
+      const { EmailAuthProvider } = await import('firebase/auth');
+      const credential = EmailAuthProvider.credential(user.email, currentPassword);
       await auth.currentUser?.reauthenticateWithCredential(credential);
 
       // Update the password
-      await updatePassword(auth.currentUser, newPassword);
+      await updatePassword(auth.currentUser!, newPassword);
       console.log("Password updated successfully!");
     } catch (error: any) {
       toast({
@@ -460,34 +491,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     return Promise.resolve();
   }, [depositRequests]);
-
-  const addNotification = ({ title, description }: { title: string; description: string }) => {
-    if (!user) {
-      console.error("No user is currently logged in.");
-      return;
-    }
-
-    setUsers(prevUsers =>
-      prevUsers.map(u => {
-        if (u.id === user.id) {
-          const newNotification = {
-            id: uuidv4(),
-            message: `${title}: ${description}`,
-            read: false,
-            createdAt: new Date().toISOString()
-          };
-          const updatedNotifications = u.notifications ? [...u.notifications, newNotification] : [newNotification];
-          return { ...u, notifications: updatedNotifications };
-        }
-        return u;
-      })
-    );
-    
-    toast({
-      title: title,
-      description: description,
-    })
-  };
 
   const generateReferralCode = (): string => {
     return Math.random().toString(36).substring(2, 10).toUpperCase();
