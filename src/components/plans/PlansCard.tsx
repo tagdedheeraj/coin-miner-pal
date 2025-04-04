@@ -5,105 +5,18 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { formatUSD } from '@/utils/formatters';
+import PaymentModal from './PaymentModal';
+import { mockArbitragePlans } from '@/data/mockArbitragePlans';
 
 const PlansCard: React.FC = () => {
   const [activeTab, setActiveTab] = useState('plans'); // 'plans' or 'earnings'
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<{
+    id: string;
+    name: string;
+    price: number;
+  } | null>(null);
   
-  const plans = [
-    {
-      name: "Arbitrage & Starter Plan",
-      price: 20,
-      duration: 28,
-      dailyEarnings: 0.96,
-      totalEarnings: 27,
-      miningSpeed: "1.2x",
-      withdrawal: "24 hour",
-      color: "blue",
-      limited: false
-    },
-    {
-      name: "Pro Miner Plan",
-      price: 50,
-      duration: 28,
-      dailyEarnings: 4.46,
-      totalEarnings: 125,
-      miningSpeed: "2x",
-      withdrawal: "24 hour",
-      color: "green",
-      limited: false
-    },
-    {
-      name: "Expert Miner Plan",
-      price: 200,
-      duration: 39,
-      dailyEarnings: 7.18,
-      totalEarnings: 280,
-      miningSpeed: "3x",
-      withdrawal: "24 hour",
-      color: "purple",
-      limited: false
-    },
-    {
-      name: "Master Miner Plan",
-      price: 500,
-      duration: 59,
-      dailyEarnings: 13.56,
-      totalEarnings: 800,
-      miningSpeed: "4x",
-      withdrawal: "Instant",
-      color: "red",
-      limited: false
-    },
-    {
-      name: "Diamond Miner Plan",
-      price: 1000,
-      duration: 90,
-      dailyEarnings: 24.44,
-      totalEarnings: 2200,
-      miningSpeed: "5x",
-      withdrawal: "Instant",
-      color: "cyan",
-      limited: true,
-      limitedTo: 300
-    },
-    {
-      name: "Ultimate Miner Plan",
-      price: 2000,
-      duration: 102,
-      dailyEarnings: 44.12,
-      totalEarnings: 4500,
-      miningSpeed: "6x",
-      withdrawal: "Instant",
-      color: "amber",
-      limited: true,
-      limitedTo: 200
-    },
-    {
-      name: "Legend Miner Plan",
-      price: 5000,
-      duration: 125,
-      dailyEarnings: 96,
-      totalEarnings: 11200,
-      miningSpeed: "7x",
-      withdrawal: "Instant",
-      color: "gold",
-      limited: true,
-      limitedTo: 100
-    },
-    {
-      name: "Supreme Miner Plan",
-      price: 10000,
-      duration: 169,
-      dailyEarnings: 130.18,
-      totalEarnings: 22000,
-      miningSpeed: "20x",
-      withdrawal: "Instant",
-      color: "pink",
-      limited: true,
-      limitedTo: 50
-    }
-  ];
-
   // Mock arbitrage earnings data
   const earningsData = [
     { date: "2023-10-01", amount: 0.96, status: "Paid" },
@@ -139,11 +52,21 @@ const PlansCard: React.FC = () => {
     }
   };
 
+  const handleOpenPaymentModal = (plan: {id: string; name: string; price: number}) => {
+    setSelectedPlan(plan);
+    setPaymentModalOpen(true);
+  };
+
+  const handleClosePaymentModal = () => {
+    setPaymentModalOpen(false);
+    setSelectedPlan(null);
+  };
+
   const renderPlans = () => (
     <div className="space-y-6">
-      {plans.map((plan, index) => (
+      {mockArbitragePlans.map((plan, index) => (
         <Card 
-          key={index} 
+          key={plan.id} 
           className="w-full overflow-hidden border-t-4 shadow-md animate-scale-up"
           style={{ 
             borderTopColor: plan.color === 'blue' ? '#3B82F6' :
@@ -194,6 +117,11 @@ const PlansCard: React.FC = () => {
           <CardFooter>
             <Button 
               className="w-full rounded-xl h-12 bg-brand-orange hover:bg-brand-orange/90 font-medium transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+              onClick={() => handleOpenPaymentModal({
+                id: plan.id,
+                name: plan.name,
+                price: plan.price
+              })}
             >
               Subscribe Now
             </Button>
@@ -308,6 +236,16 @@ const PlansCard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {selectedPlan && (
+        <PaymentModal
+          open={paymentModalOpen}
+          onClose={handleClosePaymentModal}
+          planName={selectedPlan.name}
+          planPrice={selectedPlan.price}
+          planId={selectedPlan.id}
+        />
+      )}
     </div>
   );
 };

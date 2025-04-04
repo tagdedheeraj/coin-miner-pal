@@ -1,3 +1,4 @@
+
 export interface User {
   id: string;
   name: string;
@@ -25,6 +26,20 @@ export interface WithdrawalRequest {
   updatedAt?: string;
 }
 
+export interface DepositRequest {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  planId: string;
+  planName: string;
+  amount: number;
+  transactionId: string;
+  status: 'pending' | 'approved' | 'rejected';
+  timestamp: string;
+  reviewedAt?: string;
+}
+
 export interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
@@ -50,6 +65,10 @@ export interface AuthContextType {
   getWithdrawalRequests: () => Promise<WithdrawalRequest[]>;
   approveWithdrawalRequest: (requestId: string) => Promise<void>;
   rejectWithdrawalRequest: (requestId: string) => Promise<void>;
+  requestPlanPurchase: (depositRequest: Omit<DepositRequest, 'id' | 'status' | 'reviewedAt'>) => Promise<void>;
+  getDepositRequests: () => Promise<DepositRequest[]>;
+  approveDepositRequest: (requestId: string) => Promise<void>;
+  rejectDepositRequest: (requestId: string) => Promise<void>;
 }
 
 export interface MockUser extends User {

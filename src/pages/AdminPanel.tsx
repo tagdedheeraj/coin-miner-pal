@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -9,10 +10,10 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Trash2, User, Search, LayoutGrid, DollarSign, Coins, BellRing, CheckCircle, XCircle, FileText } from 'lucide-react';
+import { Trash2, User, Search, LayoutGrid, DollarSign, Coins, BellRing, CheckCircle, XCircle, FileText, CreditCard } from 'lucide-react';
 import { mockUsers } from '@/data/mockUsers';
 import ArbitragePlanManagement from '@/components/admin/ArbitragePlanManagement';
-import { WithdrawalRequest } from '@/types/auth';
+import { WithdrawalRequest, DepositRequest } from '@/types/auth';
 
 const AdminPanel: React.FC = () => {
   const { 
@@ -24,7 +25,10 @@ const AdminPanel: React.FC = () => {
     sendNotificationToAllUsers,
     getWithdrawalRequests,
     approveWithdrawalRequest,
-    rejectWithdrawalRequest
+    rejectWithdrawalRequest,
+    getDepositRequests,
+    approveDepositRequest,
+    rejectDepositRequest
   } = useAuth();
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
@@ -34,7 +38,9 @@ const AdminPanel: React.FC = () => {
   const [coinAmount, setCoinAmount] = useState('');
   const [notificationMessage, setNotificationMessage] = useState('');
   const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [depositRequests, setDepositRequests] = useState<DepositRequest[]>([]);
+  const [loadingWithdrawals, setLoadingWithdrawals] = useState(true);
+  const [loadingDeposits, setLoadingDeposits] = useState(true);
   
   useEffect(() => {
     const fetchWithdrawalRequests = async () => {
@@ -45,19 +51,34 @@ const AdminPanel: React.FC = () => {
         } catch (error) {
           console.error('Error fetching withdrawal requests:', error);
         } finally {
-          setLoading(false);
+          setLoadingWithdrawals(false);
+        }
+      }
+    };
+    
+    const fetchDepositRequests = async () => {
+      if (user?.isAdmin) {
+        try {
+          const requests = await getDepositRequests();
+          setDepositRequests(requests);
+        } catch (error) {
+          console.error('Error fetching deposit requests:', error);
+        } finally {
+          setLoadingDeposits(false);
         }
       }
     };
     
     fetchWithdrawalRequests();
-  }, [user, getWithdrawalRequests]);
+    fetchDepositRequests();
+  }, [user, getWithdrawalRequests, getDepositRequests]);
   
   if (!isAuthenticated || !user?.isAdmin) {
     return <Navigate to="/sign-in" replace />;
   }
   
-  const pendingRequests = withdrawalRequests.filter(req => req.status === 'pending');
+  const pendingWithdrawals = withdrawalRequests.filter(req => req.status === 'pending');
+  const pendingDeposits = depositRequests.filter(req => req.status === 'pending');
   
   const filteredUsers = mockUsers.filter(user => 
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -131,6 +152,30 @@ const AdminPanel: React.FC = () => {
     }
   };
   
+  const handleApproveDeposit = async (requestId: string) => {
+    if (window.confirm('Are you sure you want to approve this deposit request? This will activate the plan for the user.')) {
+      try {
+        await approveDepositRequest(requestId);
+        const updatedRequests = await getDepositRequests();
+        setDepositRequests(updatedRequests);
+      } catch (error) {
+        console.error('Error approving deposit:', error);
+      }
+    }
+  };
+  
+  const handleRejectDeposit = async (requestId: string) => {
+    if (window.confirm('Are you sure you want to reject this deposit request?')) {
+      try {
+        await rejectDepositRequest(requestId);
+        const updatedRequests = await getDepositRequests();
+        setDepositRequests(updatedRequests);
+      } catch (error) {
+        console.error('Error rejecting deposit:', error);
+      }
+    }
+  };
+  
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleString('en-IN', {
@@ -154,7 +199,7 @@ const AdminPanel: React.FC = () => {
         </div>
         
         <Tabs defaultValue="users" className="w-full">
-          <TabsList className="mb-6">
+          <TabsList className="mb-6 flex flex-wrap gap-1">
             <TabsTrigger value="users" className="flex items-center gap-2">
               <User className="h-4 w-4" /> Users
             </TabsTrigger>
@@ -171,10 +216,18 @@ const AdminPanel: React.FC = () => {
               <BellRing className="h-4 w-4" /> Notifications
             </TabsTrigger>
             <TabsTrigger value="withdrawals" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" /> Withdrawal Requests
-              {pendingRequests.length > 0 && (
+              <FileText className="h-4 w-4" /> Withdrawals
+              {pendingWithdrawals.length > 0 && (
                 <span className="ml-1 px-2 py-0.5 text-xs bg-red-500 text-white rounded-full">
-                  {pendingRequests.length}
+                  {pendingWithdrawals.length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="deposits" className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4" /> Deposits
+              {pendingDeposits.length > 0 && (
+                <span className="ml-1 px-2 py-0.5 text-xs bg-red-500 text-white rounded-full">
+                  {pendingDeposits.length}
                 </span>
               )}
             </TabsTrigger>
@@ -360,7 +413,7 @@ const AdminPanel: React.FC = () => {
                 <CardDescription>Manage user withdrawal requests</CardDescription>
               </CardHeader>
               <CardContent>
-                {loading ? (
+                {loadingWithdrawals ? (
                   <div className="text-center py-8">
                     <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
                     <p className="text-gray-500">Loading withdrawal requests...</p>
@@ -434,6 +487,95 @@ const AdminPanel: React.FC = () => {
                 ) : (
                   <div className="text-center py-8 text-gray-500">
                     No withdrawal requests found
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="deposits">
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Deposit Requests</CardTitle>
+                <CardDescription>Approve or reject user plan purchase deposits</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {loadingDeposits ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+                    <p className="text-gray-500">Loading deposit requests...</p>
+                  </div>
+                ) : depositRequests.length > 0 ? (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>User</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Plan</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Transaction ID</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {depositRequests.map(request => (
+                          <TableRow key={request.id}>
+                            <TableCell>{formatDate(request.timestamp)}</TableCell>
+                            <TableCell className="font-medium">{request.userName}</TableCell>
+                            <TableCell>{request.userEmail}</TableCell>
+                            <TableCell>{request.planName}</TableCell>
+                            <TableCell>${request.amount.toFixed(2)}</TableCell>
+                            <TableCell className="font-mono text-xs max-w-[150px] truncate">
+                              {request.transactionId}
+                            </TableCell>
+                            <TableCell>
+                              {request.status === 'pending' ? (
+                                <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs">
+                                  Pending
+                                </span>
+                              ) : request.status === 'approved' ? (
+                                <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs">
+                                  Approved
+                                </span>
+                              ) : (
+                                <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs">
+                                  Rejected
+                                </span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {request.status === 'pending' && (
+                                <div className="flex space-x-2">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => handleApproveDeposit(request.id)}
+                                    className="text-green-500 hover:text-green-700 hover:bg-green-50"
+                                  >
+                                    <CheckCircle className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="icon"
+                                    onClick={() => handleRejectDeposit(request.id)}
+                                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                  >
+                                    <XCircle className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    No deposit requests found
                   </div>
                 )}
               </CardContent>
