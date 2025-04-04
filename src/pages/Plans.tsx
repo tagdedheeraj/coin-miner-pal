@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/layout/Header';
@@ -12,17 +12,6 @@ const Plans: React.FC = () => {
   if (!isAuthenticated) {
     return <Navigate to="/sign-in" replace />;
   }
-  
-  // Verify the new QR code image is accessible
-  useEffect(() => {
-    const qrCodePath = '/lovable-uploads/8d28d83b-7d3b-464b-9af1-0fc4132befc1.png';
-    console.log('Verifying QR code at path:', qrCodePath);
-    
-    const img = new Image();
-    img.onload = () => console.log('QR Code verified as loadable');
-    img.onerror = (e) => console.error('QR Code could not be loaded from URL:', e);
-    img.src = qrCodePath;
-  }, []);
   
   return (
     <div className="min-h-screen bg-gray-50 pb-20 pt-16">
