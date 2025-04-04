@@ -13,12 +13,15 @@ const Plans: React.FC = () => {
     return <Navigate to="/sign-in" replace />;
   }
   
-  // Add direct QR code verification with updated path
+  // Verify the QR code image is accessible
   useEffect(() => {
+    const qrCodePath = '/lovable-uploads/e6693d03-b7d5-40c8-a973-c0c99c55a8fe.png';
+    console.log('Verifying QR code at path:', qrCodePath);
+    
     const img = new Image();
     img.onload = () => console.log('QR Code verified as loadable');
-    img.onerror = () => console.error('QR Code could not be loaded from URL');
-    img.src = '/lovable-uploads/e6693d03-b7d5-40c8-a973-c0c99c55a8fe.png';
+    img.onerror = (e) => console.error('QR Code could not be loaded from URL:', e);
+    img.src = qrCodePath;
   }, []);
   
   return (

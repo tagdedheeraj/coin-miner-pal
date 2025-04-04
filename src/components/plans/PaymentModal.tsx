@@ -29,7 +29,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
   const walletAddress = '0xCce6b6b80C957aB0fB60FD91e32e336b1Ee83018';
-  // Updated QR code URL to your uploaded image
+  // Updated QR code URL to ensure it's correctly loading your image
   const qrCodeUrl = '/lovable-uploads/e6693d03-b7d5-40c8-a973-c0c99c55a8fe.png';
   const [qrCodeError, setQrCodeError] = useState(false);
   
@@ -170,6 +170,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                     console.error('QR Code failed to load:', e);
                     setQrCodeError(true);
                   }}
+                  // Force image reload by adding key with timestamp
+                  key={Date.now()}
                 />
               ) : (
                 <div className="w-48 h-48 flex items-center justify-center bg-gray-100 text-gray-500 text-sm">
