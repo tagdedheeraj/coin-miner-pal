@@ -160,6 +160,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 src={qrCodeUrl} 
                 alt="Payment QR Code" 
                 className="w-48 h-48 object-contain"
+                onError={(e) => {
+                  console.error('QR Code failed to load:', e);
+                  // Set fallback image or show error state
+                  e.currentTarget.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23f0f0f0"/><text x="50%" y="50%" font-family="Arial" font-size="16" text-anchor="middle" fill="%23999">QR Code</text></svg>';
+                }}
               />
             </div>
             <div className="text-center">
