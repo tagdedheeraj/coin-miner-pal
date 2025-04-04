@@ -20,6 +20,7 @@ import Profile from "./pages/Profile";
 import Referral from "./pages/Referral";
 import Plans from "./pages/Plans";
 import AdminPanel from "./pages/AdminPanel";
+import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => (
                 <Route path="/referral" element={<Referral />} />
                 <Route path="/plans" element={<Plans />} />
                 <Route path="/admin" element={<AdminPanel />} />
+                <Route path="/admin-dashboard" element={<AdminDashboard />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
               <Toaster />
