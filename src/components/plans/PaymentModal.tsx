@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowDown, Check, Clock, Copy, QrCode } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -29,19 +28,17 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
   const walletAddress = '0xCce6b6b80C957aB0fB60FD91e32e336b1Ee83018';
-  const qrCodeUrl = '/lovable-uploads/d28bee8e-db65-446f-915f-f52160e65639.png';
+  const qrCodeUrl = '/lovable-uploads/4a50216d-605c-490b-9895-b24721e207fa.png';
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
     if (open) {
-      // Reset state when the modal opens
       setTransactionId('');
       setCopied(false);
       setTimeLeft(600);
       setIsSubmitting(false);
       
-      // Start the countdown
       intervalRef.current = setInterval(() => {
         setTimeLeft(prev => {
           if (prev <= 1) {
@@ -52,13 +49,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         });
       }, 1000);
     } else {
-      // Clear the interval when the modal closes
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
     }
     
-    // Clear the interval when the component unmounts
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -162,7 +157,6 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
                 className="w-48 h-48 object-contain"
                 onError={(e) => {
                   console.error('QR Code failed to load:', e);
-                  // Set fallback image or show error state
                   e.currentTarget.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200"><rect width="200" height="200" fill="%23f0f0f0"/><text x="50%" y="50%" font-family="Arial" font-size="16" text-anchor="middle" fill="%23999">QR Code</text></svg>';
                 }}
               />

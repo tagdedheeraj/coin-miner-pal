@@ -13,8 +13,8 @@ const Plans: React.FC = () => {
     return <Navigate to="/sign-in" replace />;
   }
   
-  // Adding console log to check QR code path
-  console.log('QR Code path should be accessible at: /lovable-uploads/d28bee8e-db65-446f-915f-f52160e65639.png');
+  // Updated console log to check new QR code path
+  console.log('QR Code path should be accessible at: /lovable-uploads/4a50216d-605c-490b-9895-b24721e207fa.png');
   
   return (
     <div className="min-h-screen bg-gray-50 pb-20 pt-16">
