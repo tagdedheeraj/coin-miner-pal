@@ -18,6 +18,20 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({ children }
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Check for user in localStorage first
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser) as User;
+        setUser(parsedUser);
+        setIsLoading(false);
+        return;
+      } catch (error) {
+        console.error('Error parsing stored user:', error);
+        localStorage.removeItem('user');
+      }
+    }
+
     const unsubscribe = auth.onAuthStateChanged(firebaseUser => {
       if (firebaseUser) {
         const mockUser = mockUsers.find(u => u.email === firebaseUser.email);
