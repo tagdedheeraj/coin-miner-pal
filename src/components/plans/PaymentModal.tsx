@@ -29,8 +29,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
   const walletAddress = '0xCce6b6b80C957aB0fB60FD91e32e336b1Ee83018';
-  // Ensure we have the correct path to QR code
-  const qrCodeUrl = '/lovable-uploads/4a50216d-605c-490b-9895-b24721e207fa.png';
+  // Updated QR code URL to your uploaded image
+  const qrCodeUrl = '/lovable-uploads/e6693d03-b7d5-40c8-a973-c0c99c55a8fe.png';
   const [qrCodeError, setQrCodeError] = useState(false);
   
   const intervalRef = useRef<NodeJS.Timeout | null>(null);

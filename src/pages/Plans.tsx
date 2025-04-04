@@ -13,12 +13,12 @@ const Plans: React.FC = () => {
     return <Navigate to="/sign-in" replace />;
   }
   
-  // Add direct QR code verification
+  // Add direct QR code verification with updated path
   useEffect(() => {
     const img = new Image();
     img.onload = () => console.log('QR Code verified as loadable');
     img.onerror = () => console.error('QR Code could not be loaded from URL');
-    img.src = '/lovable-uploads/4a50216d-605c-490b-9895-b24721e207fa.png';
+    img.src = '/lovable-uploads/e6693d03-b7d5-40c8-a973-c0c99c55a8fe.png';
   }, []);
   
   return (
