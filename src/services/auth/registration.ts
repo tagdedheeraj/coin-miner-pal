@@ -56,7 +56,7 @@ export const createRegistrationService = (
       // Also save to Supabase for admin panel visibility
       const { error: supabaseError } = await supabase
         .from('users')
-        .insert(supabaseUserData);
+        .insert([supabaseUserData]);
       
       if (supabaseError) {
         console.error('Failed to save user to Supabase:', supabaseError);

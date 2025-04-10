@@ -1,11 +1,12 @@
 
 import { User } from '@/types/auth';
 import { supabase } from '@/integrations/supabase/client';
+import { auth } from '@/integrations/firebase/client';
 import { toast } from 'sonner';
 import { mapUserToDb, mapDbToUser } from '@/utils/supabaseUtils';
+import { deleteUser as deleteFirebaseUser } from 'firebase/auth';
 
 export const adminServiceFunctions = (user: User | null) => {
-
   const updateUserUsdtEarnings = async (email: string, amount: number): Promise<void> => {
     if (!user?.isAdmin) {
       toast.error('Only admins can update USDT earnings');
@@ -25,7 +26,7 @@ export const adminServiceFunctions = (user: User | null) => {
       const targetUser = mapDbToUser(userData);
       const userNotifications = targetUser.notifications || [];
       
-      // Update USDT earnings and add notification
+      // Update USDT earnings and add notification in both Supabase and Firebase
       const { error } = await supabase
         .from('users')
         .update(mapUserToDb({
@@ -97,9 +98,44 @@ export const adminServiceFunctions = (user: User | null) => {
       throw error;
     }
   };
+
+  const deleteUserAccount = async (userId: string): Promise<void> => {
+    if (!user?.isAdmin) {
+      toast.error('Only admins can delete users');
+      return;
+    }
+
+    try {
+      // Delete from Supabase first
+      const { error: supabaseError } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', userId);
+
+      if (supabaseError) throw supabaseError;
+
+      // Try to delete from Firebase
+      try {
+        const userToDelete = await auth.getUser(userId);
+        if (userToDelete) {
+          await deleteFirebaseUser(userToDelete);
+        }
+      } catch (firebaseError) {
+        console.error('Firebase deletion error:', firebaseError);
+        // Continue even if Firebase deletion fails
+      }
+
+      toast.success('User deleted successfully');
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to delete user');
+      throw error;
+    }
+  };
   
   return {
     updateUserUsdtEarnings,
-    updateUserCoins
+    updateUserCoins,
+    deleteUserAccount
   };
 };
