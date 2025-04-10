@@ -38,8 +38,17 @@ export const createDepositRequestFunctions = (
       const { error } = await supabase
         .from('deposit_requests')
         .insert({
-          ...dbDeposit,
-          user_id: user.id // Explicitly set the user_id to ensure foreign key constraint is satisfied
+          id: dbDeposit.id,
+          user_id: user.id,
+          user_email: dbDeposit.user_email,
+          user_name: dbDeposit.user_name,
+          plan_id: dbDeposit.plan_id,
+          plan_name: dbDeposit.plan_name,
+          amount: dbDeposit.amount,
+          transaction_id: dbDeposit.transaction_id,
+          status: dbDeposit.status,
+          timestamp: dbDeposit.timestamp,
+          reviewed_at: dbDeposit.reviewed_at
         });
       
       if (error) {
@@ -57,8 +66,17 @@ export const createDepositRequestFunctions = (
           const { error: retryError } = await supabase
             .from('deposit_requests')
             .insert({
-              ...dbDeposit,
-              user_id: user.id
+              id: dbDeposit.id,
+              user_id: user.id,
+              user_email: dbDeposit.user_email,
+              user_name: dbDeposit.user_name,
+              plan_id: dbDeposit.plan_id,
+              plan_name: dbDeposit.plan_name,
+              amount: dbDeposit.amount,
+              transaction_id: dbDeposit.transaction_id,
+              status: dbDeposit.status,
+              timestamp: dbDeposit.timestamp,
+              reviewed_at: dbDeposit.reviewed_at
             });
             
           if (retryError) {
