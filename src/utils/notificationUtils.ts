@@ -19,12 +19,13 @@ export const parseNotifications = (notifications: Json | null): Array<{id: strin
           };
         }
         
-        // Ensure each notification has the required properties
+        // Cast to any to safely access properties then convert to the expected format
+        const notificationObj = notification as any;
         return {
-          id: notification.id || String(Date.now()),
-          message: notification.message || 'Notification',
-          read: notification.read || false,
-          createdAt: notification.createdAt || new Date().toISOString()
+          id: notificationObj.id || String(Date.now()),
+          message: notificationObj.message || 'Notification',
+          read: notificationObj.read || false,
+          createdAt: notificationObj.createdAt || new Date().toISOString()
         };
       });
     }
