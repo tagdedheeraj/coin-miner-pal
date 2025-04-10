@@ -22,6 +22,43 @@ import { Input } from "@/components/ui/input";
 import { Search, Trash2, Edit, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
+import { Json } from '@/integrations/supabase/types';
+
+// Helper function to safely parse notifications from database JSON
+const parseNotifications = (notifications: Json | null): Array<{id: string, message: string, read: boolean, createdAt: string}> => {
+  if (!notifications) return [];
+  
+  try {
+    // If it's already an array, check its structure and convert if needed
+    if (Array.isArray(notifications)) {
+      return notifications.map(notification => {
+        // Ensure each notification has the required properties
+        return {
+          id: notification.id || String(Date.now()),
+          message: notification.message || 'Notification',
+          read: notification.read || false,
+          createdAt: notification.createdAt || new Date().toISOString()
+        };
+      });
+    }
+    
+    // If it's a JSON string, parse it
+    if (typeof notifications === 'string') {
+      try {
+        const parsed = JSON.parse(notifications);
+        return Array.isArray(parsed) ? parseNotifications(parsed) : [];
+      } catch (e) {
+        console.error('Failed to parse notifications JSON string:', e);
+        return [];
+      }
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('Error parsing notifications:', error);
+    return [];
+  }
+};
 
 const UserManagement: React.FC = () => {
   const { user, deleteUser, updateUserUsdtEarnings, updateUserCoins } = useAuth();
@@ -47,8 +84,8 @@ const UserManagement: React.FC = () => {
           
         if (error) throw error;
         
-        // Map from database format to User format
-        const mappedUsers = data.map(userData => ({
+        // Map from database format to User format with proper type conversion
+        const mappedUsers: User[] = data.map(userData => ({
           id: userData.id,
           name: userData.name,
           email: userData.email,
@@ -59,7 +96,7 @@ const UserManagement: React.FC = () => {
           withdrawalAddress: userData.withdrawal_address,
           appliedReferralCode: userData.applied_referral_code,
           usdtEarnings: userData.usdt_earnings,
-          notifications: userData.notifications,
+          notifications: parseNotifications(userData.notifications),
           isAdmin: userData.is_admin
         }));
         
