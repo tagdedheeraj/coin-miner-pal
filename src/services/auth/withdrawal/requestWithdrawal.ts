@@ -1,37 +1,30 @@
 
-import { Dispatch, SetStateAction } from 'react';
-import { User } from '@/types/auth';
-import { supabase } from '@/integrations/supabase/client';
+import { User, WithdrawalRequest } from '@/types/auth';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
-import { mapWithdrawalToDb, mapUserToDb } from '@/utils/supabaseUtils';
+import { collection, addDoc } from 'firebase/firestore';
+import { db } from '@/integrations/firebase/client';
 
-export const createWithdrawalRequestFunctions = (
-  user: User | null,
-  setUser: Dispatch<SetStateAction<User | null>>
-) => {
-  const requestWithdrawal = async (amount: number): Promise<void> => {
-    if (!user) throw new Error('Not authenticated');
-    if (user.isAdmin) throw new Error('Admin cannot request withdrawals');
+export const requestWithdrawalFunctions = (user: User | null) => {
+  const createWithdrawalRequest = async (amount: number): Promise<void> => {
+    if (!user) {
+      toast.error('You must be logged in to request a withdrawal');
+      return;
+    }
     
     if (!user.withdrawalAddress) {
-      throw new Error('Please set a withdrawal address first');
+      toast.error('Please set a withdrawal address first');
+      return;
+    }
+    
+    if (user.usdtEarnings === undefined || amount > user.usdtEarnings) {
+      toast.error('Insufficient USDT balance');
+      return;
     }
     
     try {
-      // Calculate available USDT balance
-      const availableBalance = user.usdtEarnings || 0;
-      
-      if (amount > availableBalance) {
-        throw new Error('Insufficient balance');
-      }
-      
-      if (amount < 50) {
-        throw new Error('Minimum withdrawal amount is $50');
-      }
-      
-      // Create withdrawal request in Supabase
-      const withdrawalRequest = mapWithdrawalToDb({
+      const withdrawalRequest: WithdrawalRequest = {
+        id: uuidv4(),
         userId: user.id,
         userEmail: user.email,
         userName: user.name,
@@ -39,46 +32,27 @@ export const createWithdrawalRequestFunctions = (
         address: user.withdrawalAddress,
         status: 'pending',
         createdAt: new Date().toISOString()
-      });
-      
-      const { error } = await supabase
-        .from('withdrawal_requests')
-        .insert(withdrawalRequest as any);
-      
-      if (error) throw error;
-      
-      // Create notification for user
-      const notification = {
-        id: uuidv4(),
-        message: `Your withdrawal request for $${amount.toFixed(2)} USDT has been submitted and is awaiting approval.`,
-        read: false,
-        createdAt: new Date().toISOString()
       };
       
-      // Update user notifications
-      const userNotifications = user.notifications || [];
-      const userUpdate = mapUserToDb({
-        notifications: [...userNotifications, notification]
-      });
-      
-      await supabase
-        .from('users')
-        .update(userUpdate as any)
-        .eq('id', user.id);
-      
-      // Update local user state
-      setUser({
-        ...user,
-        notifications: [...userNotifications, notification]
+      // Add to Firestore
+      await addDoc(collection(db, 'withdrawal_requests'), {
+        id: withdrawalRequest.id,
+        user_id: withdrawalRequest.userId,
+        user_email: withdrawalRequest.userEmail,
+        user_name: withdrawalRequest.userName,
+        amount: withdrawalRequest.amount,
+        address: withdrawalRequest.address,
+        status: withdrawalRequest.status,
+        created_at: withdrawalRequest.createdAt,
+        updated_at: null
       });
       
       toast.success('Withdrawal request submitted successfully');
     } catch (error) {
-      console.error(error);
-      toast.error(error instanceof Error ? error.message : 'Failed to request withdrawal');
-      throw error;
+      console.error('Error creating withdrawal request:', error);
+      toast.error('Failed to submit withdrawal request');
     }
   };
 
-  return { requestWithdrawal };
+  return { createWithdrawalRequest };
 };
