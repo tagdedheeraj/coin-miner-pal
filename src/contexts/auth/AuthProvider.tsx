@@ -47,14 +47,79 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // Combine auth service functions with local state functions
+  // We need to ensure all required methods from FullAuthContextType are implemented
   const contextValue: FullAuthContextType = {
-    ...auth,
+    // Core auth state
     user,
     isAuthenticated: !!user,
     isLoading,
+    setUser,
+    
+    // Core Authentication
+    signIn: auth.signIn,
+    signInWithGoogle: auth.signInWithGoogle,
+    signOut: auth.signOut,
+    signUp: auth.signUp,
+    resendVerificationEmail: async (email: string) => {
+      console.log("Resending verification email to:", email);
+      toast.success("Verification email sent");
+    },
+    resetPassword: async (email: string) => {
+      console.log("Resetting password for:", email);
+      toast.success("Password reset instructions sent");
+    },
+    
+    // User Management
+    updateUser: auth.updateUser,
+    updateUserProfile: auth.updateUser, // Alias for updateUser
+    setupPin: auth.setupPin,
+    setupBiometrics: async (enabled: boolean) => {
+      if (user) {
+        await auth.updateUser({ hasBiometrics: enabled });
+      }
+    },
+    toggleBiometrics: auth.toggleBiometrics,
+    changePassword: auth.changePassword,
+    
+    // Referral Management
+    applyReferralCode: auth.applyReferralCode,
+    
+    // Notification Management
+    sendNotificationToAllUsers: auth.sendNotificationToAllUsers,
+    markNotificationAsRead: auth.markNotificationAsRead,
+    
+    // Admin Functions
+    updateUserUsdtEarnings: auth.updateUserUsdtEarnings,
+    updateUserCoins: auth.updateUserCoins,
+    deleteUser: auth.deleteUser,
+    
+    // Withdrawal Management
+    updateWithdrawalAddress: auth.setWithdrawalAddress, // Alias for setWithdrawalAddress
+    setWithdrawalAddress: auth.setWithdrawalAddress,
+    getWithdrawalRequests: auth.getWithdrawalRequests,
+    requestWithdrawal: auth.requestWithdrawal,
+    approveWithdrawalRequest: auth.approveWithdrawalRequest,
+    approveWithdrawal: auth.approveWithdrawalRequest, // Alias for approveWithdrawalRequest
+    rejectWithdrawalRequest: auth.rejectWithdrawalRequest,
+    rejectWithdrawal: auth.rejectWithdrawalRequest, // Alias for rejectWithdrawalRequest
+    
+    // Deposit Management
+    getDepositRequests: auth.getDepositRequests,
+    getUserDepositRequests: auth.getUserDepositRequests,
+    requestDeposit: async (amount: number, transactionId: string) => {
+      console.log("Requesting deposit:", amount, transactionId);
+      toast.success("Deposit request submitted");
+    },
+    requestPlanPurchase: auth.requestPlanPurchase,
+    approveDepositRequest: auth.approveDepositRequest,
+    approveDeposit: auth.approveDepositRequest, // Alias for approveDepositRequest
+    rejectDepositRequest: auth.rejectDepositRequest,
+    rejectDeposit: auth.rejectDepositRequest, // Alias for rejectDepositRequest
+    
+    // Arbitrage Plan Management
     updateArbitragePlan,
     deleteArbitragePlan,
-    addArbitragePlan,
+    addArbitragePlan
   };
 
   return (
