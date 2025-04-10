@@ -4,7 +4,6 @@ import { User } from '@/types/auth';
 import { mockUsers } from '@/data/mockUsers';
 import { generateReferralCode } from '@/utils/referral';
 import { AuthStateType } from './types';
-import { userServiceFunctions } from '@/services/auth/userService';
 import { auth } from '@/integrations/firebase/client';
 import { onAuthStateChanged } from 'firebase/auth';
 
@@ -19,9 +18,6 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({ children }
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Initialize user service to access utility functions
-  const userService = userServiceFunctions(user, setUser);
-
   useEffect(() => {
     // Check for user in localStorage first
     const storedUser = localStorage.getItem('user');

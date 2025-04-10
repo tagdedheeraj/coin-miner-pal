@@ -54,37 +54,35 @@ const NavigationHandler = ({ children }: { children: React.ReactNode }) => {
 };
 
 const App = () => (
-  <React.StrictMode>
+  <QueryClientProvider client={queryClient}>
     <BrowserRouter>
-      <QueryClientProvider client={queryClient}>
-        <CombinedAuthProvider>
-          <MiningProvider>
-            <TooltipProvider>
-              <NavigationHandler>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/sign-in" element={<SignIn />} />
-                  <Route path="/sign-up" element={<SignUp />} />
-                  <Route path="/mining" element={<Mining />} />
-                  <Route path="/rewards" element={<Rewards />} />
-                  <Route path="/wallet" element={<Wallet />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/referral" element={<Referral />} />
-                  <Route path="/plans" element={<Plans />} />
-                  <Route path="/admin" element={<AdminPanel />} />
-                  <Route path="/admin-dashboard" element={<AdminDashboard />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-                <Toaster />
-                <Sonner />
-              </NavigationHandler>
-            </TooltipProvider>
-          </MiningProvider>
-        </CombinedAuthProvider>
-      </QueryClientProvider>
+      <CombinedAuthProvider>
+        <MiningProvider>
+          <TooltipProvider>
+            <NavigationHandler>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/sign-in" element={<SignIn />} />
+                <Route path="/sign-up" element={<SignUp />} />
+                <Route path="/mining" element={<Mining />} />
+                <Route path="/rewards" element={<Rewards />} />
+                <Route path="/wallet" element={<Wallet />} />
+                <Route path="/profile" element={<Profile />} />
+                <Route path="/referral" element={<Referral />} />
+                <Route path="/plans" element={<Plans />} />
+                <Route path="/admin" element={<AdminPanel />} />
+                <Route path="/admin-dashboard" element={<AdminDashboard />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+              <Toaster />
+              <Sonner />
+            </NavigationHandler>
+          </TooltipProvider>
+        </MiningProvider>
+      </CombinedAuthProvider>
     </BrowserRouter>
-  </React.StrictMode>
+  </QueryClientProvider>
 );
 
 export default App;

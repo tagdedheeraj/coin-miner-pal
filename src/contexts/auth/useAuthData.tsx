@@ -1,5 +1,5 @@
 
-import { useState, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { AuthStateContext } from './AuthStateContext';
 import { User } from '@/types/auth';
 
