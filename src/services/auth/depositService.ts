@@ -1,11 +1,15 @@
 
+import { Dispatch, SetStateAction } from 'react';
 import { User, DepositRequest } from '@/types/auth';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 
-export const depositServiceFunctions = (user: User | null) => {
-
+export const depositServiceFunctions = (
+  user: User | null,
+  setUser: Dispatch<SetStateAction<User | null>>
+) => {
+  
   const requestPlanPurchase = async (depositData: Omit<DepositRequest, 'id' | 'status' | 'reviewedAt'>): Promise<void> => {
     if (!user) {
       throw new Error('Not authenticated');
@@ -13,9 +17,10 @@ export const depositServiceFunctions = (user: User | null) => {
     
     try {
       // Create the deposit request
-      const depositRequest: Omit<DepositRequest, 'id'> = {
+      const depositRequest = {
         ...depositData,
         status: 'pending',
+        timestamp: new Date().toISOString()
       };
       
       // Save to Supabase
@@ -33,26 +38,22 @@ export const depositServiceFunctions = (user: User | null) => {
         createdAt: new Date().toISOString()
       };
       
-      // Get current user data
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-      
-      if (userError) throw userError;
-      
-      // Update user document with notification
-      const userNotifications = userData.notifications || [];
-      
+      // Update user with notification
+      const userNotifications = user.notifications || [];
       const { error: updateError } = await supabase
         .from('users')
         .update({
           notifications: [...userNotifications, notification]
         })
         .eq('id', user.id);
-      
+        
       if (updateError) throw updateError;
+      
+      // Update local user state
+      setUser({
+        ...user,
+        notifications: [...userNotifications, notification]
+      });
       
       toast.success('Deposit request submitted successfully');
     } catch (error) {
@@ -61,7 +62,7 @@ export const depositServiceFunctions = (user: User | null) => {
       throw error;
     }
   };
-  
+
   const getDepositRequests = async (): Promise<DepositRequest[]> => {
     if (!user?.isAdmin) {
       return [];
@@ -82,7 +83,7 @@ export const depositServiceFunctions = (user: User | null) => {
       return [];
     }
   };
-  
+
   const approveDepositRequest = async (requestId: string): Promise<void> => {
     if (!user?.isAdmin) {
       toast.error('Only admins can approve deposit requests');
@@ -106,15 +107,13 @@ export const depositServiceFunctions = (user: User | null) => {
       }
       
       // Update request status
-      const { error: updateError } = await supabase
+      await supabase
         .from('depositRequests')
         .update({
           status: 'approved',
           reviewedAt: new Date().toISOString()
         })
         .eq('id', requestId);
-      
-      if (updateError) throw updateError;
       
       // Find the user and send notification
       const { data: userData, error: userError } = await supabase
@@ -128,7 +127,7 @@ export const depositServiceFunctions = (user: User | null) => {
       const targetUser = userData as User;
       const userNotifications = targetUser.notifications || [];
       
-      const { error } = await supabase
+      await supabase
         .from('users')
         .update({
           notifications: [
@@ -143,15 +142,13 @@ export const depositServiceFunctions = (user: User | null) => {
         })
         .eq('id', targetUser.id);
       
-      if (error) throw error;
-      
       toast.success('Deposit request approved successfully');
     } catch (error) {
       console.error(error);
       toast.error(error instanceof Error ? error.message : 'Failed to approve deposit request');
     }
   };
-  
+
   const rejectDepositRequest = async (requestId: string): Promise<void> => {
     if (!user?.isAdmin) {
       toast.error('Only admins can reject deposit requests');
@@ -175,15 +172,13 @@ export const depositServiceFunctions = (user: User | null) => {
       }
       
       // Update request status
-      const { error: updateError } = await supabase
+      await supabase
         .from('depositRequests')
         .update({
           status: 'rejected',
           reviewedAt: new Date().toISOString()
         })
         .eq('id', requestId);
-      
-      if (updateError) throw updateError;
       
       // Find the user and send notification
       const { data: userData, error: userError } = await supabase
@@ -197,7 +192,7 @@ export const depositServiceFunctions = (user: User | null) => {
       const targetUser = userData as User;
       const userNotifications = targetUser.notifications || [];
       
-      const { error } = await supabase
+      await supabase
         .from('users')
         .update({
           notifications: [
@@ -211,8 +206,6 @@ export const depositServiceFunctions = (user: User | null) => {
           ]
         })
         .eq('id', targetUser.id);
-      
-      if (error) throw error;
       
       toast.success('Deposit request rejected successfully');
     } catch (error) {

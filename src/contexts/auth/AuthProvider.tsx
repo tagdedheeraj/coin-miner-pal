@@ -9,7 +9,7 @@ import { mockDepositRequests } from '@/data/mockDepositRequests';
 import { mockUsers } from '@/data/mockUsers';
 import { useToast } from "@/hooks/use-toast";
 import { FullAuthContextType } from './types';
-import { authFunctions } from '@/services/supabaseAuthService';
+import { authFunctions } from '@/services/authService';
 
 export const AuthContext = createContext<FullAuthContextType | null>(null);
 

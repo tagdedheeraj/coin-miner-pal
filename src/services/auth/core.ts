@@ -4,6 +4,7 @@ import { User } from '@/types/auth';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { SupabaseUserCredential } from '@/contexts/auth/types';
+import { generateReferralCode } from '@/utils/referral';
 
 // Admin credentials
 const ADMIN_EMAIL = 'admin@infinium.com';
@@ -43,6 +44,7 @@ export const coreAuthFunctions = (
         return;
       }
       
+      console.log('Attempting to sign in with Supabase');
       // Regular user login with Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -51,11 +53,46 @@ export const coreAuthFunctions = (
       
       if (error) throw error;
       
-      // The rest of the user data fetching will be handled by AuthStateContext
-      // which will check localStorage first and then Supabase
-      return data;
+      // Get user profile from Supabase
+      const { data: profileData, error: profileError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+      
+      if (profileError) {
+        // If profile doesn't exist, create a basic one
+        if (profileError.code === 'PGRST116') {
+          const newUser: User = {
+            id: data.user.id,
+            name: email.split('@')[0],
+            email: email,
+            coins: 0,
+            referralCode: generateReferralCode(),
+            hasSetupPin: false,
+            hasBiometrics: false,
+            withdrawalAddress: null,
+          };
+          
+          // Create profile in Supabase
+          await supabase.from('users').insert([newUser]);
+          
+          // Store in localStorage
+          localStorage.setItem('user', JSON.stringify(newUser));
+          setUser(newUser);
+        } else {
+          throw profileError;
+        }
+      } else {
+        // Use existing profile
+        const userData: User = profileData;
+        localStorage.setItem('user', JSON.stringify(userData));
+        setUser(userData);
+      }
+      
+      toast.success('Signed in successfully');
     } catch (error) {
-      console.error(error);
+      console.error('Sign in error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to sign in');
       throw error;
     } finally {
@@ -65,23 +102,67 @@ export const coreAuthFunctions = (
 
   const signUp = async (name: string, email: string, password: string): Promise<SupabaseUserCredential> => {
     setIsLoading(true);
+    console.log('Attempting to sign up with Supabase');
+    
     try {
       // Register with Supabase
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: {
-            name
-          }
+          data: { name }
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase signup error:', error);
+        throw error;
+      }
       
+      if (!data.user) {
+        throw new Error('Failed to create user');
+      }
+      
+      // Generate referral code
+      const referralCode = generateReferralCode();
+      
+      // Create user profile
+      const newUser: User = {
+        id: data.user.id,
+        name,
+        email,
+        coins: 200, // Sign-up bonus
+        referralCode,
+        hasSetupPin: false,
+        hasBiometrics: false,
+        withdrawalAddress: null,
+        usdtEarnings: 0,
+        notifications: []
+      };
+      
+      // Store in Supabase
+      console.log('Creating user profile in Supabase');
+      const { error: insertError } = await supabase
+        .from('users')
+        .insert([newUser]);
+      
+      if (insertError) {
+        console.error('User profile creation error:', insertError);
+        throw insertError;
+      }
+      
+      // Save in local state
+      setUser(newUser);
+      
+      // Store in localStorage for persistence
+      localStorage.setItem('user', JSON.stringify(newUser));
+      
+      toast.success('Account created successfully! You received 200 coins as a signup bonus.');
+      
+      // Return the data in the expected format
       return data as SupabaseUserCredential;
     } catch (error) {
-      console.error(error);
+      console.error('Signup process error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to sign up');
       throw error;
     } finally {

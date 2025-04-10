@@ -1,11 +1,15 @@
 
+import { Dispatch, SetStateAction } from 'react';
 import { User, WithdrawalRequest } from '@/types/auth';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 
-export const withdrawalServiceFunctions = (user: User | null) => {
-
+export const withdrawalServiceFunctions = (
+  user: User | null,
+  setUser: Dispatch<SetStateAction<User | null>>
+) => {
+  
   const requestWithdrawal = async (amount: number): Promise<void> => {
     if (!user) throw new Error('Not authenticated');
     if (user.isAdmin) throw new Error('Admin cannot request withdrawals');
@@ -51,26 +55,20 @@ export const withdrawalServiceFunctions = (user: User | null) => {
         createdAt: new Date().toISOString()
       };
       
-      // Get current user notifications
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('notifications')
-        .eq('id', user.id)
-        .single();
-      
-      if (userError) throw userError;
-      
-      const userNotifications = userData.notifications || [];
-      
-      // Update user with notification
-      const { error: updateError } = await supabase
+      // Update user notifications
+      const userNotifications = user.notifications || [];
+      await supabase
         .from('users')
         .update({
           notifications: [...userNotifications, notification]
         })
         .eq('id', user.id);
       
-      if (updateError) throw updateError;
+      // Update local user state
+      setUser({
+        ...user,
+        notifications: [...userNotifications, notification]
+      });
       
       toast.success('Withdrawal request submitted successfully');
     } catch (error) {
@@ -79,7 +77,7 @@ export const withdrawalServiceFunctions = (user: User | null) => {
       throw error;
     }
   };
-  
+
   const getWithdrawalRequests = async (): Promise<WithdrawalRequest[]> => {
     if (!user?.isAdmin) {
       return [];
@@ -100,7 +98,7 @@ export const withdrawalServiceFunctions = (user: User | null) => {
       return [];
     }
   };
-  
+
   const approveWithdrawalRequest = async (requestId: string): Promise<void> => {
     if (!user?.isAdmin) {
       toast.error('Only admins can approve withdrawal requests');
@@ -124,15 +122,13 @@ export const withdrawalServiceFunctions = (user: User | null) => {
       }
       
       // Update request status
-      const { error: updateError } = await supabase
+      await supabase
         .from('withdrawalRequests')
         .update({
           status: 'approved',
           updatedAt: new Date().toISOString()
         })
         .eq('id', requestId);
-      
-      if (updateError) throw updateError;
       
       // Find the user and update their USDT earnings
       const { data: userData, error: userError } = await supabase
@@ -147,7 +143,7 @@ export const withdrawalServiceFunctions = (user: User | null) => {
       const currentEarnings = targetUser.usdtEarnings || 0;
       const userNotifications = targetUser.notifications || [];
       
-      const { error } = await supabase
+      await supabase
         .from('users')
         .update({
           usdtEarnings: currentEarnings - request.amount,
@@ -163,15 +159,13 @@ export const withdrawalServiceFunctions = (user: User | null) => {
         })
         .eq('id', targetUser.id);
       
-      if (error) throw error;
-      
       toast.success('Withdrawal request approved successfully');
     } catch (error) {
       console.error(error);
       toast.error(error instanceof Error ? error.message : 'Failed to approve withdrawal request');
     }
   };
-  
+
   const rejectWithdrawalRequest = async (requestId: string): Promise<void> => {
     if (!user?.isAdmin) {
       toast.error('Only admins can reject withdrawal requests');
@@ -195,15 +189,13 @@ export const withdrawalServiceFunctions = (user: User | null) => {
       }
       
       // Update request status
-      const { error: updateError } = await supabase
+      await supabase
         .from('withdrawalRequests')
         .update({
           status: 'rejected',
           updatedAt: new Date().toISOString()
         })
         .eq('id', requestId);
-      
-      if (updateError) throw updateError;
       
       // Find the user and send notification
       const { data: userData, error: userError } = await supabase
@@ -217,7 +209,7 @@ export const withdrawalServiceFunctions = (user: User | null) => {
       const targetUser = userData as User;
       const userNotifications = targetUser.notifications || [];
       
-      const { error } = await supabase
+      await supabase
         .from('users')
         .update({
           notifications: [
@@ -231,8 +223,6 @@ export const withdrawalServiceFunctions = (user: User | null) => {
           ]
         })
         .eq('id', targetUser.id);
-      
-      if (error) throw error;
       
       toast.success('Withdrawal request rejected successfully');
     } catch (error) {
