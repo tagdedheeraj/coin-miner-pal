@@ -57,9 +57,12 @@ export const createRegistrationService = (
       
       // Store in Supabase
       console.log('Creating user profile in Supabase');
+      
+      const userDbData = mapUserToDb(newUser);
+      
       const { error: insertError } = await supabase
         .from('users')
-        .insert([mapUserToDb(newUser)]);
+        .insert(userDbData);
       
       if (insertError) {
         console.error('User profile creation error:', insertError);

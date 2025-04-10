@@ -3,13 +3,7 @@ import { Dispatch, SetStateAction } from 'react';
 import { User } from '@/types/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { SupabaseUserCredential } from '@/contexts/auth/types';
-import { generateReferralCode } from '@/utils/referral';
-import { mapUserToDb, mapDbToUser } from '@/utils/supabaseUtils';
-
-// Admin credentials
-const ADMIN_EMAIL = 'admin@infinium.com';
-const ADMIN_PASSWORD = 'Infinium@123';
+import { mapDbToUser } from '@/utils/supabaseUtils';
 
 export const createAuthenticationService = (
   user: User | null, 
@@ -17,90 +11,45 @@ export const createAuthenticationService = (
   setIsLoading: Dispatch<SetStateAction<boolean>>
 ) => {
   
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string): Promise<void> => {
     setIsLoading(true);
+    
     try {
-      // Check if this is an admin login
-      if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-        // Create admin user object
-        const adminUser = {
-          id: 'admin-id',
-          name: 'Admin',
-          email: ADMIN_EMAIL,
-          coins: 0,
-          referralCode: '',
-          hasSetupPin: true,
-          hasBiometrics: false,
-          withdrawalAddress: null,
-          appliedReferralCode: null,
-          notifications: [],
-          isAdmin: true
-        };
-        
-        // Store admin user in localStorage for persistence
-        localStorage.setItem('user', JSON.stringify(adminUser));
-        
-        setUser(adminUser);
-        toast.success('Signed in as Admin');
-        return;
-      }
-      
-      console.log('Attempting to sign in with Supabase');
-      // Regular user login with Supabase
+      // Authenticate with Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
       });
       
-      if (error) throw new Error(error.message);
+      if (error) throw error;
       
-      // Get user profile from Supabase
-      const { data: profileData, error: profileError } = await supabase
+      // Get user data from the database
+      const { data: userData, error: userError } = await supabase
         .from('users')
         .select('*')
-        .eq('id', data.user.id)
+        .eq('email', email)
         .single();
       
-      if (profileError) {
-        // If profile doesn't exist, create a basic one
-        if (profileError.code === 'PGRST116') {
-          const newUser: User = {
-            id: data.user.id,
-            name: email.split('@')[0],
-            email: email,
-            coins: 0,
-            referralCode: generateReferralCode(),
-            hasSetupPin: false,
-            hasBiometrics: false,
-            withdrawalAddress: null,
-          };
-          
-          // Create profile in Supabase
-          const { error: insertError } = await supabase
-            .from('users')
-            .insert([mapUserToDb(newUser)]);
-          
-          if (insertError) {
-            console.error("Failed to create user profile:", insertError);
-            toast.error("Account created but profile setup failed. Please contact support.");
-          }
-          
-          // Store in localStorage
-          localStorage.setItem('user', JSON.stringify(newUser));
-          setUser(newUser);
-        } else {
-          throw new Error(profileError.message);
-        }
-      } else {
-        // Use existing profile
-        const userData = mapDbToUser(profileData);
-        localStorage.setItem('user', JSON.stringify(userData));
-        setUser(userData);
+      if (userError) {
+        console.error('Error fetching user data:', userError);
+        throw new Error('Failed to fetch user data');
       }
+      
+      if (!userData) {
+        throw new Error('User profile not found');
+      }
+      
+      // Map the user data and update local state
+      const userObj = mapDbToUser(userData);
+      
+      setUser(userObj);
+      
+      // Store in localStorage for persistence
+      localStorage.setItem('user', JSON.stringify(userObj));
       
       toast.success('Signed in successfully');
     } catch (error) {
-      console.error('Sign in error:', error);
+      console.error('Sign-in error:', error);
       
       let errorMessage = 'Failed to sign in';
       if (error instanceof Error) {
@@ -119,24 +68,20 @@ export const createAuthenticationService = (
       setIsLoading(false);
     }
   };
-
-  const signOut = async () => {
-    try {
-      // Only sign out from Supabase if not admin
-      if (user && !user.isAdmin) {
-        await supabase.auth.signOut();
-      }
-      setUser(null);
+  
+  const signOut = () => {
+    supabase.auth.signOut().then(() => {
       localStorage.removeItem('user');
+      setUser(null);
       toast.success('Signed out successfully');
-    } catch (error) {
-      console.error(error);
+    }).catch(error => {
+      console.error('Sign-out error:', error);
       toast.error('Failed to sign out');
-    }
+    });
   };
   
   return {
     signIn,
-    signOut,
+    signOut
   };
 };
