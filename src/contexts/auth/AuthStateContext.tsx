@@ -5,6 +5,7 @@ import { User } from '@/types/auth';
 import { mockUsers } from '@/data/mockUsers';
 import { generateReferralCode } from '@/utils/referral';
 import { AuthStateType } from './types';
+import { userServiceFunctions } from '@/services/auth/userService';
 
 // Create context for auth state
 export const AuthStateContext = createContext<AuthStateType | null>(null);
@@ -16,6 +17,9 @@ interface AuthStateProviderProps {
 export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Initialize user service to access utility functions
+  const userService = userServiceFunctions(user, setUser);
 
   useEffect(() => {
     // Check for user in localStorage first
@@ -52,13 +56,10 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({ children }
 
         // If not in localStorage, get from Supabase
         try {
-          const { data: userData, error } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-
-          if (error || !userData) {
+          // Use the fetchUserBySupabaseId function from userService
+          const userData = await userService.fetchUserBySupabaseId(session.user.id);
+          
+          if (!userData) {
             // If not found in Supabase, check mock users
             const mockUser = mockUsers.find(u => u.email === session.user.email);
             if (mockUser) {
@@ -131,7 +132,7 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({ children }
 
 export const useAuthState = () => {
   const context = React.useContext(AuthStateContext);
-  if (context === undefined) {
+  if (context === null) {
     throw new Error('useAuthState must be used within an AuthStateProvider');
   }
   return context;
