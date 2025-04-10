@@ -16,6 +16,43 @@ export const createDepositRequestFunctions = (
     }
     
     try {
+      // First, check if the user exists in the users table
+      const { data: existingUser, error: userCheckError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', user.id)
+        .single();
+      
+      // If user doesn't exist in the database, create it first
+      if (userCheckError || !existingUser) {
+        console.log('User not found in database, creating user record...');
+        
+        // Create user in the database
+        const userDbData = mapUserToDb({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          coins: user.coins || 0,
+          referralCode: user.referralCode,
+          hasSetupPin: user.hasSetupPin || false,
+          hasBiometrics: user.hasBiometrics || false,
+          withdrawalAddress: user.withdrawalAddress,
+          appliedReferralCode: user.appliedReferralCode,
+          usdtEarnings: user.usdtEarnings || 0,
+          notifications: user.notifications || [],
+          isAdmin: user.isAdmin || false
+        });
+        
+        const { error: createUserError } = await supabase
+          .from('users')
+          .insert(userDbData as any);
+        
+        if (createUserError) {
+          console.error('Error creating user in database:', createUserError);
+          throw new Error(`Failed to create user in database: ${createUserError.message}`);
+        }
+      }
+      
       // Create the deposit request with a proper id
       const depositRequest: DepositRequest = {
         ...depositData,
