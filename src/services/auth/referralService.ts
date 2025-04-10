@@ -18,13 +18,18 @@ export const referralServiceFunctions = (
       return;
     }
     
-    // In a real app, you would validate the referral code and award coins
-    setUser({
-      ...user,
-      appliedReferralCode: code
-    });
-    
-    toast.success('Referral code applied successfully');
+    try {
+      // In a real app, you would validate the referral code and award coins
+      setUser({
+        ...user,
+        appliedReferralCode: code
+      });
+      
+      toast.success('Referral code applied successfully');
+    } catch (error) {
+      console.error('Error applying referral code:', error);
+      toast.error('Failed to apply referral code');
+    }
   };
 
   return {
