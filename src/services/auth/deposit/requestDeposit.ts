@@ -4,7 +4,6 @@ import { User, DepositRequest } from '@/types/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
-import { mapDepositToDb, mapUserToDb } from '@/utils/supabaseUtils';
 
 export const createDepositRequestFunctions = (
   user: User | null,
@@ -24,57 +23,21 @@ export const createDepositRequestFunctions = (
         timestamp: new Date().toISOString()
       };
       
-      // First, ensure the user exists in Supabase by checking auth table
+      // First, ensure the user is authenticated
       const { data: authUser, error: authError } = await supabase.auth.getUser();
       
       if (authError || !authUser.user) {
         throw new Error('Authentication verification failed. Please try again.');
       }
       
-      // IMPORTANT: First ensure the user exists in the users table
-      // Check if the user exists in the database
-      const { data: existingUser, error: userCheckError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('id', user.id)
-        .single();
-        
-      if (userCheckError || !existingUser) {
-        console.log('User does not exist in database, creating user record first');
-        // User doesn't exist in the database, create the user record
-        const userDbData = mapUserToDb(user);
-        
-        const { error: createUserError } = await supabase
-          .from('users')
-          .insert({
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            coins: user.coins || 0,
-            referral_code: user.referralCode,
-            has_setup_pin: user.hasSetupPin || false,
-            has_biometrics: user.hasBiometrics || false,
-            withdrawal_address: user.withdrawalAddress,
-            applied_referral_code: user.appliedReferralCode,
-            usdt_earnings: user.usdtEarnings || 0,
-            notifications: user.notifications || [],
-            is_admin: user.isAdmin || false
-          });
-          
-        if (createUserError) {
-          console.error('Failed to create user record:', createUserError);
-          throw new Error(`Failed to create user record: ${createUserError.message}`);
-        }
-      }
+      console.log('Creating deposit request directly');
       
-      // Map to database format
-      const dbDeposit = mapDepositToDb(depositRequest);
-      
-      // Now create the deposit request
+      // Now create the deposit request directly - no need to check for user existence
+      // as RLS policies should handle this automatically
       const { error } = await supabase
         .from('deposit_requests')
         .insert({
-          id: dbDeposit.id,
+          id: depositRequest.id,
           user_id: user.id,
           user_email: depositData.userEmail,
           user_name: depositData.userName,

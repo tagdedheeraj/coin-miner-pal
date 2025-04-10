@@ -30,10 +30,16 @@ const Plans: React.FC = () => {
   
   useEffect(() => {
     fetchDepositRequests();
+    
+    // Set up periodic refresh (every 30 seconds)
+    const intervalId = setInterval(fetchDepositRequests, 30000);
+    
+    return () => clearInterval(intervalId);
   }, [isAuthenticated, getUserDepositRequests]);
 
   // Add a refresh function that PlansCard can call after successful submission
   const refreshDepositRequests = () => {
+    toast.info("Refreshing your deposit requests...");
     fetchDepositRequests();
   };
   
@@ -51,10 +57,18 @@ const Plans: React.FC = () => {
           <p className="text-gray-500">Boost your mining with premium plans and earn USDT daily</p>
         </div>
         
-        <PlansCard 
-          userDepositRequests={depositRequests} 
-          onDepositSuccess={refreshDepositRequests}
-        />
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-pulse text-center">
+              <p className="text-gray-500">Loading your plans...</p>
+            </div>
+          </div>
+        ) : (
+          <PlansCard 
+            userDepositRequests={depositRequests} 
+            onDepositSuccess={refreshDepositRequests}
+          />
+        )}
       </main>
       
       <BottomNav />

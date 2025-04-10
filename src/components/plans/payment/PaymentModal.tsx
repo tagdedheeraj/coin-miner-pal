@@ -100,8 +100,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       });
       
       toast({
-        title: "Deposit request submitted!",
-        description: "Your transaction is now pending for admin approval.",
+        title: "Payment Submitted!",
+        description: "Your plan will be activated as soon as payment is confirmed by admin. Check back soon!",
       });
       
       // Call the success callback if provided
@@ -113,7 +113,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     } catch (error) {
       console.error('Error submitting deposit request:', error);
       
-      let errorMessage = "There was an error submitting your deposit request. Please try again.";
+      let errorMessage = "There was an error submitting your payment. Please try again.";
       if (error instanceof Error) {
         errorMessage = error.message;
       }
@@ -134,11 +134,18 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         <DialogHeader>
           <DialogTitle>Complete your payment</DialogTitle>
           <DialogDescription>
-            Send ${planPrice} to the following address to purchase {planName}
+            Send ${planPrice} USDT to activate {planName} plan
           </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4 py-4">
+          <div className="bg-amber-50 p-3 rounded-md border border-amber-200 mb-4">
+            <p className="text-sm text-amber-800">
+              <strong>Important:</strong> After making payment, enter the transaction ID below and click Submit. 
+              Your plan will be activated after admin confirmation.
+            </p>
+          </div>
+          
           <PaymentAddress walletAddress={walletAddress} />
           <PaymentQRCode qrCodeImage={qrCodeImage} timeLeft={timeLeft} />
           <TransactionIdInput 
@@ -156,7 +163,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             disabled={isSubmitting || !transactionId.trim() || timeLeft === 0}
             className="bg-brand-orange hover:bg-brand-orange/90"
           >
-            {isSubmitting ? 'Submitting...' : 'Submit for Approval'}
+            {isSubmitting ? 'Submitting...' : 'Submit Payment'}
           </Button>
         </DialogFooter>
       </DialogContent>
