@@ -12,15 +12,18 @@ const Plans: React.FC = () => {
   const { isAuthenticated, user, getUserDepositRequests } = useAuth();
   const [depositRequests, setDepositRequests] = useState<DepositRequest[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   
   const fetchDepositRequests = async () => {
     if (isAuthenticated && getUserDepositRequests) {
       setIsLoading(true);
+      setFetchError(null);
       try {
         const requests = await getUserDepositRequests();
         setDepositRequests(requests);
       } catch (error) {
         console.error('Error fetching user deposit requests:', error);
+        setFetchError('Unable to load your deposit requests. Please try again later.');
         // Don't show toast to avoid spamming the user on RLS errors
       } finally {
         setIsLoading(false);
@@ -62,6 +65,16 @@ const Plans: React.FC = () => {
             <div className="animate-pulse text-center">
               <p className="text-gray-500">Loading your plans...</p>
             </div>
+          </div>
+        ) : fetchError ? (
+          <div className="bg-red-50 p-4 rounded-md border border-red-100 mb-6">
+            <p className="text-red-700 text-sm">{fetchError}</p>
+            <button 
+              onClick={fetchDepositRequests}
+              className="text-xs mt-2 text-red-700 underline"
+            >
+              Try Again
+            </button>
           </div>
         ) : (
           <PlansCard 

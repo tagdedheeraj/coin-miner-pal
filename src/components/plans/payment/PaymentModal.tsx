@@ -8,6 +8,7 @@ import PaymentAddress from './PaymentAddress';
 import PaymentQRCode from './PaymentQRCode';
 import TransactionIdInput from './TransactionIdInput';
 import PaymentTimer from './PaymentTimer';
+import { Loader2 } from 'lucide-react';
 
 interface PaymentModalProps {
   open: boolean;
@@ -163,7 +164,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             disabled={isSubmitting || !transactionId.trim() || timeLeft === 0}
             className="bg-brand-orange hover:bg-brand-orange/90"
           >
-            {isSubmitting ? 'Submitting...' : 'Submit Payment'}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Submitting...
+              </>
+            ) : 'Submit Payment'}
           </Button>
         </DialogFooter>
       </DialogContent>

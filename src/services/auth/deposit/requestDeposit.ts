@@ -32,8 +32,35 @@ export const createDepositRequestFunctions = (
       
       console.log('Creating deposit request directly');
       
-      // Now create the deposit request directly - no need to check for user existence
-      // as RLS policies should handle this automatically
+      // First, check if the user exists in the public.users table
+      const { data: existingUser, error: userCheckError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', user.id)
+        .single();
+        
+      if (userCheckError) {
+        console.log('User not found in database, creating user record first');
+        // User doesn't exist in the database yet, so create it first
+        const { error: insertUserError } = await supabase
+          .from('users')
+          .insert({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            coins: user.coins || 0,
+            referral_code: user.referralCode,
+            has_setup_pin: user.hasSetupPin || false,
+            has_biometrics: user.hasBiometrics || false
+          });
+          
+        if (insertUserError) {
+          console.error('Failed to create user record:', insertUserError);
+          throw new Error(`Failed to create user record: ${insertUserError.message}`);
+        }
+      }
+      
+      // Now create the deposit request
       const { error } = await supabase
         .from('deposit_requests')
         .insert({
