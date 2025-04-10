@@ -32,15 +32,8 @@ export const createDepositRequestFunctions = (
       
       console.log('Creating deposit request directly');
       
-      // IMPORTANT: Use a security bypass approach to ensure we can create user records without RLS blocking
-      // This uses the built-in service_role calls which bypass RLS
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error('No active session found. Please sign in again.');
-      }
-      
-      // Now create the deposit request using the authenticated session
+      // Now create the deposit request directly - no need to check for user existence
+      // as RLS policies should handle this automatically
       const { error } = await supabase
         .from('deposit_requests')
         .insert({

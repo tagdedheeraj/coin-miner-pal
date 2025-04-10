@@ -2,13 +2,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
+import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import PaymentAddress from './PaymentAddress';
 import PaymentQRCode from './PaymentQRCode';
 import TransactionIdInput from './TransactionIdInput';
-import { Loader2 } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import PaymentTimer from './PaymentTimer';
 
 interface PaymentModalProps {
   open: boolean;
@@ -27,7 +26,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   planId,
   onSuccess
 }) => {
-  const { user } = useAuth();
+  const { toast } = useToast();
+  const { user, requestPlanPurchase } = useAuth();
   const [transactionId, setTransactionId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
@@ -68,48 +68,41 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   
   const handleSubmit = async () => {
     if (!transactionId.trim()) {
-      toast.error("Transaction ID required. Please enter your transaction ID to continue.");
+      toast({
+        title: "Transaction ID required",
+        description: "Please enter your transaction ID to continue.",
+        variant: "destructive"
+      });
       return;
     }
     
     if (!user) {
-      toast.error("Authentication required. Please sign in to purchase plans.");
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to purchase plans.",
+        variant: "destructive"
+      });
       return;
     }
     
     setIsSubmitting(true);
     
     try {
-      console.log('Submitting deposit request for user:', user.id);
-      
-      // Prepare deposit request data
-      const depositData = {
-        user_id: user.id,
-        user_email: user.email || '',
-        user_name: user.name || 'User',
-        plan_id: planId,
-        plan_name: planName,
+      await requestPlanPurchase({
+        planId,
+        planName,
         amount: planPrice,
-        transaction_id: transactionId.trim(),
-        status: 'pending',
-        timestamp: new Date().toISOString()
-      };
+        transactionId: transactionId.trim(),
+        timestamp: new Date().toISOString(),
+        userId: user.id,
+        userEmail: user.email,
+        userName: user.name,
+      });
       
-      console.log('Deposit data prepared:', depositData);
-      
-      // Insert deposit request
-      const { data, error } = await supabase
-        .from('deposit_requests')
-        .insert(depositData);
-      
-      if (error) {
-        console.error('Supabase insert error:', error);
-        throw new Error(`Failed to submit deposit request: ${error.message}`);
-      }
-      
-      console.log('Deposit request submitted successfully');
-      
-      toast.success("Payment Submitted! Your plan will be activated as soon as payment is confirmed by admin.");
+      toast({
+        title: "Payment Submitted!",
+        description: "Your plan will be activated as soon as payment is confirmed by admin. Check back soon!",
+      });
       
       // Call the success callback if provided
       if (onSuccess) {
@@ -125,7 +118,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         errorMessage = error.message;
       }
       
-      toast.error(errorMessage);
+      toast({
+        title: "Failed to submit",
+        description: errorMessage,
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -166,12 +163,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
             disabled={isSubmitting || !transactionId.trim() || timeLeft === 0}
             className="bg-brand-orange hover:bg-brand-orange/90"
           >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Submitting...
-              </>
-            ) : 'Submit Payment'}
+            {isSubmitting ? 'Submitting...' : 'Submit Payment'}
           </Button>
         </DialogFooter>
       </DialogContent>
