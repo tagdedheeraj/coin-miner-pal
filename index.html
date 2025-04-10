@@ -8,10 +8,42 @@
     <meta name="description" content="Earn cryptocurrency with Infinium Miner" />
     <meta name="author" content="Infinium" />
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <style>
+      /* Fallback styles in case CSS doesn't load */
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f8f9fa;
+        color: #333;
+      }
+      #root {
+        min-height: 100vh;
+      }
+      .loading-fallback {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        text-align: center;
+        padding: 0 20px;
+      }
+      .loading-fallback h1 {
+        margin-bottom: 16px;
+        color: #3b82f6;
+      }
+    </style>
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Fallback content that shows until React loads -->
+      <div class="loading-fallback">
+        <h1>Infinium Miner</h1>
+        <p>Loading application...</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
