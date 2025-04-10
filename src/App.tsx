@@ -13,7 +13,7 @@ import Profile from '@/pages/Profile';
 import Withdrawal from '@/pages/Withdrawal';
 import Referrals from '@/pages/Referrals';
 import Arbitrage from '@/pages/Arbitrage';
-import AdminDashboard from '@/pages/admin/AdminDashboard';
+import AdminDashboard from '@/pages/AdminDashboard'; // Updated import path
 import ScrollToTop from '@/components/shared/ScrollToTop';
 
 function App() {
