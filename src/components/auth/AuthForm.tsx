@@ -11,8 +11,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Loader2, Eye, EyeOff } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 
 interface AuthFormProps {
   type: 'sign-in' | 'sign-up';
@@ -38,7 +37,6 @@ type SignUpFormValues = z.infer<typeof signUpSchema>;
 const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
   const { signIn, signUp } = useAuth(); // Remove isLoading from here as we'll manage it locally
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const isSignUp = type === 'sign-up';
@@ -90,10 +88,6 @@ const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
   };
 
   return (
@@ -151,45 +145,17 @@ const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
                 <FormItem>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <div className="relative">
-                      <Input
-                        placeholder="Enter your password"
-                        type={showPassword ? "text" : "password"}
-                        disabled={isSubmitting}
-                        className="pr-10"
-                        {...field}
-                      />
-                      <button
-                        type="button"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                        onClick={togglePasswordVisibility}
-                      >
-                        {showPassword ? (
-                          <EyeOff size={18} />
-                        ) : (
-                          <Eye size={18} />
-                        )}
-                      </button>
-                    </div>
+                    <Input
+                      placeholder="Enter your password"
+                      type="password"
+                      disabled={isSubmitting}
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            
-            {!isSignUp && (
-              <div className="text-right">
-                <Button
-                  variant="link"
-                  className="p-0 h-auto text-sm text-brand-blue"
-                  type="button"
-                  onClick={() => navigate('/forgot-password')}
-                >
-                  Forgot password?
-                </Button>
-              </div>
-            )}
-            
             <Button type="submit" className="w-full" disabled={isSubmitting}>
               {isSubmitting ? (
                 <span className="flex items-center gap-2">

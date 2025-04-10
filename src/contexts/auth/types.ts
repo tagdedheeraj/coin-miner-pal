@@ -15,7 +15,6 @@ export interface AuthBasicContextType {
   signUp: (name: string, email: string, password: string) => Promise<UserCredential>;
   signOut: () => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
-  resetPassword: (email: string) => Promise<void>;
 }
 
 export interface UserManagementContextType {
