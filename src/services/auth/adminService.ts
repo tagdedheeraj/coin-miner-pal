@@ -114,11 +114,18 @@ export const adminServiceFunctions = (user: User | null) => {
 
       if (supabaseError) throw supabaseError;
 
-      // Try to delete from Firebase
+      // Try to delete from Firebase - using the correct method from Firebase v9+
       try {
-        const userToDelete = await auth.getUser(userId);
-        if (userToDelete) {
-          await deleteFirebaseUser(userToDelete);
+        // We need to get the current auth user, not try to fetch by ID directly
+        // Firebase Admin SDK would have getUser(), but we're using client SDK
+        const currentUser = auth.currentUser;
+        
+        // Only attempt deletion if we're trying to delete the current user
+        if (currentUser && currentUser.uid === userId) {
+          await deleteFirebaseUser(currentUser);
+        } else {
+          console.log('Cannot delete Firebase user directly from client SDK for security reasons');
+          // Note: We would need Firebase Admin SDK or a server function to delete other users
         }
       } catch (firebaseError) {
         console.error('Firebase deletion error:', firebaseError);
