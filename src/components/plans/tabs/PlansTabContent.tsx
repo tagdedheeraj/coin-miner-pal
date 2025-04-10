@@ -10,7 +10,7 @@ interface PlansTabContentProps {
 const PlansTabContent: React.FC<PlansTabContentProps> = ({ onOpenPaymentModal }) => {
   return (
     <div className="space-y-6">
-      {mockArbitragePlans.map((plan, index) => (
+      {mockArbitragePlans.map((plan) => (
         <PlanItem 
           key={plan.id} 
           plan={plan}
