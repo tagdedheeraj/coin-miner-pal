@@ -45,11 +45,28 @@ export const createWithdrawalRequestFunctions = (
       
       console.log('Creating withdrawal request directly');
       
-      // Now create the withdrawal request directly - no need to check for user existence
-      // as RLS policies should handle this automatically
+      // Convert to supabase format
+      const dbData = mapWithdrawalToDb(request);
+      
+      // Ensure all required fields are present
+      if (!dbData.user_id || !dbData.user_email || !dbData.user_name || 
+          !dbData.amount || !dbData.address) {
+        throw new Error('Missing required withdrawal request fields');
+      }
+      
+      // Now create the withdrawal request with properly typed data
       const { error } = await supabase
         .from('withdrawal_requests')
-        .insert(mapWithdrawalToDb(request));
+        .insert({
+          id: dbData.id,
+          user_id: dbData.user_id,
+          user_email: dbData.user_email,
+          user_name: dbData.user_name,
+          amount: dbData.amount,
+          address: dbData.address,
+          status: dbData.status || 'pending',
+          created_at: dbData.created_at || new Date().toISOString()
+        });
       
       if (error) {
         console.error('Supabase insert error:', error);

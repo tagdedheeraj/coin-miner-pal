@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { mapDbToWithdrawal } from '@/utils/supabaseUtils';
 
-export const getWithdrawalFunctions = (user: User | null) => {
+export const getWithdrawalRequestsFunctions = (user: User | null) => {
   const getWithdrawalRequests = async (): Promise<WithdrawalRequest[]> => {
     if (!user?.isAdmin) {
       return [];
