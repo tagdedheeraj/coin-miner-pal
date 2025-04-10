@@ -37,6 +37,7 @@ type SignUpFormValues = z.infer<typeof signUpSchema>;
 const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
   const { signIn, signUp } = useAuth(); // Remove isLoading from here as we'll manage it locally
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   const isSignUp = type === 'sign-up';
@@ -64,12 +65,16 @@ const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
 
   const onSubmit = async (values: SignInFormValues | SignUpFormValues) => {
     setIsSubmitting(true);
+    setErrorMessage(null);
     
     try {
       if (isSignUp) {
         // Safe to cast since we're in sign-up mode
         const signUpValues = values as SignUpFormValues;
+        console.log('Starting signup process with:', { name: signUpValues.name, email: signUpValues.email });
+        
         await signUp(signUpValues.name, signUpValues.email, signUpValues.password);
+        console.log('Signup successful');
       } else {
         const signInValues = values as SignInFormValues;
         await signIn(signInValues.email, signInValues.password);
@@ -80,9 +85,20 @@ const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
     } catch (error) {
       console.error("Auth error:", error);
       
+      // Handle network errors separately for better user experience
+      if (error instanceof Error) {
+        if (error.message.includes('fetch') || error.message.includes('network')) {
+          setErrorMessage("Network error. Please check your internet connection and try again.");
+        } else {
+          setErrorMessage(error.message);
+        }
+      } else {
+        setErrorMessage('Authentication failed. Please try again later.');
+      }
+      
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : 'Authentication failed',
+        description: errorMessage || 'Authentication failed',
         variant: "destructive",
       });
     } finally {
@@ -99,6 +115,12 @@ const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
+        {errorMessage && (
+          <div className="bg-red-50 p-3 rounded border border-red-200 text-red-600 text-sm">
+            {errorMessage}
+          </div>
+        )}
+        
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             {isSignUp && (

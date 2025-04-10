@@ -148,7 +148,16 @@ export const coreAuthFunctions = (
       
       if (insertError) {
         console.error('User profile creation error:', insertError);
-        throw insertError;
+        
+        // Even if profile creation fails, still set the user in local state
+        // This will allow the user to proceed and we can try to create the profile later
+        setUser(newUser);
+        localStorage.setItem('user', JSON.stringify(newUser));
+        
+        // Warn but don't block the flow
+        toast.warning('Account created but profile sync may be incomplete. Please complete setup later.');
+        
+        return data as SupabaseUserCredential;
       }
       
       // Save in local state

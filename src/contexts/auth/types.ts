@@ -1,6 +1,5 @@
-
 import { User, WithdrawalRequest, DepositRequest, ArbitragePlan } from '@/types/auth';
-import { Session } from '@supabase/supabase-js';
+import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 
 export interface AuthStateType {
   user: User | null;
@@ -8,12 +7,7 @@ export interface AuthStateType {
 }
 
 export interface SupabaseUserCredential {
-  user: {
-    id: string;
-    email?: string | null;
-    user_metadata?: { name?: string };
-    [key: string]: any;
-  } | null;
+  user: SupabaseUser | null;
   session: Session | null;
 }
 
