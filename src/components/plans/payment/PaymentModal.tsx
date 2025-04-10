@@ -7,7 +7,6 @@ import { useAuth } from '@/hooks/useAuth';
 import PaymentAddress from './PaymentAddress';
 import PaymentQRCode from './PaymentQRCode';
 import TransactionIdInput from './TransactionIdInput';
-import PaymentTimer from './PaymentTimer';
 import { Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -81,20 +80,25 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     setIsSubmitting(true);
     
     try {
-      // Insert directly into deposit_requests table using supabase client
+      // Prepare deposit request data
+      const depositData = {
+        user_id: user.id,
+        user_email: user.email,
+        user_name: user.name || 'User',
+        plan_id: planId,
+        plan_name: planName,
+        amount: planPrice,
+        transaction_id: transactionId.trim(),
+        status: 'pending',
+        timestamp: new Date().toISOString()
+      };
+      
+      // Insert deposit request
       const { data, error } = await supabase
         .from('deposit_requests')
-        .insert({
-          user_id: user.id,
-          user_email: user.email,
-          user_name: user.name,
-          plan_id: planId,
-          plan_name: planName,
-          amount: planPrice,
-          transaction_id: transactionId.trim(),
-          status: 'pending',
-          timestamp: new Date().toISOString()
-        });
+        .insert(depositData)
+        .select()
+        .single();
       
       if (error) {
         console.error('Supabase insert error:', error);

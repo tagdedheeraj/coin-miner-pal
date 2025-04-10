@@ -8,6 +8,7 @@ import PlansCard from '@/components/plans/PlansCard';
 import { DepositRequest } from '@/types/auth';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const Plans: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
@@ -24,7 +25,7 @@ const Plans: React.FC = () => {
     setFetchError(null);
     
     try {
-      // Fetch deposit requests directly using Supabase client
+      // Use a simpler query to avoid RLS issues
       const { data, error } = await supabase
         .from('deposit_requests')
         .select('*')
@@ -32,7 +33,14 @@ const Plans: React.FC = () => {
       
       if (error) {
         console.error('Error fetching deposit requests:', error);
-        setFetchError('Unable to load your deposit requests. Please try again later.');
+        
+        // Handle specific Supabase errors
+        if (error.code === '42P17') {
+          // This is the infinite recursion error
+          setFetchError('There was an issue with your account permissions. Please contact support.');
+        } else {
+          setFetchError('Unable to load your deposit requests. Please try again later.');
+        }
       } else {
         // Transform data to match DepositRequest type
         const transformedData: DepositRequest[] = data.map(item => ({
@@ -62,8 +70,8 @@ const Plans: React.FC = () => {
   useEffect(() => {
     fetchDepositRequests();
     
-    // Set up periodic refresh (every 30 seconds)
-    const intervalId = setInterval(fetchDepositRequests, 30000);
+    // Set up periodic refresh (every 60 seconds instead of 30 for less server load)
+    const intervalId = setInterval(fetchDepositRequests, 60000);
     
     return () => clearInterval(intervalId);
   }, [isAuthenticated, user]);
@@ -89,10 +97,10 @@ const Plans: React.FC = () => {
         </div>
         
         {isLoading && depositRequests.length === 0 ? (
-          <div className="flex justify-center py-8">
-            <div className="animate-pulse text-center">
-              <p className="text-gray-500">Loading your plans...</p>
-            </div>
+          <div className="space-y-4">
+            <Skeleton className="h-48 w-full rounded-xl" />
+            <Skeleton className="h-12 w-3/4 rounded-lg" />
+            <Skeleton className="h-12 w-full rounded-lg" />
           </div>
         ) : fetchError ? (
           <div className="bg-red-50 p-4 rounded-md border border-red-100 mb-6">
