@@ -13,7 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 const Plans: React.FC = () => {
   const { isAuthenticated, user } = useAuth();
   const [depositRequests, setDepositRequests] = useState<DepositRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   
   const fetchDepositRequests = async () => {
@@ -25,7 +25,9 @@ const Plans: React.FC = () => {
     setFetchError(null);
     
     try {
-      // Use a simpler query to avoid RLS issues
+      console.log('Fetching deposit requests for user:', user.id);
+      
+      // Try direct query with no joins to minimize RLS issues
       const { data, error } = await supabase
         .from('deposit_requests')
         .select('*')
@@ -34,33 +36,40 @@ const Plans: React.FC = () => {
       if (error) {
         console.error('Error fetching deposit requests:', error);
         
-        // Handle specific Supabase errors
-        if (error.code === '42P17') {
-          // This is the infinite recursion error
-          setFetchError('There was an issue with your account permissions. Please contact support.');
+        if (error.code === '42P17' || error.message.includes('infinite recursion')) {
+          setFetchError('There was an issue with database permissions. Please contact support.');
         } else {
-          setFetchError('Unable to load your deposit requests. Please try again later.');
+          setFetchError(`Unable to load your deposit requests: ${error.message}`);
         }
-      } else {
-        // Transform data to match DepositRequest type
-        const transformedData: DepositRequest[] = data.map(item => ({
-          id: item.id,
-          userId: item.user_id,
-          userEmail: item.user_email,
-          userName: item.user_name,
-          planId: item.plan_id,
-          planName: item.plan_name,
-          amount: item.amount,
-          transactionId: item.transaction_id,
-          status: item.status as 'pending' | 'approved' | 'rejected',
-          timestamp: item.timestamp,
-          reviewedAt: item.reviewed_at
-        }));
-        
-        setDepositRequests(transformedData);
+        return;
       }
+      
+      if (!data) {
+        console.log('No data returned from query');
+        setDepositRequests([]);
+        return;
+      }
+      
+      console.log('Deposit requests fetched successfully:', data.length);
+      
+      // Transform data to match DepositRequest type
+      const transformedData: DepositRequest[] = data.map(item => ({
+        id: item.id,
+        userId: item.user_id,
+        userEmail: item.user_email,
+        userName: item.user_name || 'User',
+        planId: item.plan_id,
+        planName: item.plan_name,
+        amount: item.amount,
+        transactionId: item.transaction_id,
+        status: item.status as 'pending' | 'approved' | 'rejected',
+        timestamp: item.timestamp,
+        reviewedAt: item.reviewed_at
+      }));
+      
+      setDepositRequests(transformedData);
     } catch (error) {
-      console.error('Error in fetchDepositRequests:', error);
+      console.error('Unexpected error in fetchDepositRequests:', error);
       setFetchError('An unexpected error occurred. Please try again later.');
     } finally {
       setIsLoading(false);
@@ -68,12 +77,14 @@ const Plans: React.FC = () => {
   };
   
   useEffect(() => {
-    fetchDepositRequests();
-    
-    // Set up periodic refresh (every 60 seconds instead of 30 for less server load)
-    const intervalId = setInterval(fetchDepositRequests, 60000);
-    
-    return () => clearInterval(intervalId);
+    if (isAuthenticated && user) {
+      console.log('User is authenticated, fetching deposit requests');
+      fetchDepositRequests();
+      
+      // Set up periodic refresh (every 60 seconds)
+      const intervalId = setInterval(fetchDepositRequests, 60000);
+      return () => clearInterval(intervalId);
+    }
   }, [isAuthenticated, user]);
 
   // Add a refresh function that PlansCard can call after successful submission
@@ -96,7 +107,7 @@ const Plans: React.FC = () => {
           <p className="text-gray-500">Boost your mining with premium plans and earn USDT daily</p>
         </div>
         
-        {isLoading && depositRequests.length === 0 ? (
+        {isLoading ? (
           <div className="space-y-4">
             <Skeleton className="h-48 w-full rounded-xl" />
             <Skeleton className="h-12 w-3/4 rounded-lg" />

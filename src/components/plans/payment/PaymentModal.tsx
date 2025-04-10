@@ -80,10 +80,12 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
     setIsSubmitting(true);
     
     try {
+      console.log('Submitting deposit request for user:', user.id);
+      
       // Prepare deposit request data
       const depositData = {
         user_id: user.id,
-        user_email: user.email,
+        user_email: user.email || '',
         user_name: user.name || 'User',
         plan_id: planId,
         plan_name: planName,
@@ -93,17 +95,19 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         timestamp: new Date().toISOString()
       };
       
+      console.log('Deposit data prepared:', depositData);
+      
       // Insert deposit request
       const { data, error } = await supabase
         .from('deposit_requests')
-        .insert(depositData)
-        .select()
-        .single();
+        .insert(depositData);
       
       if (error) {
         console.error('Supabase insert error:', error);
         throw new Error(`Failed to submit deposit request: ${error.message}`);
       }
+      
+      console.log('Deposit request submitted successfully');
       
       toast.success("Payment Submitted! Your plan will be activated as soon as payment is confirmed by admin.");
       
