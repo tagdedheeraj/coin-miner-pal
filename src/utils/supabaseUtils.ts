@@ -4,7 +4,21 @@ import { Json } from '@/integrations/supabase/types';
 
 // Maps our User model to Supabase DB columns
 export const mapUserToDb = (user: Partial<User>) => {
-  const dbUser: Record<string, any> = {};
+  // Create an object with the required fields to satisfy TypeScript
+  const dbUser: {
+    id?: string;
+    name?: string;
+    email?: string;
+    coins?: number;
+    referral_code?: string;
+    has_setup_pin?: boolean;
+    has_biometrics?: boolean;
+    withdrawal_address?: string | null;
+    applied_referral_code?: string | null;
+    usdt_earnings?: number | null;
+    notifications?: Json | null;
+    is_admin?: boolean | null;
+  } = {};
   
   if (user.id !== undefined) dbUser.id = user.id;
   if (user.name !== undefined) dbUser.name = user.name;

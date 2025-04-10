@@ -47,14 +47,21 @@ export const createRegistrationService = (
         notifications: []
       };
       
-      // Map the user object for Supabase
+      // Map the user object for Supabase - ensure it has all required fields
       const supabaseUserData = mapUserToDb({
         ...newUser,
         isAdmin: false
       });
       
+      console.log('Supabase user data:', supabaseUserData);
+      
+      // Ensure we have all required fields for the users table
+      if (!supabaseUserData.id || !supabaseUserData.email || 
+          !supabaseUserData.name || !supabaseUserData.referral_code) {
+        throw new Error('Missing required user fields for Supabase');
+      }
+      
       // Also save to Supabase for admin panel visibility
-      // Pass the object directly, not wrapped in an array
       const { error: supabaseError } = await supabase
         .from('users')
         .insert(supabaseUserData);
