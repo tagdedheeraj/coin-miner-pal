@@ -1,12 +1,17 @@
-
 import { Dispatch, SetStateAction } from 'react';
 import { User } from '@/types/auth';
 import { toast } from 'sonner';
 import { mockUsers } from '@/data/mockUsers';
-import { auth, db } from '@/integrations/firebase/client';
-import { signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth';
+import { auth, db, googleProvider } from '@/integrations/firebase/client';
+import { 
+  signInWithEmailAndPassword, 
+  signOut as firebaseSignOut,
+  signInWithPopup,
+  GoogleAuthProvider
+} from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { mapFirebaseToUser } from '@/utils/firebaseUtils';
+import { generateReferralCode } from '@/utils/referral';
 
 export const createAuthenticationService = (
   user: User | null, 
@@ -140,6 +145,106 @@ export const createAuthenticationService = (
     }
   };
   
+  const signInWithGoogle = async (): Promise<void> => {
+    setIsLoading(true);
+    
+    try {
+      // Sign in with Google popup
+      const result = await signInWithPopup(auth, googleProvider);
+      
+      // Get user from result
+      const firebaseUser = result.user;
+      
+      // Get user data from Firestore
+      const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+      
+      if (!userDoc.exists()) {
+        console.log('User document not found in Firestore, creating from Google auth data');
+        
+        // Create a new user profile if it doesn't exist
+        const newUserObj: User = {
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName || 'Google User',
+          email: firebaseUser.email || '',
+          coins: 200, // Default starting coins
+          referralCode: generateReferralCode(),
+          hasSetupPin: false,
+          hasBiometrics: false,
+          withdrawalAddress: null,
+          appliedReferralCode: null,
+          usdtEarnings: 0,
+          notifications: [],
+          isAdmin: false
+        };
+        
+        // Save to Firestore
+        await setDoc(doc(db, 'users', firebaseUser.uid), {
+          name: newUserObj.name,
+          email: newUserObj.email,
+          coins: newUserObj.coins,
+          referral_code: newUserObj.referralCode,
+          has_setup_pin: newUserObj.hasSetupPin,
+          has_biometrics: newUserObj.hasBiometrics,
+          withdrawal_address: newUserObj.withdrawalAddress,
+          applied_referral_code: newUserObj.appliedReferralCode,
+          usdt_earnings: newUserObj.usdtEarnings,
+          notifications: newUserObj.notifications,
+          is_admin: newUserObj.isAdmin,
+          created_at: new Date().toISOString()
+        });
+        
+        setUser(newUserObj);
+        localStorage.setItem('user', JSON.stringify(newUserObj));
+        toast.success('Signed in with Google. User profile created.');
+        return;
+      }
+      
+      // Map the user data
+      const userData = userDoc.data();
+      const userObj: User = {
+        id: firebaseUser.uid,
+        name: userData.name || firebaseUser.displayName || 'Google User',
+        email: userData.email || firebaseUser.email || '',
+        coins: userData.coins || 0,
+        referralCode: userData.referral_code || generateReferralCode(),
+        hasSetupPin: userData.has_setup_pin || false,
+        hasBiometrics: userData.has_biometrics || false,
+        withdrawalAddress: userData.withdrawal_address || null,
+        appliedReferralCode: userData.applied_referral_code || null,
+        usdtEarnings: userData.usdt_earnings || 0,
+        notifications: userData.notifications || [],
+        isAdmin: userData.is_admin || false
+      };
+      
+      setUser(userObj);
+      
+      // Store in localStorage for persistence
+      localStorage.setItem('user', JSON.stringify(userObj));
+      
+      toast.success('Signed in with Google successfully');
+    } catch (error) {
+      console.error('Google sign-in error:', error);
+      
+      let errorMessage = 'Failed to sign in with Google';
+      if (error instanceof Error) {
+        if (error.message.includes('auth/popup-closed-by-user')) {
+          errorMessage = 'Google sign in was cancelled';
+        } else if (error.message.includes('auth/popup-blocked')) {
+          errorMessage = 'Pop-up was blocked by your browser. Please allow pop-ups for this site.';
+        } else if (error.message.includes('auth/network-request-failed')) {
+          errorMessage = 'Network error. Please check your internet connection and try again.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      toast.error(errorMessage);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   // Helper function to generate a random referral code
   const generateRandomCode = (): string => {
     const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -164,6 +269,7 @@ export const createAuthenticationService = (
   
   return {
     signIn,
+    signInWithGoogle,
     signOut
   };
 };

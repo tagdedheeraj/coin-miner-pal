@@ -8,6 +8,8 @@ import ErrorAlert from './ErrorAlert';
 import SignInForm, { SignInFormValues } from './SignInForm';
 import SignUpForm, { SignUpFormValues } from './SignUpForm';
 import VerificationOptions from './VerificationOptions';
+import GoogleSignInButton from './GoogleSignInButton';
+import { Separator } from '@/components/ui/separator';
 
 interface AuthFormProps {
   type: 'sign-in' | 'sign-up';
@@ -122,6 +124,17 @@ const AuthForm: React.FC<AuthFormProps> = ({
       </CardHeader>
       <CardContent className="grid gap-4">
         <ErrorAlert message={errorMessage || ''} />
+        
+        <GoogleSignInButton isSubmitting={isSubmitting} />
+        
+        <div className="relative my-2">
+          <div className="absolute inset-0 flex items-center">
+            <Separator />
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-white px-2 text-xs text-gray-500">OR</span>
+          </div>
+        </div>
         
         {isSignUp ? (
           <SignUpForm onSubmit={handleSignUp} isSubmitting={isSubmitting} />
