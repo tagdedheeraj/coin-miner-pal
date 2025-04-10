@@ -1,3 +1,4 @@
+
 import { User, WithdrawalRequest, DepositRequest, ArbitragePlan } from '@/types/auth';
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 
@@ -56,6 +57,7 @@ export interface WithdrawalContextType {
 export interface DepositContextType {
   requestPlanPurchase: (depositRequest: Omit<DepositRequest, 'id' | 'status' | 'reviewedAt'>) => Promise<void>;
   getDepositRequests: () => Promise<DepositRequest[]>;
+  getUserDepositRequests: () => Promise<DepositRequest[]>;
   approveDepositRequest: (requestId: string) => Promise<void>;
   rejectDepositRequest: (requestId: string) => Promise<void>;
 }

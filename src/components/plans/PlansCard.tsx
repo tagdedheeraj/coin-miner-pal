@@ -7,8 +7,13 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@
 import { formatUSD } from '@/utils/formatters';
 import PaymentModal from './PaymentModal';
 import { mockArbitragePlans } from '@/data/mockArbitragePlans';
+import { DepositRequest } from '@/types/auth';
 
-const PlansCard: React.FC = () => {
+interface PlansCardProps {
+  userDepositRequests?: DepositRequest[];
+}
+
+const PlansCard: React.FC<PlansCardProps> = ({ userDepositRequests = [] }) => {
   const [activeTab, setActiveTab] = useState('plans'); // 'plans' or 'earnings'
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<{
