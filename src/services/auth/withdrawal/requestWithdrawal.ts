@@ -1,15 +1,18 @@
 
+import { Dispatch, SetStateAction } from 'react';
 import { User, WithdrawalRequest } from '@/types/auth';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
-import { collection, addDoc } from 'firebase/firestore';
+import { doc, setDoc, collection } from 'firebase/firestore';
 import { db } from '@/integrations/firebase/client';
 
-export const requestWithdrawalFunctions = (user: User | null) => {
-  const createWithdrawalRequest = async (amount: number): Promise<void> => {
+export const createWithdrawalRequestFunctions = (
+  user: User | null,
+  setUser: Dispatch<SetStateAction<User | null>>
+) => {
+  const requestWithdrawal = async (amount: number): Promise<void> => {
     if (!user) {
-      toast.error('You must be logged in to request a withdrawal');
-      return;
+      throw new Error('Not authenticated');
     }
     
     if (!user.withdrawalAddress) {
@@ -17,14 +20,17 @@ export const requestWithdrawalFunctions = (user: User | null) => {
       return;
     }
     
-    if (user.usdtEarnings === undefined || amount > user.usdtEarnings) {
+    if (user.usdtEarnings && amount > user.usdtEarnings) {
       toast.error('Insufficient USDT balance');
       return;
     }
     
     try {
+      // Create a new withdrawal request
+      const withdrawalId = uuidv4();
+      
       const withdrawalRequest: WithdrawalRequest = {
-        id: uuidv4(),
+        id: withdrawalId,
         userId: user.id,
         userEmail: user.email,
         userName: user.name,
@@ -35,24 +41,32 @@ export const requestWithdrawalFunctions = (user: User | null) => {
       };
       
       // Add to Firestore
-      await addDoc(collection(db, 'withdrawal_requests'), {
-        id: withdrawalRequest.id,
-        user_id: withdrawalRequest.userId,
-        user_email: withdrawalRequest.userEmail,
-        user_name: withdrawalRequest.userName,
-        amount: withdrawalRequest.amount,
-        address: withdrawalRequest.address,
-        status: withdrawalRequest.status,
-        created_at: withdrawalRequest.createdAt,
-        updated_at: null
+      await setDoc(doc(collection(db, 'withdrawal_requests'), withdrawalId), {
+        id: withdrawalId,
+        user_id: user.id,
+        user_email: user.email,
+        user_name: user.name,
+        amount,
+        address: user.withdrawalAddress,
+        status: 'pending',
+        created_at: new Date().toISOString()
       });
       
-      toast.success('Withdrawal request submitted successfully');
+      // Update user's USDT balance locally
+      const updatedUser = {
+        ...user,
+        usdtEarnings: (user.usdtEarnings || 0) - amount
+      };
+      
+      setUser(updatedUser);
+      
+      toast.success('Withdrawal requested successfully');
     } catch (error) {
-      console.error('Error creating withdrawal request:', error);
+      console.error('Withdrawal request error:', error);
       toast.error('Failed to submit withdrawal request');
+      throw error;
     }
   };
 
-  return { createWithdrawalRequest };
+  return { requestWithdrawal };
 };

@@ -368,7 +368,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     const updatedRequests = withdrawalRequests.map(req =>
       req.id === requestId
-        ? { ...req, status: 'approved', updatedAt: new Date().toISOString() }
+        ? { ...req, status: 'approved' as const, updatedAt: new Date().toISOString() }
         : req
     );
     
@@ -414,7 +414,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Update the request status
     const updatedRequests = withdrawalRequests.map(req =>
       req.id === requestId
-        ? { ...req, status: 'rejected', updatedAt: new Date().toISOString() }
+        ? { ...req, status: 'rejected' as const, updatedAt: new Date().toISOString() }
         : req
     );
     
@@ -492,7 +492,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Update the request status
     const updatedRequests = depositRequests.map(req =>
       req.id === requestId
-        ? { ...req, status: 'approved', reviewedAt: new Date().toISOString() }
+        ? { ...req, status: 'approved' as const, reviewedAt: new Date().toISOString() }
         : req
     );
     
@@ -505,7 +505,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     const updatedRequests = depositRequests.map(req =>
       req.id === requestId
-        ? { ...req, status: 'rejected', reviewedAt: new Date().toISOString() }
+        ? { ...req, status: 'rejected' as const, reviewedAt: new Date().toISOString() }
         : req
     );
     
