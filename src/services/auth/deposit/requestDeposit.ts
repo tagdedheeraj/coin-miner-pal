@@ -16,9 +16,6 @@ export const createDepositRequestFunctions = (
     }
     
     try {
-      // Instead of trying to create a user record (which fails due to RLS),
-      // we'll just create the deposit request directly
-      
       // Create the deposit request with a proper id
       const depositRequest: DepositRequest = {
         ...depositData,
@@ -27,23 +24,49 @@ export const createDepositRequestFunctions = (
         timestamp: new Date().toISOString()
       };
       
+      // First, ensure the user exists in Supabase by checking auth table
+      const { data: authUser, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !authUser.user) {
+        throw new Error('Authentication verification failed. Please try again.');
+      }
+      
       // Map to database format
       const dbDeposit = mapDepositToDb(depositRequest);
       
-      // Save to Supabase
+      // Save to Supabase with explicit foreign key
       const { error } = await supabase
         .from('deposit_requests')
-        .insert(dbDeposit as any); // Using type assertion to bypass TypeScript check
+        .insert({
+          ...dbDeposit,
+          user_id: user.id // Explicitly set the user_id to ensure foreign key constraint is satisfied
+        });
       
       if (error) {
         console.error('Supabase insert error:', error);
         
-        // If there's a foreign key constraint error, provide a clearer message
         if (error.message.includes('violates foreign key constraint')) {
-          throw new Error('Unable to create deposit request. Please try again or contact support.');
+          // Try to create the user record first since it might be missing
+          const userDbData = mapUserToDb(user);
+          
+          await supabase
+            .from('users')
+            .upsert(userDbData as any, { onConflict: 'id' });
+          
+          // Try the deposit request again
+          const { error: retryError } = await supabase
+            .from('deposit_requests')
+            .insert({
+              ...dbDeposit,
+              user_id: user.id
+            });
+            
+          if (retryError) {
+            throw new Error(`Unable to create deposit request after retry: ${retryError.message}`);
+          }
+        } else {
+          throw new Error(`Failed to submit deposit request: ${error.message}`);
         }
-        
-        throw new Error(`Failed to submit deposit request: ${error.message}`);
       }
       
       // Add notification to user

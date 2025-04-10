@@ -9,9 +9,13 @@ import PlanCategories from './cards/PlanCategories';
 
 interface PlansCardProps {
   userDepositRequests?: DepositRequest[];
+  onDepositSuccess?: () => void;
 }
 
-const PlansCard: React.FC<PlansCardProps> = ({ userDepositRequests = [] }) => {
+const PlansCard: React.FC<PlansCardProps> = ({ 
+  userDepositRequests = [],
+  onDepositSuccess
+}) => {
   const [activeTab, setActiveTab] = useState('plans'); // 'plans' or 'earnings'
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<{
@@ -41,6 +45,13 @@ const PlansCard: React.FC<PlansCardProps> = ({ userDepositRequests = [] }) => {
     setSelectedPlan(null);
   };
 
+  const handleDepositSuccess = () => {
+    // Call the parent component's refresh function if provided
+    if (onDepositSuccess) {
+      onDepositSuccess();
+    }
+  };
+
   return (
     <div className="w-full">
       <PlansHeader 
@@ -63,6 +74,7 @@ const PlansCard: React.FC<PlansCardProps> = ({ userDepositRequests = [] }) => {
           planName={selectedPlan.name}
           planPrice={selectedPlan.price}
           planId={selectedPlan.id}
+          onSuccess={handleDepositSuccess}
         />
       )}
     </div>

@@ -29,6 +29,23 @@ const Plans: React.FC = () => {
         });
     }
   }, [isAuthenticated, getUserDepositRequests]);
+
+  // Add a refresh function that PlansCard can call after successful submission
+  const refreshDepositRequests = () => {
+    if (isAuthenticated && getUserDepositRequests) {
+      setIsLoading(true);
+      getUserDepositRequests()
+        .then(requests => {
+          setDepositRequests(requests);
+        })
+        .catch(error => {
+          console.error('Error refreshing deposit requests:', error);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    }
+  };
   
   if (!isAuthenticated) {
     return <Navigate to="/sign-in" replace />;
@@ -44,7 +61,10 @@ const Plans: React.FC = () => {
           <p className="text-gray-500">Boost your mining with premium plans and earn USDT daily</p>
         </div>
         
-        <PlansCard userDepositRequests={depositRequests} />
+        <PlansCard 
+          userDepositRequests={depositRequests} 
+          onDepositSuccess={refreshDepositRequests}
+        />
       </main>
       
       <BottomNav />

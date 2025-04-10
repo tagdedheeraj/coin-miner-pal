@@ -15,6 +15,7 @@ interface PaymentModalProps {
   planName: string;
   planPrice: number;
   planId: string;
+  onSuccess?: () => void;
 }
 
 const PaymentModal: React.FC<PaymentModalProps> = ({ 
@@ -22,7 +23,8 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   onClose, 
   planName, 
   planPrice,
-  planId
+  planId,
+  onSuccess
 }) => {
   const { toast } = useToast();
   const { user, requestPlanPurchase } = useAuth();
@@ -101,6 +103,11 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         title: "Deposit request submitted!",
         description: "Your transaction is now pending for admin approval.",
       });
+      
+      // Call the success callback if provided
+      if (onSuccess) {
+        onSuccess();
+      }
       
       onClose();
     } catch (error) {
