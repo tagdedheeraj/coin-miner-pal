@@ -34,17 +34,22 @@ export const saveCurrentUser = (user: User | null): void => {
 
 // Sign in user
 export const signIn = async (email: string, password: string): Promise<User> => {
+  console.log('Service: Signing in with email:', email);
   const users = getAllUsers();
   const user = users.find(u => u.email === email);
   
   if (!user) {
+    console.error('User not found with email:', email);
     throw new Error('User not found. Please sign up.');
   }
   
   // In a real app, you would hash the password, but for simplicity we're using plain text
   if (user.password !== password) {
+    console.error('Invalid password for user:', email);
     throw new Error('Invalid email or password');
   }
+  
+  console.log('Login successful for user:', user.name);
   
   // Don't include password when returning the user
   const { password: _, ...userWithoutPassword } = user;
@@ -57,10 +62,12 @@ export const signIn = async (email: string, password: string): Promise<User> => 
 
 // Sign up new user
 export const signUp = async (name: string, email: string, password: string): Promise<User> => {
+  console.log('Service: Creating new user with email:', email);
   const users = getAllUsers();
   
   // Check if user already exists
   if (users.some(u => u.email === email)) {
+    console.error('Email already exists:', email);
     throw new Error('An account with this email already exists');
   }
   
@@ -81,6 +88,8 @@ export const signUp = async (name: string, email: string, password: string): Pro
     isAdmin: false
   };
   
+  console.log('Created new user:', newUser);
+  
   // Save to users list
   users.push(newUser);
   saveAllUsers(users);
@@ -88,6 +97,8 @@ export const signUp = async (name: string, email: string, password: string): Pro
   // Save current user (without password)
   const { password: _, ...userWithoutPassword } = newUser;
   saveCurrentUser(userWithoutPassword);
+  
+  console.log('User saved successfully, returning user without password');
   
   return userWithoutPassword;
 };
@@ -133,9 +144,11 @@ export const deleteUser = async (userId: string): Promise<void> => {
 
 // Initialize with some mock users if none exist
 export const initializeLocalStorage = (): void => {
+  console.log('Initializing local storage auth');
   const users = getAllUsers();
   
   if (users.length === 0) {
+    console.log('No users found, creating demo users');
     const mockUsers: (User & { password: string })[] = [
       {
         id: '1',
@@ -177,5 +190,8 @@ export const initializeLocalStorage = (): void => {
     ];
     
     saveAllUsers(mockUsers);
+    console.log('Demo users created');
+  } else {
+    console.log('Users already exist in storage:', users.length);
   }
 };

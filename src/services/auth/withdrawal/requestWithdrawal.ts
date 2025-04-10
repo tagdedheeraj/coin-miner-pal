@@ -26,6 +26,7 @@ export const createWithdrawalRequestFunctions = (
     }
     
     try {
+      console.log('Creating withdrawal request for amount:', amount);
       // Create a new withdrawal request
       const withdrawalId = uuidv4();
       
@@ -52,6 +53,11 @@ export const createWithdrawalRequestFunctions = (
         created_at: new Date().toISOString()
       });
       
+      // Also save to localStorage
+      const withdrawalRequestsJson = localStorage.getItem('withdrawalRequests');
+      const withdrawalRequests = withdrawalRequestsJson ? JSON.parse(withdrawalRequestsJson) : [];
+      localStorage.setItem('withdrawalRequests', JSON.stringify([...withdrawalRequests, withdrawalRequest]));
+      
       // Update user's USDT balance locally
       const updatedUser = {
         ...user,
@@ -59,6 +65,7 @@ export const createWithdrawalRequestFunctions = (
       };
       
       setUser(updatedUser);
+      console.log('Withdrawal request created successfully');
       
       toast.success('Withdrawal requested successfully');
     } catch (error) {
@@ -70,3 +77,6 @@ export const createWithdrawalRequestFunctions = (
 
   return { requestWithdrawal };
 };
+
+// Export a default version for easier imports
+export default createWithdrawalRequestFunctions;

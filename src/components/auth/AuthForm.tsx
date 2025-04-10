@@ -36,13 +36,16 @@ const AuthForm: React.FC<AuthFormProps> = ({
     setErrorMessage(null);
     
     try {
+      console.log('Attempting sign in with:', values.email);
       await signIn(values.email, values.password);
+      console.log('Sign in successful');
       
       // Give a slight delay before redirect for better UX
       setTimeout(() => {
         onSuccess(values.email);
       }, 500);
     } catch (error) {
+      console.error('Sign in error:', error);
       handleAuthError(error);
     } finally {
       setIsSubmitting(false);
@@ -56,12 +59,13 @@ const AuthForm: React.FC<AuthFormProps> = ({
     try {
       console.log('Starting signup process with:', { name: values.name, email: values.email });
       
-      const result = await signUp(values.name, values.email, values.password);
-      console.log('Signup successful', result);
+      await signUp(values.name, values.email, values.password);
+      console.log('Signup successful');
       
       // Pass the email to the onSuccess callback for verification messaging
       onSuccess(values.email);
     } catch (error) {
+      console.error("Signup error:", error);
       handleAuthError(error);
     } finally {
       // Ensure loading state is reset even if there's an error

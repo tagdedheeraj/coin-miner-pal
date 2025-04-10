@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { User, ArbitragePlan, WithdrawalRequest, DepositRequest } from '@/types/auth';
@@ -6,6 +5,7 @@ import { mockArbitragePlans } from '@/data/mockArbitragePlans';
 import { useToast } from "@/hooks/use-toast";
 import { toast } from 'sonner';
 import * as LocalStorageAuth from '@/services/localStorageAuth';
+import { createWithdrawalRequestFunctions } from '@/services/auth/withdrawal/requestWithdrawal';
 
 export const AuthContext = createContext<any>(null);
 
@@ -53,9 +53,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const signUp = async (name: string, email: string, password: string): Promise<void> => {
     setIsLoading(true);
     try {
+      console.log('Starting sign up process with:', { name, email });
       const user = await LocalStorageAuth.signUp(name, email, password);
+      console.log('Sign up successful, setting user:', user);
       setUser(user);
       toast.success('Account created successfully');
+      return Promise.resolve();
     } catch (error) {
       console.error('Sign-up error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to sign up');
@@ -88,8 +91,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
     try {
-      // In a real app, you would verify the current password against a hash
-      // For now, we'll use a simplified approach
       if (!user) throw new Error('Not authenticated');
       
       const users = LocalStorageAuth.getAllUsers();
@@ -99,7 +100,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         throw new Error('Current password is incorrect');
       }
       
-      // Update user's password
       const updatedUsers = users.map(u => 
         u.id === user.id ? { ...u, password: newPassword } : u
       );
@@ -162,7 +162,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return;
     }
     
-    // Update referrer's coins
     const updatedUsers = users.map(u => {
       if (u.id === referrer.id) {
         return { ...u, coins: u.coins + 250 };
@@ -172,7 +171,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     LocalStorageAuth.saveAllUsers(updatedUsers);
     
-    // Update current user
     await updateUser({ 
       appliedReferralCode: code,
       coins: user.coins + 200
@@ -200,7 +198,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       LocalStorageAuth.saveAllUsers(updatedUsers);
       
-      // If the updated user is the current user, update the state
       if (user && user.email === email) {
         setUser({ ...user, usdtEarnings: amount });
       }
@@ -231,7 +228,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       LocalStorageAuth.saveAllUsers(updatedUsers);
       
-      // If the updated user is the current user, update the state
       if (user && user.email === email) {
         setUser({ ...user, coins: amount });
       }
@@ -285,7 +281,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       LocalStorageAuth.saveAllUsers(updatedUsers);
       
-      // Update current user if logged in
       if (user) {
         const currentNotifications = user.notifications || [];
         setUser({
@@ -317,7 +312,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Local storage for withdrawal requests
+  const { requestWithdrawal } = createWithdrawalRequestFunctions(user, setUser);
+
   const getWithdrawalRequests = async (): Promise<WithdrawalRequest[]> => {
     const withdrawalRequestsJson = localStorage.getItem('withdrawalRequests');
     return withdrawalRequestsJson ? JSON.parse(withdrawalRequestsJson) : [];
@@ -327,42 +323,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.setItem('withdrawalRequests', JSON.stringify(requests));
   };
 
-  const requestWithdrawal = async (amount: number): Promise<void> => {
-    if (!user) throw new Error('Not authenticated');
-    
-    if (!user.withdrawalAddress) {
-      toast.error('Please set a withdrawal address first');
-      return;
-    }
-    
-    if (user.usdtEarnings && amount > user.usdtEarnings) {
-      toast.error('Insufficient USDT balance');
-      return;
-    }
-    
-    const withdrawalRequests = await getWithdrawalRequests();
-    
-    const newWithdrawal: WithdrawalRequest = {
-      id: uuidv4(),
-      userId: user.id,
-      userEmail: user.email,
-      userName: user.name,
-      amount,
-      address: user.withdrawalAddress,
-      status: 'pending',
-      createdAt: new Date().toISOString()
-    };
-    
-    await saveWithdrawalRequests([...withdrawalRequests, newWithdrawal]);
-    
-    // Update user's USDT balance
-    await updateUser({ 
-      usdtEarnings: (user.usdtEarnings || 0) - amount 
-    });
-    
-    toast.success('Withdrawal requested successfully');
-  };
-
   const approveWithdrawalRequest = async (requestId: string): Promise<void> => {
     const withdrawalRequests = await getWithdrawalRequests();
     
@@ -370,7 +330,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       req.id === requestId
         ? { ...req, status: 'approved' as const, updatedAt: new Date().toISOString() }
         : req
-    );
+    ) as WithdrawalRequest[];
     
     await saveWithdrawalRequests(updatedRequests);
     toast.success('Withdrawal approved');
@@ -385,7 +345,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return;
     }
     
-    // Refund the user
     const users = LocalStorageAuth.getAllUsers();
     const requestUser = users.find(u => u.id === requestToReject.userId);
     
@@ -402,7 +361,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       LocalStorageAuth.saveAllUsers(updatedUsers);
       
-      // Update current user if it's the rejected request's user
       if (user && user.id === requestToReject.userId) {
         setUser({
           ...user,
@@ -411,18 +369,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     }
     
-    // Update the request status
     const updatedRequests = withdrawalRequests.map(req =>
       req.id === requestId
         ? { ...req, status: 'rejected' as const, updatedAt: new Date().toISOString() }
         : req
-    );
+    ) as WithdrawalRequest[];
     
     await saveWithdrawalRequests(updatedRequests);
     toast.success('Withdrawal rejected and funds returned');
   };
 
-  // Local storage for deposit requests
   const getDepositRequests = async (): Promise<DepositRequest[]> => {
     const depositRequestsJson = localStorage.getItem('depositRequests');
     return depositRequestsJson ? JSON.parse(depositRequestsJson) : [];
@@ -463,7 +419,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return;
     }
     
-    // Add coins to user's balance
     const users = LocalStorageAuth.getAllUsers();
     const requestUser = users.find(u => u.id === requestToApprove.userId);
     
@@ -480,7 +435,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       LocalStorageAuth.saveAllUsers(updatedUsers);
       
-      // Update current user if it's the approved request's user
       if (user && user.id === requestToApprove.userId) {
         setUser({
           ...user,
@@ -489,12 +443,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     }
     
-    // Update the request status
     const updatedRequests = depositRequests.map(req =>
       req.id === requestId
         ? { ...req, status: 'approved' as const, reviewedAt: new Date().toISOString() }
         : req
-    );
+    ) as DepositRequest[];
     
     await saveDepositRequests(updatedRequests);
     toast.success('Deposit approved and coins added');
@@ -507,30 +460,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       req.id === requestId
         ? { ...req, status: 'rejected' as const, reviewedAt: new Date().toISOString() }
         : req
-    );
+    ) as DepositRequest[];
     
     await saveDepositRequests(updatedRequests);
     toast.success('Deposit rejected');
   };
 
   const resendVerificationEmail = async (email: string): Promise<void> => {
-    // In this simplified version, we'll just show a toast
     toast.success('Verification email resent. Please check your inbox.');
   };
 
   const resetPassword = async (email: string): Promise<void> => {
-    // In this simplified version, we'll just show a toast
     toast.success('Password reset instructions have been sent to your email.');
   };
 
   const contextValue = {
-    // Core auth state
     user,
     isAuthenticated: !!user,
     isLoading,
     setUser,
     
-    // Authentication
     signIn,
     signInWithGoogle,
     signOut,
@@ -538,7 +487,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     resendVerificationEmail,
     resetPassword,
     
-    // User Management
     updateUser,
     updateUserProfile: updateUser,
     setupPin,
@@ -550,19 +498,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     toggleBiometrics,
     changePassword,
     
-    // Referral Management
     applyReferralCode,
     
-    // Notification Management
     sendNotificationToAllUsers,
     markNotificationAsRead,
     
-    // Admin Functions
     updateUserUsdtEarnings,
     updateUserCoins,
     deleteUser,
     
-    // Withdrawal Management
     updateWithdrawalAddress: setWithdrawalAddress,
     setWithdrawalAddress,
     getWithdrawalRequests,
@@ -572,7 +516,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     rejectWithdrawalRequest,
     rejectWithdrawal: rejectWithdrawalRequest,
     
-    // Deposit Management
     getDepositRequests,
     getUserDepositRequests,
     requestDeposit: async (amount: number, transactionId: string) => {
@@ -584,7 +527,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     rejectDepositRequest,
     rejectDeposit: rejectDepositRequest,
     
-    // Arbitrage Plan Management
     updateArbitragePlan,
     deleteArbitragePlan,
     addArbitragePlan
