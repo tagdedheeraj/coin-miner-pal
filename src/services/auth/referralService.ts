@@ -1,10 +1,10 @@
 
 import { Dispatch, SetStateAction } from 'react';
 import { User } from '@/types/auth';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
-import { mapUserToDb, mapDbToUser } from '@/utils/supabaseUtils';
+import { doc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/integrations/firebase/client';
 
 export const referralServiceFunctions = (
   user: User | null,
@@ -27,47 +27,36 @@ export const referralServiceFunctions = (
       }
       
       // Find the user with the given referral code
-      const { data: referrerData, error: referrerError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('referral_code', code)
-        .single();
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('referral_code', '==', code));
+      const querySnapshot = await getDocs(q);
       
-      if (referrerError || !referrerData) {
+      if (querySnapshot.empty) {
         throw new Error('Invalid referral code');
       }
       
       // Update the referrer's coins and add notification
-      const referrer = mapDbToUser(referrerData);
-      const referrerNotifications = referrer.notifications || [];
+      const referrerDoc = querySnapshot.docs[0];
+      const referrerData = referrerDoc.data();
+      const referrerNotifications = referrerData.notifications || [];
       
-      const { error: updateError } = await supabase
-        .from('users')
-        .update(mapUserToDb({
-          coins: (referrer.coins || 0) + 250,
-          notifications: [
-            ...referrerNotifications,
-            {
-              id: uuidv4(),
-              message: `${user.name} used your referral code! You received 250 bonus coins.`,
-              read: false,
-              createdAt: new Date().toISOString()
-            }
-          ]
-        }))
-        .eq('id', referrer.id);
-      
-      if (updateError) throw updateError;
+      await updateDoc(doc(db, 'users', referrerDoc.id), {
+        coins: (referrerData.coins || 0) + 250,
+        notifications: [
+          ...referrerNotifications,
+          {
+            id: uuidv4(),
+            message: `${user.name} used your referral code! You received 250 bonus coins.`,
+            read: false,
+            createdAt: new Date().toISOString()
+          }
+        ]
+      });
       
       // Update current user with applied referral code
-      const { error } = await supabase
-        .from('users')
-        .update(mapUserToDb({ 
-          appliedReferralCode: code 
-        }))
-        .eq('id', user.id);
-      
-      if (error) throw error;
+      await updateDoc(doc(db, 'users', user.id), {
+        applied_referral_code: code
+      });
       
       // Update user state
       setUser({

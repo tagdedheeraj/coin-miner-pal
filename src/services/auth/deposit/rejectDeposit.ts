@@ -1,9 +1,9 @@
 
 import { User } from '@/types/auth';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
-import { mapDepositToDb, mapDbToUser, mapUserToDb, mapDbToDeposit } from '@/utils/supabaseUtils';
+import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/integrations/firebase/client';
 
 export const rejectDepositFunctions = (user: User | null) => {
   const rejectDepositRequest = async (requestId: string): Promise<void> => {
@@ -14,59 +14,50 @@ export const rejectDepositFunctions = (user: User | null) => {
     
     try {
       // Get the deposit request
-      const { data: requestData, error: requestError } = await supabase
-        .from('deposit_requests')
-        .select('*')
-        .eq('id', requestId)
-        .single();
+      const depositRef = collection(db, 'deposit_requests');
+      const q = query(depositRef, where('id', '==', requestId));
+      const querySnapshot = await getDocs(q);
       
-      if (requestError) throw new Error('Deposit request not found');
-      if (!requestData) throw new Error('Deposit request data is empty');
+      if (querySnapshot.empty) {
+        throw new Error('Deposit request not found');
+      }
       
-      const request = mapDbToDeposit(requestData);
+      const requestDoc = querySnapshot.docs[0];
+      const requestData = requestDoc.data();
       
-      if (request.status !== 'pending') {
+      if (requestData.status !== 'pending') {
         throw new Error('This request has already been processed');
       }
       
       // Update request status
-      const updateData = mapDepositToDb({
+      await updateDoc(doc(db, 'deposit_requests', requestDoc.id), {
         status: 'rejected',
-        reviewedAt: new Date().toISOString()
+        reviewed_at: new Date().toISOString()
       });
       
-      await supabase
-        .from('deposit_requests')
-        .update(updateData as any)
-        .eq('id', requestId);
-      
       // Find the user and send notification
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', request.userEmail)
-        .single();
+      const usersRef = collection(db, 'users');
+      const userQuery = query(usersRef, where('email', '==', requestData.user_email));
+      const userSnapshot = await getDocs(userQuery);
       
-      if (userError) throw new Error('User not found');
-      if (!userData) throw new Error('User data is empty');
+      if (userSnapshot.empty) {
+        throw new Error('User not found');
+      }
       
-      const targetUser = mapDbToUser(userData);
-      const userNotifications = targetUser.notifications || [];
+      const userDoc = userSnapshot.docs[0];
+      const userData = userDoc.data();
+      
+      const userNotifications = userData.notifications || [];
       const newNotification = {
         id: uuidv4(),
-        message: `Your deposit for ${request.planName} has been rejected. Please contact support for more information.`,
+        message: `Your deposit for ${requestData.plan_name} has been rejected. Please contact support for more information.`,
         read: false,
         createdAt: new Date().toISOString()
       };
       
-      const userUpdate = mapUserToDb({
+      await updateDoc(doc(db, 'users', userDoc.id), {
         notifications: [...userNotifications, newNotification]
       });
-      
-      await supabase
-        .from('users')
-        .update(userUpdate as any)
-        .eq('id', targetUser.id);
       
       toast.success('Deposit request rejected successfully');
     } catch (error) {

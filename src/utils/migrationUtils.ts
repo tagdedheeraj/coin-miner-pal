@@ -45,9 +45,8 @@ export const mockSupabaseQuery = async (
 
     const querySnapshot = await getDocs(q);
     const data = querySnapshot.docs.map(doc => {
-      const docData = doc.data();
-      // Fix the spread operation by ensuring docData is an object type
-      return { id: doc.id, ...(docData as Record<string, any>) };
+      const docData = doc.data() as Record<string, any>;
+      return { id: doc.id, ...docData };
     });
     
     // Simple client-side sorting if orderBy is provided
@@ -119,8 +118,8 @@ export const getFirestoreDoc = async (
     const docSnap = await getDoc(docRef);
     
     if (docSnap.exists()) {
-      const data = docSnap.data();
-      return { data: { id: docSnap.id, ...(data as Record<string, any>) }, error: null };
+      const data = docSnap.data() as Record<string, any>;
+      return { data: { id: docSnap.id, ...data }, error: null };
     } else {
       return { data: null, error: null };
     }

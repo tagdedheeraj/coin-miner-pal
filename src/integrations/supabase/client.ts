@@ -1,12 +1,12 @@
 
-// Supabase client compatibility layer for Firebase migration
-// This provides API compatibility during migration period
+// Firebase compatibility layer for migrated code
+// This provides API compatibility for code still using the old structure
 
 import { collection, query, where, getDocs, doc, getDoc, updateDoc, deleteDoc, setDoc, orderBy, limit } from "firebase/firestore";
 import { db as firebaseDb, auth as firebaseAuth, storage as firebaseStorage } from '@/integrations/firebase/client';
 import { logMigrationWarning } from '@/utils/migrationUtils';
 
-// Export Firebase instances under Supabase-compatible names
+// Export Firebase instances under compatibility names
 export const db = firebaseDb;
 export const auth = firebaseAuth;
 export const storage = firebaseStorage;
@@ -78,8 +78,17 @@ export const supabase = {
           }
         };
 
-        // Fix for chaining methods - return as properties, not promises
-        return selectQuery;
+        return { 
+          ...selectQuery,
+          data: null,
+          error: null,
+          async then(resolve: any) {
+            const result = await getDocs(collection(firebaseDb, table));
+            const data = result.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            resolve({ data, error: null });
+            return { data, error: null };
+          }
+        };
       },
       insert: async (data: any) => {
         try {
@@ -110,7 +119,6 @@ export const supabase = {
           }
         };
         
-        // Return as object, not promise
         return updateQuery;
       },
       delete: () => {
@@ -133,7 +141,6 @@ export const supabase = {
           }
         };
         
-        // Return as object, not promise
         return deleteQuery;
       },
       execute: async () => {
@@ -144,7 +151,6 @@ export const supabase = {
           return { error };
         }
       },
-      // Add base-level order method
       order: (column: string, { ascending = true } = {}) => {
         return {
           eq: async (filterColumn: string, value: any) => {
@@ -160,8 +166,35 @@ export const supabase = {
             } catch (error) {
               return { data: null, error };
             }
+          },
+          async then(resolve: any) {
+            try {
+              const q = query(
+                collection(firebaseDb, table),
+                orderBy(column, ascending ? 'asc' : 'desc')
+              );
+              const querySnapshot = await getDocs(q);
+              const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+              resolve({ data, error: null });
+              return { data, error: null };
+            } catch (error) {
+              resolve({ data: null, error });
+              return { data: null, error };
+            }
           }
         };
+      },
+      single: async () => {
+        try {
+          const querySnapshot = await getDocs(collection(firebaseDb, table));
+          if (querySnapshot.empty) {
+            return { data: null, error: null };
+          }
+          const doc = querySnapshot.docs[0];
+          return { data: { id: doc.id, ...doc.data() }, error: null };
+        } catch (error) {
+          return { data: null, error };
+        }
       }
     };
   },
@@ -179,9 +212,4 @@ export const supabase = {
       };
     }
   }
-};
-
-// Export a helper for Firebase operations that's type-compatible with Supabase responses
-export const firebaseHelper = {
-  // Other methods can be added as needed
 };

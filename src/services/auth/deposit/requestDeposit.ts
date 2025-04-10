@@ -1,7 +1,6 @@
 
 import { Dispatch, SetStateAction } from 'react';
 import { User, DepositRequest } from '@/types/auth';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 import { createFirestoreDoc } from '@/utils/migrationUtils';
@@ -25,13 +24,6 @@ export const createDepositRequestFunctions = (
         status: 'pending',
         timestamp: new Date().toISOString()
       };
-      
-      // First, ensure the user is authenticated
-      const authUser = await supabase.auth.getUser();
-      
-      if (authUser.error || !authUser.data.user) {
-        throw new Error('Authentication verification failed. Please try again.');
-      }
       
       console.log('Creating deposit request directly');
       

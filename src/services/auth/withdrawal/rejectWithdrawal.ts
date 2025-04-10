@@ -1,9 +1,9 @@
 
 import { User } from '@/types/auth';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
-import { mapWithdrawalToDb, mapDbToUser, mapUserToDb, mapDbToWithdrawal } from '@/utils/supabaseUtils';
+import { doc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/integrations/firebase/client';
 
 export const rejectWithdrawalFunctions = (user: User | null) => {
   const rejectWithdrawalRequest = async (requestId: string): Promise<void> => {
@@ -14,57 +14,52 @@ export const rejectWithdrawalFunctions = (user: User | null) => {
     
     try {
       // Get the withdrawal request
-      const { data: requestData, error: requestError } = await supabase
-        .from('withdrawal_requests')
-        .select('*')
-        .eq('id', requestId)
-        .single();
+      const withdrawalRef = collection(db, 'withdrawal_requests');
+      const q = query(withdrawalRef, where('id', '==', requestId));
+      const querySnapshot = await getDocs(q);
       
-      if (requestError) throw new Error('Withdrawal request not found');
-      if (!requestData) throw new Error('Withdrawal request data is empty');
+      if (querySnapshot.empty) {
+        throw new Error('Withdrawal request not found');
+      }
       
-      const request = mapDbToWithdrawal(requestData);
+      const requestDoc = querySnapshot.docs[0];
+      const requestData = requestDoc.data();
       
-      if (request.status !== 'pending') {
+      if (requestData.status !== 'pending') {
         throw new Error('This request has already been processed');
       }
       
       // Update request status
-      await supabase
-        .from('withdrawal_requests')
-        .update(mapWithdrawalToDb({
-          status: 'rejected',
-          updatedAt: new Date().toISOString()
-        }) as any)
-        .eq('id', requestId);
+      await updateDoc(doc(db, 'withdrawal_requests', requestDoc.id), {
+        status: 'rejected',
+        updated_at: new Date().toISOString()
+      });
       
       // Find the user and send notification
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', request.userEmail)
-        .single();
+      const usersRef = collection(db, 'users');
+      const userQuery = query(usersRef, where('email', '==', requestData.user_email));
+      const userSnapshot = await getDocs(userQuery);
       
-      if (userError) throw new Error('User not found');
-      if (!userData) throw new Error('User data is empty');
+      if (userSnapshot.empty) {
+        throw new Error('User not found');
+      }
       
-      const targetUser = mapDbToUser(userData);
-      const userNotifications = targetUser.notifications || [];
+      const userDoc = userSnapshot.docs[0];
+      const userData = userDoc.data();
       
-      await supabase
-        .from('users')
-        .update(mapUserToDb({
-          notifications: [
-            ...userNotifications,
-            {
-              id: uuidv4(),
-              message: `Your withdrawal request for $${request.amount.toFixed(2)} USDT has been rejected. Please contact support for more information.`,
-              read: false,
-              createdAt: new Date().toISOString()
-            }
-          ]
-        }) as any)
-        .eq('id', targetUser.id);
+      const userNotifications = userData.notifications || [];
+      
+      await updateDoc(doc(db, 'users', userDoc.id), {
+        notifications: [
+          ...userNotifications,
+          {
+            id: uuidv4(),
+            message: `Your withdrawal request for $${requestData.amount.toFixed(2)} USDT has been rejected. Please contact support for more information.`,
+            read: false,
+            createdAt: new Date().toISOString()
+          }
+        ]
+      });
       
       toast.success('Withdrawal request rejected successfully');
     } catch (error) {

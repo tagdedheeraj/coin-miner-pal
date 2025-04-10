@@ -15,8 +15,9 @@ import {
   setDoc, 
   updateDoc, 
   deleteDoc,
-  orderBy,
-  limit 
+  orderBy as firestoreOrderBy,
+  limit as firestoreLimit,
+  QueryConstraint
 } from 'firebase/firestore';
 import { db } from '@/integrations/firebase/client';
 import { toast } from 'sonner';
@@ -35,14 +36,14 @@ export const getDocumentsByField = async <T>(
   }
 ): Promise<{ data: T[] | null; error: any }> => {
   try {
-    let queryConstraints = [where(field, '==', value)];
+    let queryConstraints: QueryConstraint[] = [where(field, '==', value)];
     
     if (options?.orderByField) {
-      queryConstraints.push(orderBy(options.orderByField, options.orderDirection || 'asc'));
+      queryConstraints.push(firestoreOrderBy(options.orderByField, options.orderDirection || 'asc'));
     }
     
     if (options?.limit) {
-      queryConstraints.push(limit(options.limit));
+      queryConstraints.push(firestoreLimit(options.limit));
     }
     
     const q = query(collection(db, table), ...queryConstraints);
@@ -99,14 +100,14 @@ export const getDocuments = async <T>(
   }
 ): Promise<{ data: T[] | null; error: any }> => {
   try {
-    let queryConstraints: any[] = [];
+    let queryConstraints: QueryConstraint[] = [];
     
     if (options?.filterField && options?.filterValue !== undefined) {
       queryConstraints.push(where(options.filterField, '==', options.filterValue));
     }
     
     if (options?.orderByField) {
-      queryConstraints.push(orderBy(options.orderByField, options.orderDirection || 'asc'));
+      queryConstraints.push(firestoreOrderBy(options.orderByField, options.orderDirection || 'asc'));
     }
     
     const q = queryConstraints.length > 0 
