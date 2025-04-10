@@ -9,56 +9,12 @@ import {
   CardHeader,
   CardTitle 
 } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search, Trash2, Edit, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from "sonner";
 import { supabase } from '@/integrations/supabase/client';
-import { Json } from '@/integrations/supabase/types';
-
-// Helper function to safely parse notifications from database JSON
-const parseNotifications = (notifications: Json | null): Array<{id: string, message: string, read: boolean, createdAt: string}> => {
-  if (!notifications) return [];
-  
-  try {
-    // If it's already an array, check its structure and convert if needed
-    if (Array.isArray(notifications)) {
-      return notifications.map(notification => {
-        // Ensure each notification has the required properties
-        return {
-          id: notification.id || String(Date.now()),
-          message: notification.message || 'Notification',
-          read: notification.read || false,
-          createdAt: notification.createdAt || new Date().toISOString()
-        };
-      });
-    }
-    
-    // If it's a JSON string, parse it
-    if (typeof notifications === 'string') {
-      try {
-        const parsed = JSON.parse(notifications);
-        return Array.isArray(parsed) ? parseNotifications(parsed) : [];
-      } catch (e) {
-        console.error('Failed to parse notifications JSON string:', e);
-        return [];
-      }
-    }
-    
-    return [];
-  } catch (error) {
-    console.error('Error parsing notifications:', error);
-    return [];
-  }
-};
+import { parseNotifications } from '@/utils/notificationUtils';
+import UserSearch from './users/UserSearch';
+import UserTable from './users/UserTable';
+import UserLoadingState from './users/UserLoadingState';
 
 const UserManagement: React.FC = () => {
   const { user, deleteUser, updateUserUsdtEarnings, updateUserCoins } = useAuth();
@@ -188,151 +144,18 @@ const UserManagement: React.FC = () => {
         <CardDescription>View and manage all users in the system</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input 
-              placeholder="Search users..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-        </div>
+        <UserSearch searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
         
         {isLoading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-            <p className="text-gray-500">Loading users...</p>
-          </div>
+          <UserLoadingState />
         ) : (
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Coins</TableHead>
-                  <TableHead>USDT Earnings</TableHead>
-                  <TableHead>Referral Code</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.length > 0 ? (
-                  filteredUsers.map(u => (
-                    <TableRow key={u.id}>
-                      <TableCell className="font-medium">{u.name}</TableCell>
-                      <TableCell>{u.email}</TableCell>
-                      <TableCell>
-                        {editingUser && editingUser.email === u.email && editingUser.field === 'coins' ? (
-                          <div className="flex items-center space-x-2">
-                            <Input 
-                              type="number" 
-                              value={editingUser.value}
-                              onChange={(e) => setEditingUser({...editingUser, value: e.target.value})}
-                              className="w-24"
-                              autoFocus
-                            />
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={handleUpdateUser}
-                              className="text-green-500 hover:text-green-700 hover:bg-green-50"
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => setEditingUser(null)}
-                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center space-x-2">
-                            <span>{u.coins}</span>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => setEditingUser({ email: u.email, field: 'coins', value: u.coins.toString() })}
-                              className="opacity-50 hover:opacity-100"
-                            >
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {editingUser && editingUser.email === u.email && editingUser.field === 'usdtEarnings' ? (
-                          <div className="flex items-center space-x-2">
-                            <Input 
-                              type="number" 
-                              value={editingUser.value}
-                              onChange={(e) => setEditingUser({...editingUser, value: e.target.value})}
-                              className="w-24"
-                              autoFocus
-                            />
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={handleUpdateUser}
-                              className="text-green-500 hover:text-green-700 hover:bg-green-50"
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => setEditingUser(null)}
-                              className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center space-x-2">
-                            <span>{u.usdtEarnings || 0}</span>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => setEditingUser({ 
-                                email: u.email, 
-                                field: 'usdtEarnings', 
-                                value: (u.usdtEarnings || 0).toString() 
-                              })}
-                              className="opacity-50 hover:opacity-100"
-                            >
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="font-mono text-xs">{u.referralCode}</TableCell>
-                      <TableCell>
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => handleDeleteUser(u.id)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-6 text-gray-500">
-                      No users found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+          <UserTable 
+            users={filteredUsers} 
+            editingUser={editingUser}
+            setEditingUser={setEditingUser}
+            handleUpdateUser={handleUpdateUser}
+            handleDeleteUser={handleDeleteUser}
+          />
         )}
       </CardContent>
     </Card>
