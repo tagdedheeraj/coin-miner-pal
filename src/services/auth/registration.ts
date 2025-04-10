@@ -87,9 +87,8 @@ export const createRegistrationService = (
         
         // Warn but don't block the flow
         toast.warning('Account created but profile sync may be incomplete. Please complete setup later.');
-      } else {
-        // Profile created successfully
-        console.log('User profile created successfully');
+        
+        return data as SupabaseUserCredential;
       }
       
       // Check if user's email is confirmed or if confirmation is required
@@ -103,9 +102,6 @@ export const createRegistrationService = (
         toast.success('Account created! Please check your email to verify your account.');
         // Don't set the user yet until they confirm their email
       }
-      
-      // Finally, set loading to false
-      setIsLoading(false);
       
       // Return the data in the expected format
       return data as SupabaseUserCredential;
@@ -124,8 +120,9 @@ export const createRegistrationService = (
       }
       
       toast.error(errorMessage);
-      setIsLoading(false);
       throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 

@@ -120,7 +120,7 @@ const AuthForm: React.FC<AuthFormProps> = ({
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
-        {errorMessage && <ErrorAlert message={errorMessage} />}
+        <ErrorAlert message={errorMessage || ''} />
         
         {isSignUp ? (
           <SignUpForm onSubmit={handleSignUp} isSubmitting={isSubmitting} />
