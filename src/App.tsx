@@ -26,14 +26,19 @@ import NotFound from '@/pages/NotFound';
 import Header from '@/components/layout/Header';
 import BottomNav from '@/components/layout/BottomNav';
 
+// Loading spinner component
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+  </div>
+);
+
 // Route protection components
 const AuthRoute = () => {
   const { isAuthenticated, isLoading } = useAuth();
   
   if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-    </div>;
+    return <LoadingSpinner />;
   }
   
   return isAuthenticated ? <Outlet /> : <Navigate to="/sign-in" />;
@@ -43,9 +48,7 @@ const AdminRoute = () => {
   const { user, isLoading } = useAuth();
   
   if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-    </div>;
+    return <LoadingSpinner />;
   }
   
   return user?.isAdmin ? <Outlet /> : <Navigate to="/dashboard" />;
@@ -55,9 +58,7 @@ const GuestRoute = () => {
   const { isAuthenticated, isLoading } = useAuth();
   
   if (isLoading) {
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-    </div>;
+    return <LoadingSpinner />;
   }
   
   return !isAuthenticated ? <Outlet /> : <Navigate to="/dashboard" />;

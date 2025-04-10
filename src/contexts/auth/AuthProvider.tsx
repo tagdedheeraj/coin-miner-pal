@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { FullAuthContextType } from './types';
 import { authFunctions } from '@/services/authService';
 
+// Create context with null as initial value but with proper type
 export const AuthContext = createContext<FullAuthContextType | null>(null);
 
 interface AuthProviderProps {
@@ -51,14 +52,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     toast({
       title: title,
       description: description,
-    })
+    });
   };
 
   // Get all auth functions from the service
   const auth = authFunctions(user, setUser, setIsLoading);
 
   // Custom implementations for functions that need the local state
-  const updateArbitragePlan = async (planId: string, updates: Partial<ArbitragePlan>): Promise<void> => {
+  const updateArbitragePlan = (planId: string, updates: Partial<ArbitragePlan>): void => {
     setArbitragePlans(prevPlans =>
       prevPlans.map(plan =>
         plan.id === planId ? { ...plan, ...updates } : plan
@@ -66,11 +67,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     );
   };
   
-  const deleteArbitragePlan = async (planId: string): Promise<void> => {
+  const deleteArbitragePlan = (planId: string): void => {
     setArbitragePlans(prevPlans => prevPlans.filter(plan => plan.id !== planId));
   };
   
-  const addArbitragePlan = async (plan: Omit<ArbitragePlan, 'id'>): Promise<void> => {
+  const addArbitragePlan = (plan: Omit<ArbitragePlan, 'id'>): void => {
     const newPlan: ArbitragePlan = {
       id: uuidv4(),
       ...plan,
