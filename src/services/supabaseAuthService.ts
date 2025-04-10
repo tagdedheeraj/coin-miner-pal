@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 import { generateReferralCode } from '@/utils/referral';
+import { SupabaseUserCredential } from '@/contexts/auth/types';
 
 // Admin credentials
 const ADMIN_EMAIL = 'admin@infinium.com';
@@ -44,6 +45,7 @@ export const authFunctions = (
         return;
       }
       
+      console.log('Attempting to sign in with Supabase');
       // Regular user login with Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -91,7 +93,7 @@ export const authFunctions = (
       
       toast.success('Signed in successfully');
     } catch (error) {
-      console.error(error);
+      console.error('Sign in error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to sign in');
       throw error;
     } finally {
@@ -99,16 +101,24 @@ export const authFunctions = (
     }
   };
 
-  const signUp = async (name: string, email: string, password: string) => {
+  const signUp = async (name: string, email: string, password: string): Promise<SupabaseUserCredential> => {
     setIsLoading(true);
+    console.log('Attempting to sign up with Supabase');
+    
     try {
       // Register with Supabase
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: { name }
+        }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase signup error:', error);
+        throw error;
+      }
       
       if (!data.user) {
         throw new Error('Failed to create user');
@@ -132,11 +142,15 @@ export const authFunctions = (
       };
       
       // Store in Supabase
+      console.log('Creating user profile in Supabase');
       const { error: insertError } = await supabase
         .from('users')
         .insert([newUser]);
       
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('User profile creation error:', insertError);
+        throw insertError;
+      }
       
       // Save in local state
       setUser(newUser);
@@ -145,9 +159,11 @@ export const authFunctions = (
       localStorage.setItem('user', JSON.stringify(newUser));
       
       toast.success('Account created successfully! You received 200 coins as a signup bonus.');
-      return data;
+      
+      // Return the data in the expected format
+      return data as SupabaseUserCredential;
     } catch (error) {
-      console.error(error);
+      console.error('Signup process error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to sign up');
       throw error;
     } finally {

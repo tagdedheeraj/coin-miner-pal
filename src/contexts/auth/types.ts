@@ -8,7 +8,12 @@ export interface AuthStateType {
 }
 
 export interface SupabaseUserCredential {
-  user: User | null;
+  user: {
+    id: string;
+    email?: string | null;
+    user_metadata?: { name?: string };
+    [key: string]: any;
+  } | null;
   session: Session | null;
 }
 
