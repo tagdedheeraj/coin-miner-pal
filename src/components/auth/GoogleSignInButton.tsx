@@ -3,6 +3,7 @@ import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Mail } from "lucide-react";
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from "@/hooks/use-toast";
 
 interface GoogleSignInButtonProps {
   isSubmitting?: boolean;
@@ -10,12 +11,27 @@ interface GoogleSignInButtonProps {
 
 const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({ isSubmitting = false }) => {
   const { signInWithGoogle } = useAuth();
+  const { toast } = useToast();
   
   const handleGoogleSignIn = async () => {
     try {
       await signInWithGoogle();
     } catch (error) {
-      // Error is already handled in the service function
+      // Handle the specific unauthorized domain error
+      if (error instanceof Error && error.message.includes('auth/unauthorized-domain')) {
+        toast({
+          title: "Authentication Error",
+          description: "This domain is not authorized for Google authentication. Please contact admin or try using a different sign-in method.",
+          variant: "destructive"
+        });
+      } else {
+        // For other errors, display a generic message
+        toast({
+          title: "Sign In Failed",
+          description: "Could not sign in with Google. Please try again later.",
+          variant: "destructive"
+        });
+      }
       console.error('Google sign in error:', error);
     }
   };

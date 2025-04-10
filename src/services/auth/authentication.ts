@@ -1,3 +1,4 @@
+
 import { Dispatch, SetStateAction } from 'react';
 import { User } from '@/types/auth';
 import { toast } from 'sonner';
@@ -226,8 +227,12 @@ export const createAuthenticationService = (
       console.error('Google sign-in error:', error);
       
       let errorMessage = 'Failed to sign in with Google';
+      
       if (error instanceof Error) {
-        if (error.message.includes('auth/popup-closed-by-user')) {
+        // Handle the unauthorized domain error specifically
+        if (error.message.includes('auth/unauthorized-domain')) {
+          errorMessage = 'This domain is not authorized for Google authentication. Please add this domain to your Firebase project or try using a different sign-in method.';
+        } else if (error.message.includes('auth/popup-closed-by-user')) {
           errorMessage = 'Google sign in was cancelled';
         } else if (error.message.includes('auth/popup-blocked')) {
           errorMessage = 'Pop-up was blocked by your browser. Please allow pop-ups for this site.';

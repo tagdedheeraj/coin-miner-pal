@@ -23,12 +23,13 @@ const storage = getStorage(app);
 
 // Create Google provider instance
 export const googleProvider = new GoogleAuthProvider();
-googleProvider.setCustomParameters({
-  prompt: 'select_account'
-});
 
-// Set persistence to LOCAL as default
-// This needs to be done before using auth
+// Add login hint to always show account chooser
+googleProvider.setCustomParameters({
+  prompt: 'select_account',
+  // Use 'postmessage' auth flow which can be more reliable in certain environments
+  login_hint: 'user@example.com'
+});
 
 // In development environment, you might want to try emulators
 // if (process.env.NODE_ENV === 'development') {
