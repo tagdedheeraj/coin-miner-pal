@@ -1,9 +1,9 @@
 
 import { Dispatch, SetStateAction } from 'react';
 import { User } from '@/types/auth';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { mapUserToDb, mapDbToUser } from '@/utils/supabaseUtils';
+import { db } from '@/integrations/firebase/client';
+import { doc, updateDoc, deleteDoc, getDoc, query, collection, where, getDocs } from 'firebase/firestore';
 
 export const userServiceFunctions = (
   user: User | null, 
@@ -16,14 +16,26 @@ export const userServiceFunctions = (
     try {
       const updatedUser = { ...user, ...updates };
       
-      // Update in Supabase if not admin user
+      // Update in Firestore if not admin user
       if (!user.isAdmin) {
-        const { error } = await supabase
-          .from('users')
-          .update(mapUserToDb(updates))
-          .eq('id', user.id);
+        const userRef = doc(db, 'users', user.id);
         
-        if (error) throw error;
+        // Convert user updates to Firestore format
+        const firestoreUpdates: Record<string, any> = {};
+        
+        if ('name' in updates) firestoreUpdates.name = updates.name;
+        if ('email' in updates) firestoreUpdates.email = updates.email;
+        if ('coins' in updates) firestoreUpdates.coins = updates.coins;
+        if ('referralCode' in updates) firestoreUpdates.referral_code = updates.referralCode;
+        if ('hasSetupPin' in updates) firestoreUpdates.has_setup_pin = updates.hasSetupPin;
+        if ('hasBiometrics' in updates) firestoreUpdates.has_biometrics = updates.hasBiometrics;
+        if ('withdrawalAddress' in updates) firestoreUpdates.withdrawal_address = updates.withdrawalAddress;
+        if ('appliedReferralCode' in updates) firestoreUpdates.applied_referral_code = updates.appliedReferralCode;
+        if ('usdtEarnings' in updates) firestoreUpdates.usdt_earnings = updates.usdtEarnings;
+        if ('notifications' in updates) firestoreUpdates.notifications = updates.notifications;
+        if ('isAdmin' in updates) firestoreUpdates.is_admin = updates.isAdmin;
+        
+        await updateDoc(userRef, firestoreUpdates);
       }
       
       // Update localStorage for persistence
@@ -80,13 +92,7 @@ export const userServiceFunctions = (
     }
 
     try {
-      const { error } = await supabase
-        .from('users')
-        .delete()
-        .eq('id', userId);
-      
-      if (error) throw error;
-      
+      await deleteDoc(doc(db, 'users', userId));
       toast.success('User deleted successfully');
     } catch (error) {
       console.error(error);
@@ -94,17 +100,27 @@ export const userServiceFunctions = (
     }
   };
 
-  const fetchUserBySupabaseId = async (supabaseId: string): Promise<User | null> => {
+  const fetchUserByFirebaseId = async (firebaseId: string): Promise<User | null> => {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', supabaseId)
-        .single();
+      const userDoc = await getDoc(doc(db, 'users', firebaseId));
       
-      if (error) return null;
+      if (!userDoc.exists()) return null;
       
-      return data ? mapDbToUser(data) : null;
+      const data = userDoc.data();
+      return {
+        id: firebaseId,
+        name: data.name,
+        email: data.email,
+        coins: data.coins,
+        referralCode: data.referral_code,
+        hasSetupPin: data.has_setup_pin,
+        hasBiometrics: data.has_biometrics,
+        withdrawalAddress: data.withdrawal_address,
+        appliedReferralCode: data.applied_referral_code,
+        usdtEarnings: data.usdt_earnings,
+        notifications: data.notifications || [],
+        isAdmin: data.is_admin || false
+      };
     } catch (error) {
       console.error('Error fetching user:', error);
       return null;
@@ -113,17 +129,33 @@ export const userServiceFunctions = (
 
   const findUserByEmail = async (email: string): Promise<{userId: string, userData: User} | null> => {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .single();
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('email', '==', email));
+      const querySnapshot = await getDocs(q);
       
-      if (error || !data) return null;
+      if (querySnapshot.empty) return null;
+      
+      const doc = querySnapshot.docs[0];
+      const data = doc.data();
+      
+      const userData: User = {
+        id: doc.id,
+        name: data.name,
+        email: data.email,
+        coins: data.coins,
+        referralCode: data.referral_code,
+        hasSetupPin: data.has_setup_pin,
+        hasBiometrics: data.has_biometrics,
+        withdrawalAddress: data.withdrawal_address,
+        appliedReferralCode: data.applied_referral_code,
+        usdtEarnings: data.usdt_earnings,
+        notifications: data.notifications || [],
+        isAdmin: data.is_admin || false
+      };
       
       return { 
-        userId: data.id, 
-        userData: mapDbToUser(data) 
+        userId: doc.id, 
+        userData 
       };
     } catch (error) {
       console.error('Error finding user by email:', error);
@@ -137,7 +169,7 @@ export const userServiceFunctions = (
     toggleBiometrics,
     setWithdrawalAddress,
     deleteUser,
-    fetchUserBySupabaseId,
+    fetchUserByFirebaseId,
     findUserByEmail,
   };
 };

@@ -1,9 +1,9 @@
 
 import React, { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
+import { auth } from '@/integrations/firebase/client';
 
 const AuthCallback: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -14,20 +14,25 @@ const AuthCallback: React.FC = () => {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        const { data, error } = await supabase.auth.getSession();
+        // Check if user is verified
+        const currentUser = auth.currentUser;
         
-        if (error) {
-          throw error;
-        }
-        
-        if (data?.session) {
-          // If we have a session, email verification was successful
-          setIsLoading(false);
-          setTimeout(() => {
-            navigate('/dashboard');
-          }, 2000);
+        if (currentUser) {
+          // Reload user to get latest email verification status
+          await currentUser.reload();
+          
+          if (currentUser.emailVerified) {
+            // Email already confirmed
+            setIsLoading(false);
+            setTimeout(() => {
+              navigate('/dashboard');
+            }, 2000);
+          } else {
+            setError('Email verification pending. Please check your email and verify your account.');
+            setIsLoading(false);
+          }
         } else {
-          setError('Email verification failed. Please try again or contact support.');
+          setError('No user found. Please sign in again.');
           setIsLoading(false);
         }
       } catch (err) {
@@ -56,7 +61,7 @@ const AuthCallback: React.FC = () => {
           </>
         ) : error ? (
           <>
-            <h1 className="text-2xl font-bold mb-2 text-red-600">Verification Failed</h1>
+            <h1 className="text-2xl font-bold mb-2 text-red-600">Verification Status</h1>
             <p className="text-gray-600 mb-4">{error}</p>
             <button 
               onClick={() => navigate('/sign-in')}

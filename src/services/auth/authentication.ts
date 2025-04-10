@@ -1,10 +1,12 @@
 
 import { Dispatch, SetStateAction } from 'react';
 import { User } from '@/types/auth';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { mapDbToUser } from '@/utils/supabaseUtils';
 import { mockUsers } from '@/data/mockUsers';
+import { auth, db } from '@/integrations/firebase/client';
+import { signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { mapFirebaseToUser } from '@/utils/firebaseUtils';
 
 export const createAuthenticationService = (
   user: User | null, 
@@ -16,7 +18,7 @@ export const createAuthenticationService = (
     setIsLoading(true);
     
     try {
-      // Check for admin/mock users first before trying Supabase
+      // Check for admin/mock users first before trying Firebase
       const mockUser = mockUsers.find(u => u.email === email && u.password === password);
       
       if (mockUser) {
@@ -46,32 +48,32 @@ export const createAuthenticationService = (
         return;
       }
       
-      // If not a mock user, proceed with Supabase authentication
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+      // If not a mock user, proceed with Firebase authentication
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
-      if (error) throw error;
+      // Get user data from Firestore
+      const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
       
-      // Get user data from the database
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .single();
-      
-      if (userError) {
-        console.error('Error fetching user data:', userError);
-        throw new Error('Failed to fetch user data');
-      }
-      
-      if (!userData) {
+      if (!userDoc.exists()) {
         throw new Error('User profile not found');
       }
       
-      // Map the user data and update local state
-      const userObj = mapDbToUser(userData);
+      // Map the user data
+      const userData = userDoc.data();
+      const userObj: User = {
+        id: userCredential.user.uid,
+        name: userData.name,
+        email: userData.email,
+        coins: userData.coins,
+        referralCode: userData.referral_code,
+        hasSetupPin: userData.has_setup_pin,
+        hasBiometrics: userData.has_biometrics,
+        withdrawalAddress: userData.withdrawal_address,
+        appliedReferralCode: userData.applied_referral_code,
+        usdtEarnings: userData.usdt_earnings,
+        notifications: userData.notifications || [],
+        isAdmin: userData.is_admin || false
+      };
       
       setUser(userObj);
       
@@ -84,9 +86,10 @@ export const createAuthenticationService = (
       
       let errorMessage = 'Failed to sign in';
       if (error instanceof Error) {
-        if (error.message.includes('fetch') || 
-            error.message.includes('network') || 
-            error.message.includes('Failed to fetch')) {
+        if (error.message.includes('auth/wrong-password') || 
+            error.message.includes('auth/user-not-found')) {
+          errorMessage = 'Invalid email or password';
+        } else if (error.message.includes('auth/network-request-failed')) {
           errorMessage = 'Network error. Please check your internet connection and try again.';
         } else {
           errorMessage = error.message;
@@ -100,15 +103,16 @@ export const createAuthenticationService = (
     }
   };
   
-  const signOut = () => {
-    supabase.auth.signOut().then(() => {
+  const signOut = async () => {
+    try {
+      await firebaseSignOut(auth);
       localStorage.removeItem('user');
       setUser(null);
       toast.success('Signed out successfully');
-    }).catch(error => {
+    } catch (error) {
       console.error('Sign-out error:', error);
       toast.error('Failed to sign out');
-    });
+    }
   };
   
   return {

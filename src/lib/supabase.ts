@@ -1,4 +1,4 @@
 
-// Re-export the client from the integrations folder for backward compatibility
-import { supabase } from '@/integrations/supabase/client';
-export { supabase };
+// Re-export Firebase client for backward compatibility
+import { auth, db, storage } from '@/integrations/firebase/client';
+export { auth, db, storage };
