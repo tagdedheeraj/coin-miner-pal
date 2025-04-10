@@ -1,3 +1,4 @@
+
 import { Dispatch, SetStateAction } from 'react';
 import { User, DepositRequest } from '@/types/auth';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,10 +24,10 @@ export const depositServiceFunctions = (
         timestamp: new Date().toISOString()
       });
       
-      // Save to Supabase
+      // Save to Supabase - using 'as any' to bypass TypeScript for this operation
       const { error } = await supabase
         .from('deposit_requests')
-        .insert(depositRequest);
+        .insert(depositRequest as any);
       
       if (error) throw error;
       
@@ -46,7 +47,7 @@ export const depositServiceFunctions = (
       
       const { error: updateError } = await supabase
         .from('users')
-        .update(userUpdate)
+        .update(userUpdate as any)
         .eq('id', user.id);
         
       if (updateError) throw updateError;

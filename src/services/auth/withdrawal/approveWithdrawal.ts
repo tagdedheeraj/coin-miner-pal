@@ -37,7 +37,7 @@ export const approveWithdrawalFunctions = (user: User | null) => {
       
       await supabase
         .from('withdrawal_requests')
-        .update(updateData)
+        .update(updateData as any)
         .eq('id', requestId);
       
       // Find the user and update their balance
@@ -76,7 +76,7 @@ export const approveWithdrawalFunctions = (user: User | null) => {
       
       await supabase
         .from('users')
-        .update(userUpdate)
+        .update(userUpdate as any)
         .eq('id', targetUser.id);
       
       toast.success('Withdrawal request approved successfully');

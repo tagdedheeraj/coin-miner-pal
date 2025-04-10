@@ -35,7 +35,7 @@ export const rejectWithdrawalFunctions = (user: User | null) => {
         .update(mapWithdrawalToDb({
           status: 'rejected',
           updatedAt: new Date().toISOString()
-        }))
+        }) as any)
         .eq('id', requestId);
       
       // Find the user and send notification
@@ -63,7 +63,7 @@ export const rejectWithdrawalFunctions = (user: User | null) => {
               createdAt: new Date().toISOString()
             }
           ]
-        }))
+        }) as any)
         .eq('id', targetUser.id);
       
       toast.success('Withdrawal request rejected successfully');

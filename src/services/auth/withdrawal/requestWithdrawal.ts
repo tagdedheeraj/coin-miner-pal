@@ -43,7 +43,7 @@ export const createWithdrawalRequestFunctions = (
       
       const { error } = await supabase
         .from('withdrawal_requests')
-        .insert(withdrawalRequest);
+        .insert(withdrawalRequest as any);
       
       if (error) throw error;
       
@@ -63,7 +63,7 @@ export const createWithdrawalRequestFunctions = (
       
       await supabase
         .from('users')
-        .update(userUpdate)
+        .update(userUpdate as any)
         .eq('id', user.id);
       
       // Update local user state

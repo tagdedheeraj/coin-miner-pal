@@ -71,7 +71,7 @@ export type DepositDbInsert = {
 }
 
 // Map User object to database format
-export const mapUserToDb = (user: Partial<User>): UserDbInsert | Partial<UserDbInsert> => {
+export const mapUserToDb = (user: Partial<User>): Partial<UserDbInsert> => {
   // Check if we're creating a new user with required fields or updating an existing one
   const isCreatingNewUser = 'id' in user && 'name' in user && 'email' in user && 'referralCode' in user;
   
@@ -89,11 +89,6 @@ export const mapUserToDb = (user: Partial<User>): UserDbInsert | Partial<UserDbI
   if ('usdtEarnings' in user) mapped.usdt_earnings = user.usdtEarnings;
   if ('notifications' in user) mapped.notifications = user.notifications;
   if ('isAdmin' in user) mapped.is_admin = user.isAdmin;
-  
-  // If we're creating a new user, we need to assert it's a complete UserDbInsert
-  if (isCreatingNewUser) {
-    return mapped as UserDbInsert;
-  }
   
   return mapped;
 };
@@ -117,12 +112,7 @@ export const mapDbToUser = (data: Record<string, any>): User => {
 };
 
 // Map WithdrawalRequest object to database format
-export const mapWithdrawalToDb = (withdrawal: Partial<WithdrawalRequest>): WithdrawalDbInsert | Partial<WithdrawalDbInsert> => {
-  // Check if we're creating a new withdrawal with required fields or updating an existing one
-  const isCreatingNew = 'userId' in withdrawal && 'userEmail' in withdrawal && 
-                       'userName' in withdrawal && 'amount' in withdrawal && 
-                       'address' in withdrawal;
-  
+export const mapWithdrawalToDb = (withdrawal: Partial<WithdrawalRequest>): Partial<WithdrawalDbInsert> => {
   const mapped: Partial<WithdrawalDbInsert> = {};
   
   if ('id' in withdrawal) mapped.id = withdrawal.id;
@@ -134,11 +124,6 @@ export const mapWithdrawalToDb = (withdrawal: Partial<WithdrawalRequest>): Withd
   if ('status' in withdrawal) mapped.status = withdrawal.status;
   if ('createdAt' in withdrawal) mapped.created_at = withdrawal.createdAt;
   if ('updatedAt' in withdrawal) mapped.updated_at = withdrawal.updatedAt;
-  
-  // If we're creating a new withdrawal, we need to assert it's a complete WithdrawalDbInsert
-  if (isCreatingNew) {
-    return mapped as WithdrawalDbInsert;
-  }
   
   return mapped;
 };
@@ -159,13 +144,7 @@ export const mapDbToWithdrawal = (data: Record<string, any>): WithdrawalRequest 
 };
 
 // Map DepositRequest object to database format
-export const mapDepositToDb = (deposit: Partial<DepositRequest>): DepositDbInsert | Partial<DepositDbInsert> => {
-  // Check if we're creating a new deposit with required fields or updating an existing one
-  const isCreatingNew = 'userId' in deposit && 'userEmail' in deposit && 
-                       'userName' in deposit && 'planId' in deposit && 
-                       'planName' in deposit && 'amount' in deposit && 
-                       'transactionId' in deposit;
-  
+export const mapDepositToDb = (deposit: Partial<DepositRequest>): Partial<DepositDbInsert> => {
   const mapped: Partial<DepositDbInsert> = {};
   
   if ('id' in deposit) mapped.id = deposit.id;
@@ -179,11 +158,6 @@ export const mapDepositToDb = (deposit: Partial<DepositRequest>): DepositDbInser
   if ('status' in deposit) mapped.status = deposit.status;
   if ('timestamp' in deposit) mapped.timestamp = deposit.timestamp;
   if ('reviewedAt' in deposit) mapped.reviewed_at = deposit.reviewedAt;
-  
-  // If we're creating a new deposit, we need to assert it's a complete DepositDbInsert
-  if (isCreatingNew) {
-    return mapped as DepositDbInsert;
-  }
   
   return mapped;
 };
