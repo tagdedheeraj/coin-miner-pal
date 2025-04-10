@@ -21,9 +21,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Trash2, Edit, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from "sonner";
+import { supabase } from '@/integrations/supabase/client';
 
 const UserManagement: React.FC = () => {
-  const { user, findUserByEmail, deleteUser, updateUserUsdtEarnings, updateUserCoins } = useAuth();
+  const { user, deleteUser, updateUserUsdtEarnings, updateUserCoins } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -34,41 +35,35 @@ const UserManagement: React.FC = () => {
   } | null>(null);
 
   useEffect(() => {
-    // For this demo, we'll use the mockUsers data
-    // In a real app, you would fetch users from your database
+    // Fetch real users from Supabase
     const fetchUsers = async () => {
       try {
-        // This would be replaced with an actual API call in production
-        // Example: const response = await supabase.from('users').select('*');
-        const mockUsers = [
-          {
-            id: '1',
-            name: 'Demo User',
-            email: 'demo@example.com',
-            coins: 200,
-            referralCode: 'DEMO123',
-            hasSetupPin: false,
-            hasBiometrics: false,
-            withdrawalAddress: null,
-            usdtEarnings: 0,
-            notifications: []
-          },
-          {
-            id: '2',
-            name: 'Admin User',
-            email: 'admin@infinium.com',
-            coins: 1000,
-            referralCode: 'ADMIN456',
-            hasSetupPin: true,
-            hasBiometrics: false,
-            withdrawalAddress: null,
-            usdtEarnings: 0,
-            notifications: [],
-            isAdmin: true
-          }
-        ];
+        setIsLoading(true);
         
-        setUsers(mockUsers);
+        // Fetch real users from Supabase
+        const { data, error } = await supabase
+          .from('users')
+          .select('*');
+          
+        if (error) throw error;
+        
+        // Map from database format to User format
+        const mappedUsers = data.map(userData => ({
+          id: userData.id,
+          name: userData.name,
+          email: userData.email,
+          coins: userData.coins,
+          referralCode: userData.referral_code,
+          hasSetupPin: userData.has_setup_pin,
+          hasBiometrics: userData.has_biometrics,
+          withdrawalAddress: userData.withdrawal_address,
+          appliedReferralCode: userData.applied_referral_code,
+          usdtEarnings: userData.usdt_earnings,
+          notifications: userData.notifications,
+          isAdmin: userData.is_admin
+        }));
+        
+        setUsers(mappedUsers);
         setIsLoading(false);
       } catch (error) {
         console.error('Error fetching users:', error);

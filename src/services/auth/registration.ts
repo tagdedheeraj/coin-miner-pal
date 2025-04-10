@@ -18,6 +18,18 @@ export const createRegistrationService = (
     console.log('Attempting to sign up with Supabase');
     
     try {
+      // Check if user already exists with this email
+      const { data: existingUsers, error: checkError } = await supabase
+        .from('users')
+        .select('email')
+        .eq('email', email);
+      
+      if (checkError) {
+        console.error('Error checking for existing user:', checkError);
+      } else if (existingUsers && existingUsers.length > 0) {
+        throw new Error('An account with this email already exists. Please sign in instead.');
+      }
+      
       // Register with Supabase
       const { data, error } = await supabase.auth.signUp({
         email,

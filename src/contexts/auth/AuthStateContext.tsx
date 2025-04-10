@@ -23,45 +23,36 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({ children }
   const userService = userServiceFunctions(user, setUser);
 
   useEffect(() => {
-    // Check for user in localStorage first
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const parsedUser = JSON.parse(storedUser) as User;
-        setUser(parsedUser);
-        setIsLoading(false);
-        return;
-      } catch (error) {
-        console.error('Error parsing stored user:', error);
-        localStorage.removeItem('user');
-      }
-    }
-
     // Set up Supabase auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
-        // Check if we have this user in localStorage with the correct email
-        const storedUserData = localStorage.getItem('user');
-        if (storedUserData) {
-          try {
-            const parsedStoredUser = JSON.parse(storedUserData) as User;
-            if (parsedStoredUser.email === session.user.email) {
-              setUser(parsedStoredUser);
-              setIsLoading(false);
-              return;
-            }
-          } catch (error) {
-            console.error('Error parsing stored user:', error);
-          }
-        }
-
-        // If not in localStorage, get from Supabase
         try {
-          // Use the fetchUserBySupabaseId function from userService
-          const userData = await userService.fetchUserBySupabaseId(session.user.id);
+          // Always prioritize getting data from Supabase
+          const { data, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
           
-          if (!userData) {
-            // If not found in Supabase, check mock users
+          if (error) {
+            console.error('Error fetching user data from Supabase:', error);
+            
+            // Fallback to localStorage or create new user if not found
+            const storedUserData = localStorage.getItem('user');
+            if (storedUserData) {
+              try {
+                const parsedStoredUser = JSON.parse(storedUserData) as User;
+                if (parsedStoredUser.email === session.user.email) {
+                  setUser(parsedStoredUser);
+                  setIsLoading(false);
+                  return;
+                }
+              } catch (error) {
+                console.error('Error parsing stored user:', error);
+              }
+            }
+
+            // If not in Supabase or localStorage, check mock users
             const mockUser = mockUsers.find(u => u.email === session.user.email);
             if (mockUser) {
               const userObj = {
@@ -82,43 +73,63 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({ children }
               // Save to localStorage for persistence
               localStorage.setItem('user', JSON.stringify(userObj));
               setUser(userObj);
-            } else {
-              // Create new user if not found
-              const newUser = {
-                id: session.user.id,
-                name: session.user.user_metadata?.name || 'New User',
-                email: session.user.email || '',
-                coins: 0,
-                referralCode: generateReferralCode(),
-                hasSetupPin: false,
-                hasBiometrics: false,
-                withdrawalAddress: null,
-                isAdmin: false
-              };
-              
-              // Save to Supabase
-              const userDbData = mapUserToDb(newUser);
-
-              // We need to cast this to ensure it has the required properties
-              await supabase.from('users').insert(userDbData as any);
-              
-              // Save to localStorage for persistence
-              localStorage.setItem('user', JSON.stringify(newUser));
-              setUser(newUser);
+              setIsLoading(false);
+              return;
             }
-          } else {
-            // User found in Supabase
-            localStorage.setItem('user', JSON.stringify(userData));
-            setUser(userData);
+            
+            // Create new user if not found
+            const newUser = {
+              id: session.user.id,
+              name: session.user.user_metadata?.name || 'New User',
+              email: session.user.email || '',
+              coins: 0,
+              referralCode: generateReferralCode(),
+              hasSetupPin: false,
+              hasBiometrics: false,
+              withdrawalAddress: null,
+              isAdmin: false,
+              notifications: []
+            };
+              
+            // Save to Supabase
+            const userDbData = mapUserToDb(newUser);
+            await supabase.from('users').insert(userDbData as any);
+              
+            // Save to localStorage for persistence
+            localStorage.setItem('user', JSON.stringify(newUser));
+            setUser(newUser);
+            setIsLoading(false);
+            return;
           }
+          
+          // User found in Supabase
+          const userData = mapDbToUser(data);
+          localStorage.setItem('user', JSON.stringify(userData));
+          setUser(userData);
+          setIsLoading(false);
+          
         } catch (error) {
-          console.error('Error fetching user data:', error);
+          console.error('Error in auth state change handler:', error);
+          setIsLoading(false);
         }
       } else {
         // User is signed out
         localStorage.removeItem('user');
         setUser(null);
+        setIsLoading(false);
       }
+    });
+
+    // Initial check for session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        // Handling session is done in the auth state change handler
+      } else {
+        // No active session
+        setIsLoading(false);
+      }
+    }).catch(error => {
+      console.error('Error getting session:', error);
       setIsLoading(false);
     });
 
