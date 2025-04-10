@@ -11,10 +11,10 @@ interface GoogleSignInButtonProps {
 const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({ isSubmitting = false }) => {
   const { toast } = useToast();
   
-  const handleGoogleSignIn = async () => {
+  const handleGmailSignIn = async () => {
     toast({
       title: "Not Available",
-      description: "Google sign-in is not available in this version. Please use email/password instead.",
+      description: "Gmail sign-in is not available in this version. Please use email/password instead.",
       variant: "destructive"
     });
   };
@@ -23,7 +23,7 @@ const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({ isSubmitting = 
     <Button
       type="button"
       variant="outline"
-      onClick={handleGoogleSignIn}
+      onClick={handleGmailSignIn}
       disabled={isSubmitting}
       className="w-full"
     >
