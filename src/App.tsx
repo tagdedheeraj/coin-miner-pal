@@ -1,93 +1,44 @@
-import React, { useEffect } from 'react';
+
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from "react-router-dom";
-import { CombinedAuthProvider } from "./contexts/auth/AuthProvider";
-import { MiningProvider } from "./contexts/MiningContext";
+import { Toaster as SonnerToaster } from 'sonner';
+import AuthProvider from '@/contexts/auth/AuthProvider';
+import Index from '@/pages/Index';
+import SignIn from '@/pages/SignIn';
+import SignUp from '@/pages/SignUp';
+import Dashboard from '@/pages/Dashboard';
+import AuthCallback from '@/pages/AuthCallback';
+import NotFound from '@/pages/NotFound';
+import Profile from '@/pages/Profile';
+import WithdrawalPage from '@/pages/Withdrawal';
+import ReferralsPage from '@/pages/Referrals';
+import ArbitragePage from '@/pages/Arbitrage';
+import AdminDashboard from '@/pages/admin/AdminDashboard';
+import ScrollToTop from '@/components/shared/ScrollToTop';
 
-// Pages
-import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
-import SignIn from "./pages/SignIn";
-import SignUp from "./pages/SignUp";
-import AuthCallback from "./pages/AuthCallback";
-import Mining from "./pages/Mining";
-import Rewards from "./pages/Rewards";
-import Wallet from "./pages/Wallet";
-import Profile from "./pages/Profile";
-import Referral from "./pages/Referral";
-import Plans from "./pages/Plans";
-import AdminPanel from "./pages/AdminPanel";
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminManagement from "./pages/AdminManagement";
-import NotFound from "./pages/NotFound";
-
-const queryClient = new QueryClient();
-
-// Navigation handler component
-const NavigationHandler = ({ children }: { children: React.ReactNode }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  useEffect(() => {
-    // Handle hardware back button
-    const handleBackButton = (event: PopStateEvent) => {
-      // If we're not at the root path, prevent default behavior
-      if (location.pathname !== '/') {
-        event.preventDefault();
-        // Navigate using react-router instead of browser navigation
-        navigate(-1);
-      }
-    };
-
-    // Add event listener for popstate (back button)
-    window.addEventListener('popstate', handleBackButton);
-
-    // Clean up
-    return () => {
-      window.removeEventListener('popstate', handleBackButton);
-    };
-  }, [navigate, location]);
-
-  return <>{children}</>;
-};
-
-const App = () => (
-  <React.StrictMode>
-    <BrowserRouter>
-      <QueryClientProvider client={queryClient}>
-        <CombinedAuthProvider>
-          <MiningProvider>
-            <TooltipProvider>
-              <NavigationHandler>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/sign-in" element={<SignIn />} />
-                  <Route path="/sign-up" element={<SignUp />} />
-                  <Route path="/auth/callback" element={<AuthCallback />} />
-                  <Route path="/mining" element={<Mining />} />
-                  <Route path="/rewards" element={<Rewards />} />
-                  <Route path="/wallet" element={<Wallet />} />
-                  <Route path="/profile" element={<Profile />} />
-                  <Route path="/referral" element={<Referral />} />
-                  <Route path="/plans" element={<Plans />} />
-                  <Route path="/admin" element={<AdminPanel />} />
-                  <Route path="/admin-dashboard" element={<AdminDashboard />} />
-                  <Route path="/admin-management" element={<AdminManagement />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-                <Toaster />
-                <Sonner />
-              </NavigationHandler>
-            </TooltipProvider>
-          </MiningProvider>
-        </CombinedAuthProvider>
-      </QueryClientProvider>
-    </BrowserRouter>
-  </React.StrictMode>
-);
+function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <ScrollToTop />
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/sign-in" element={<SignIn />} />
+          <Route path="/sign-up" element={<SignUp />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/withdrawal" element={<WithdrawalPage />} />
+          <Route path="/referrals" element={<ReferralsPage />} />
+          <Route path="/arbitrage" element={<ArbitragePage />} />
+          <Route path="/admin/*" element={<AdminDashboard />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+        <Toaster />
+        <SonnerToaster position="top-right" richColors closeButton />
+      </Router>
+    </AuthProvider>
+  );
+}
 
 export default App;
