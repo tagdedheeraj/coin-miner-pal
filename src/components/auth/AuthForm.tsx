@@ -62,6 +62,7 @@ const AuthForm: React.FC<AuthFormProps> = ({
     } catch (error) {
       handleAuthError(error);
     } finally {
+      // Ensure loading state is reset even if there's an error
       setIsSubmitting(false);
     }
   };

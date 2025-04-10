@@ -26,6 +26,7 @@ export const createRegistrationService = (
       
       if (checkError) {
         console.error('Error checking for existing user:', checkError);
+        throw new Error('Failed to check for existing user. Please try again.');
       } else if (existingUsers && existingUsers.length > 0) {
         throw new Error('An account with this email already exists. Please sign in instead.');
       }
@@ -122,6 +123,7 @@ export const createRegistrationService = (
       toast.error(errorMessage);
       throw error;
     } finally {
+      // Make sure to reset loading state regardless of outcome
       setIsLoading(false);
     }
   };
