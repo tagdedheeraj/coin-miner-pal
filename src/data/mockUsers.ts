@@ -17,4 +17,19 @@ export const mockUsers: MockUser[] = [
     usdtEarnings: 0,
     notifications: [],
   },
+  {
+    id: '2',
+    name: 'Admin User',
+    email: 'admin@infinium.com',
+    password: 'Infiniumcoin@123',
+    coins: 1000,
+    referralCode: 'ADMIN456',
+    hasSetupPin: true,
+    hasBiometrics: false,
+    withdrawalAddress: null,
+    appliedReferralCode: null,
+    usdtEarnings: 0,
+    notifications: [],
+    isAdmin: true, // Admin privileges
+  },
 ];

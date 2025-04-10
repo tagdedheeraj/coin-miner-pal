@@ -4,6 +4,7 @@ import { User } from '@/types/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { mapDbToUser } from '@/utils/supabaseUtils';
+import { mockUsers } from '@/data/mockUsers';
 
 export const createAuthenticationService = (
   user: User | null, 
@@ -15,7 +16,37 @@ export const createAuthenticationService = (
     setIsLoading(true);
     
     try {
-      // Authenticate with Supabase
+      // Check for admin/mock users first before trying Supabase
+      const mockUser = mockUsers.find(u => u.email === email && u.password === password);
+      
+      if (mockUser) {
+        // Convert mock user to User type
+        const userObj: User = {
+          id: mockUser.id,
+          name: mockUser.name,
+          email: mockUser.email,
+          coins: mockUser.coins,
+          referralCode: mockUser.referralCode,
+          hasSetupPin: mockUser.hasSetupPin,
+          hasBiometrics: mockUser.hasBiometrics,
+          withdrawalAddress: mockUser.withdrawalAddress,
+          appliedReferralCode: mockUser.appliedReferralCode,
+          usdtEarnings: mockUser.usdtEarnings,
+          notifications: mockUser.notifications || [],
+          isAdmin: mockUser.isAdmin || false,
+        };
+        
+        setUser(userObj);
+        
+        // Store in localStorage for persistence
+        localStorage.setItem('user', JSON.stringify(userObj));
+        
+        toast.success('Signed in successfully');
+        setIsLoading(false);
+        return;
+      }
+      
+      // If not a mock user, proceed with Supabase authentication
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
