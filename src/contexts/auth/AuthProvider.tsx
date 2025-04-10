@@ -29,16 +29,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [arbitragePlans, setArbitragePlans] = useState<ArbitragePlan[]>(mockArbitragePlans);
   const { toast: uiToast } = useToast();
   
-  // Initialize Firebase auth and check for existing user on mount
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
-        // Convert Firebase user to our User type
         const userObj: User = {
           id: firebaseUser.uid,
           name: firebaseUser.displayName || 'User',
           email: firebaseUser.email || '',
-          coins: 200, // Default starting coins
+          coins: 200,
           referralCode: generateReferralCode(),
           hasSetupPin: false,
           hasBiometrics: false,
@@ -46,7 +44,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           appliedReferralCode: null,
           usdtEarnings: 0,
           notifications: [],
-          isAdmin: false, // For now, no user is admin by default
+          isAdmin: false,
         };
         setUser(userObj);
       } else {
@@ -55,11 +53,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(false);
     });
     
-    // Cleanup subscription on unmount
     return () => unsubscribe();
   }, []);
   
-  // Helper function to generate a referral code
   const generateReferralCode = (): string => {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
   };
@@ -107,7 +103,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setIsLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      // Send email verification
       if (userCredential.user) {
         await sendEmailVerification(userCredential.user);
       }
@@ -154,9 +149,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       if (!user || !auth.currentUser) throw new Error('Not authenticated');
       
-      // Re-authenticate user before changing password (not implemented here)
-      // Would require reauthenticateWithCredential
-      
       await updatePassword(auth.currentUser, newPassword);
       toast.success('Password changed successfully');
     } catch (error) {
@@ -190,7 +182,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Handle withdrawal requests with local storage (simplified)
   const getWithdrawalRequests = async (): Promise<WithdrawalRequest[]> => {
     const withdrawalRequestsJson = localStorage.getItem('withdrawalRequests');
     return withdrawalRequestsJson ? JSON.parse(withdrawalRequestsJson) : [];
@@ -228,7 +219,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     await saveWithdrawalRequests([...withdrawalRequests, newWithdrawal]);
     
-    // Update user's USDT balance
     await updateUser({ 
       usdtEarnings: (user.usdtEarnings || 0) - amount 
     });
@@ -258,7 +248,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return;
     }
     
-    // Update the request status
     const updatedRequests = withdrawalRequests.map(req =>
       req.id === requestId
         ? { ...req, status: 'rejected' as const, updatedAt: new Date().toISOString() }
@@ -269,7 +258,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     toast.success('Withdrawal rejected');
   };
 
-  // Handle deposit requests with local storage (simplified)
   const getDepositRequests = async (): Promise<DepositRequest[]> => {
     const depositRequestsJson = localStorage.getItem('depositRequests');
     return depositRequestsJson ? JSON.parse(depositRequestsJson) : [];
@@ -304,7 +292,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const approveDepositRequest = async (requestId: string): Promise<void> => {
     const depositRequests = await getDepositRequests();
     
-    // Update the request status
     const updatedRequests = depositRequests.map(req =>
       req.id === requestId
         ? { ...req, status: 'approved' as const, reviewedAt: new Date().toISOString() }
@@ -328,20 +315,57 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     toast.success('Deposit rejected');
   };
 
-  // Other simplified methods
+  const updateArbitragePlan = async (planId: string, updates: Partial<ArbitragePlan>): Promise<void> => {
+    try {
+      const updatedPlans = arbitragePlans.map(plan => 
+        plan.id === planId ? { ...plan, ...updates } : plan
+      );
+      
+      setArbitragePlans(updatedPlans);
+      toast.success('Arbitrage plan updated successfully');
+    } catch (error) {
+      console.error('Error updating arbitrage plan:', error);
+      toast.error('Failed to update arbitrage plan');
+    }
+  };
+  
+  const deleteArbitragePlan = async (planId: string): Promise<void> => {
+    try {
+      const filteredPlans = arbitragePlans.filter(plan => plan.id !== planId);
+      
+      setArbitragePlans(filteredPlans);
+      toast.success('Arbitrage plan deleted successfully');
+    } catch (error) {
+      console.error('Error deleting arbitrage plan:', error);
+      toast.error('Failed to delete arbitrage plan');
+    }
+  };
+  
+  const addArbitragePlan = async (plan: Omit<ArbitragePlan, 'id'>): Promise<void> => {
+    try {
+      const newPlan: ArbitragePlan = {
+        id: uuidv4(),
+        ...plan
+      };
+      
+      setArbitragePlans([...arbitragePlans, newPlan]);
+      toast.success('Arbitrage plan added successfully');
+    } catch (error) {
+      console.error('Error adding arbitrage plan:', error);
+      toast.error('Failed to add arbitrage plan');
+    }
+  };
+
   const getAllUsers = async (): Promise<User[]> => {
-    // For now, just return a mock array with the current user
     return user ? [user] : [];
   };
 
   const contextValue = {
-    // Core auth state
     user,
     isAuthenticated: !!user,
     isLoading,
     setUser,
     
-    // Authentication
     signIn,
     signInWithGoogle,
     signOut,
@@ -349,7 +373,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     resendVerificationEmail,
     resetPassword,
     
-    // User Management
     updateUser,
     updateUserProfile: updateUser,
     setupPin: async (pin: string) => {
@@ -370,7 +393,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     changePassword,
     getAllUsers,
     
-    // Simplified admin functions
     updateUserUsdtEarnings: async (email: string, amount: number) => {
       toast.success('USDT earnings updated');
     },
@@ -381,7 +403,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       toast.success('User deleted');
     },
     
-    // Withdrawal Management
     updateWithdrawalAddress: async (address: string) => {
       if (user) {
         await updateUser({ withdrawalAddress: address });
@@ -399,7 +420,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     rejectWithdrawalRequest,
     rejectWithdrawal: rejectWithdrawalRequest,
     
-    // Deposit Management
     getDepositRequests,
     getUserDepositRequests,
     requestDeposit: async (amount: number, transactionId: string) => {
@@ -411,7 +431,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     rejectDepositRequest,
     rejectDeposit: rejectDepositRequest,
     
-    // Other simplified methods
     applyReferralCode: async (code: string) => {
       toast.success('Referral code applied successfully');
     },
@@ -422,7 +441,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // No-op for now
     },
     
-    // Arbitrage Plan Management
     updateArbitragePlan,
     deleteArbitragePlan,
     addArbitragePlan
