@@ -23,7 +23,8 @@ export const createRegistrationService = (
         email,
         password,
         options: {
-          data: { name }
+          data: { name },
+          emailRedirectTo: window.location.origin + '/auth/callback'
         }
       });
       
@@ -78,13 +79,17 @@ export const createRegistrationService = (
         return data as SupabaseUserCredential;
       }
       
-      // Save in local state
-      setUser(newUser);
-      
-      // Store in localStorage for persistence
-      localStorage.setItem('user', JSON.stringify(newUser));
-      
-      toast.success('Account created successfully! You received 200 coins as a signup bonus.');
+      // Check if user's email is confirmed or if confirmation is required
+      if (data.user.email_confirmed_at) {
+        // Email already confirmed (if using development settings)
+        setUser(newUser);
+        localStorage.setItem('user', JSON.stringify(newUser));
+        toast.success('Account created successfully! You received 200 coins as a signup bonus.');
+      } else {
+        // Email confirmation is required
+        toast.success('Account created! Please check your email to verify your account.');
+        // Don't set the user yet until they confirm their email
+      }
       
       // Return the data in the expected format
       return data as SupabaseUserCredential;
@@ -108,8 +113,35 @@ export const createRegistrationService = (
       setIsLoading(false);
     }
   };
+
+  const resendVerificationEmail = async (email: string): Promise<void> => {
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: window.location.origin + '/auth/callback'
+        }
+      });
+      
+      if (error) {
+        throw new Error(error.message);
+      }
+      
+      toast.success('Verification email sent. Please check your inbox.');
+    } catch (error) {
+      console.error('Error sending verification email:', error);
+      let errorMessage = 'Failed to send verification email';
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      toast.error(errorMessage);
+      throw error;
+    }
+  };
   
   return {
-    signUp
+    signUp,
+    resendVerificationEmail
   };
 };

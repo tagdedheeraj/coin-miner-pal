@@ -20,6 +20,7 @@ export interface AuthBasicContextType {
   signUp: (name: string, email: string, password: string) => Promise<SupabaseUserCredential>;
   signOut: () => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  resendVerificationEmail: (email: string) => Promise<void>;
 }
 
 export interface UserManagementContextType {

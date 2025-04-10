@@ -13,6 +13,7 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
+import AuthCallback from "./pages/AuthCallback";
 import Mining from "./pages/Mining";
 import Rewards from "./pages/Rewards";
 import Wallet from "./pages/Wallet";
@@ -66,6 +67,7 @@ const App = () => (
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/sign-in" element={<SignIn />} />
                   <Route path="/sign-up" element={<SignUp />} />
+                  <Route path="/auth/callback" element={<AuthCallback />} />
                   <Route path="/mining" element={<Mining />} />
                   <Route path="/rewards" element={<Rewards />} />
                   <Route path="/wallet" element={<Wallet />} />

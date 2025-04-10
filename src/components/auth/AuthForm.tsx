@@ -10,12 +10,14 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, Mail } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface AuthFormProps {
   type: 'sign-in' | 'sign-up';
-  onSuccess: () => void;
+  onSuccess: (email: string) => void;
+  showVerificationOptions?: boolean;
+  verificationEmail?: string;
 }
 
 // Define the validation schemas
@@ -34,9 +36,15 @@ const signUpSchema = z.object({
 type SignInFormValues = z.infer<typeof signInSchema>;
 type SignUpFormValues = z.infer<typeof signUpSchema>;
 
-const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
-  const { signIn, signUp } = useAuth();
+const AuthForm: React.FC<AuthFormProps> = ({ 
+  type, 
+  onSuccess, 
+  showVerificationOptions = false,
+  verificationEmail = ''
+}) => {
+  const { signIn, signUp, resendVerificationEmail } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -76,17 +84,15 @@ const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
         const result = await signUp(signUpValues.name, signUpValues.email, signUpValues.password);
         console.log('Signup successful', result);
         
-        // Give a slight delay before redirect for better UX
-        setTimeout(() => {
-          onSuccess();
-        }, 500);
+        // Pass the email to the onSuccess callback for verification messaging
+        onSuccess(signUpValues.email);
       } else {
         const signInValues = values as SignInFormValues;
         await signIn(signInValues.email, signInValues.password);
         
         // Give a slight delay before redirect for better UX
         setTimeout(() => {
-          onSuccess();
+          onSuccess(signInValues.email);
         }, 500);
       }
       
@@ -116,6 +122,69 @@ const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
     }
   };
 
+  const handleResendVerification = async () => {
+    if (!verificationEmail) return;
+    
+    setIsResending(true);
+    try {
+      await resendVerificationEmail(verificationEmail);
+    } catch (error) {
+      // Error is already handled in the service function
+      console.error("Failed to resend verification email", error);
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  // If showing verification options, render a different form
+  if (showVerificationOptions) {
+    return (
+      <Card className="w-full">
+        <CardHeader className="space-y-1">
+          <CardTitle>Verify Your Email</CardTitle>
+          <CardDescription>
+            We've sent a verification link to your email. Please check your inbox and spam folder.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          <div className="flex justify-center">
+            <Mail className="h-16 w-16 text-brand-blue" />
+          </div>
+          
+          <p className="text-center text-sm text-gray-600">
+            Didn't receive the email? Check your spam folder or try again.
+          </p>
+          
+          <Button 
+            onClick={handleResendVerification} 
+            variant="outline" 
+            disabled={isResending}
+            className="w-full"
+          >
+            {isResending ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Sending...
+              </span>
+            ) : (
+              "Resend Verification Email"
+            )}
+          </Button>
+          
+          <div className="text-center mt-4">
+            <button 
+              onClick={() => navigate('/sign-in')}
+              className="text-brand-blue text-sm hover:underline"
+            >
+              Back to Sign In
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Regular auth form
   return (
     <Card className="w-full">
       <CardHeader className="space-y-1">
