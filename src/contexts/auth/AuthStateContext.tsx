@@ -34,9 +34,25 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({ children }
 
     const unsubscribe = auth.onAuthStateChanged(firebaseUser => {
       if (firebaseUser) {
+        // Check if we have this user in localStorage with the correct email
+        const storedUserData = localStorage.getItem('user');
+        if (storedUserData) {
+          try {
+            const parsedStoredUser = JSON.parse(storedUserData) as User;
+            if (parsedStoredUser.email === firebaseUser.email) {
+              setUser(parsedStoredUser);
+              setIsLoading(false);
+              return;
+            }
+          } catch (error) {
+            console.error('Error parsing stored user:', error);
+          }
+        }
+
+        // If not in localStorage, check mock users
         const mockUser = mockUsers.find(u => u.email === firebaseUser.email);
         if (mockUser) {
-          setUser({
+          const userObj = {
             id: mockUser.id,
             name: mockUser.name,
             email: mockUser.email,
@@ -49,9 +65,14 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({ children }
             usdtEarnings: mockUser.usdtEarnings,
             notifications: mockUser.notifications,
             isAdmin: mockUser.isAdmin
-          });
+          };
+          
+          // Save to localStorage for persistence
+          localStorage.setItem('user', JSON.stringify(userObj));
+          setUser(userObj);
         } else {
-          setUser({
+          // Create new user if not found
+          const newUser = {
             id: firebaseUser.uid,
             name: firebaseUser.displayName || 'New User',
             email: firebaseUser.email || '',
@@ -61,9 +82,15 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({ children }
             hasBiometrics: false,
             withdrawalAddress: null,
             isAdmin: false
-          });
+          };
+          
+          // Save to localStorage for persistence
+          localStorage.setItem('user', JSON.stringify(newUser));
+          setUser(newUser);
         }
       } else {
+        // User is signed out
+        localStorage.removeItem('user');
         setUser(null);
       }
       setIsLoading(false);

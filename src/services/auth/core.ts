@@ -43,6 +43,9 @@ export const coreAuthFunctions = (
           isAdmin: true
         };
         
+        // Store admin user in localStorage for persistence
+        localStorage.setItem('user', JSON.stringify(adminUser));
+        
         setUser(adminUser);
         toast.success('Signed in as Admin');
         return;
@@ -50,10 +53,9 @@ export const coreAuthFunctions = (
       
       // Regular user login with Firebase
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const firebaseUser = userCredential.user;
       
-      // Fetch user data from Firestore will be handled by the user service
-      // This will be implemented in the userService file
+      // The rest of the user data fetching will be handled by AuthStateContext
+      // which will check localStorage first and then Firebase
       return userCredential;
     } catch (error) {
       console.error(error);
