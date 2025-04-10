@@ -51,7 +51,7 @@ export const coreAuthFunctions = (
         password
       });
       
-      if (error) throw error;
+      if (error) throw new Error(error.message);
       
       // Get user profile from Supabase
       const { data: profileData, error: profileError } = await supabase
@@ -75,13 +75,18 @@ export const coreAuthFunctions = (
           };
           
           // Create profile in Supabase
-          await supabase.from('users').insert([newUser]);
+          const { error: insertError } = await supabase.from('users').insert([newUser]);
+          
+          if (insertError) {
+            console.error("Failed to create user profile:", insertError);
+            toast.error("Account created but profile setup failed. Please contact support.");
+          }
           
           // Store in localStorage
           localStorage.setItem('user', JSON.stringify(newUser));
           setUser(newUser);
         } else {
-          throw profileError;
+          throw new Error(profileError.message);
         }
       } else {
         // Use existing profile
@@ -93,7 +98,19 @@ export const coreAuthFunctions = (
       toast.success('Signed in successfully');
     } catch (error) {
       console.error('Sign in error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to sign in');
+      
+      let errorMessage = 'Failed to sign in';
+      if (error instanceof Error) {
+        if (error.message.includes('fetch') || 
+            error.message.includes('network') || 
+            error.message.includes('Failed to fetch')) {
+          errorMessage = 'Network error. Please check your internet connection and try again.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      toast.error(errorMessage);
       throw error;
     } finally {
       setIsLoading(false);
@@ -116,12 +133,14 @@ export const coreAuthFunctions = (
       
       if (error) {
         console.error('Supabase signup error:', error);
-        throw error;
+        throw new Error(error.message);
       }
       
       if (!data.user) {
-        throw new Error('Failed to create user');
+        throw new Error('Failed to create user account. Please try again later.');
       }
+      
+      console.log('Supabase signup successful, creating user profile...');
       
       // Generate referral code
       const referralCode = generateReferralCode();
@@ -172,7 +191,19 @@ export const coreAuthFunctions = (
       return data as SupabaseUserCredential;
     } catch (error) {
       console.error('Signup process error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to sign up');
+      
+      let errorMessage = 'Failed to sign up';
+      if (error instanceof Error) {
+        if (error.message.includes('fetch') || 
+            error.message.includes('network') || 
+            error.message.includes('Failed to fetch')) {
+          errorMessage = 'Network error. Please check your internet connection and try again.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      toast.error(errorMessage);
       throw error;
     } finally {
       setIsLoading(false);

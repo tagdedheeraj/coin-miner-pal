@@ -9,5 +9,18 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
     persistSession: true,
+    storageKey: 'infiniumAuth',
+    detectSessionInUrl: true,
+    flowType: 'pkce'
+  },
+  global: {
+    headers: {
+      'Content-Type': 'application/json'
+    },
+  },
+  realtime: {
+    params: {
+      eventsPerSecond: 10
+    }
   },
 });

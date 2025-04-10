@@ -11,7 +11,8 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface AuthFormProps {
   type: 'sign-in' | 'sign-up';
@@ -75,13 +76,21 @@ const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
         
         await signUp(signUpValues.name, signUpValues.email, signUpValues.password);
         console.log('Signup successful');
+        
+        // Give a slight delay before redirect for better UX
+        setTimeout(() => {
+          onSuccess();
+        }, 500);
       } else {
         const signInValues = values as SignInFormValues;
         await signIn(signInValues.email, signInValues.password);
+        
+        // Give a slight delay before redirect for better UX
+        setTimeout(() => {
+          onSuccess();
+        }, 500);
       }
       
-      // If we get here, it was successful
-      onSuccess();
     } catch (error) {
       console.error("Auth error:", error);
       
@@ -116,9 +125,12 @@ const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
       </CardHeader>
       <CardContent className="grid gap-4">
         {errorMessage && (
-          <div className="bg-red-50 p-3 rounded border border-red-200 text-red-600 text-sm">
-            {errorMessage}
-          </div>
+          <Alert variant="destructive" className="bg-red-50 border-red-200">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="text-red-600 text-sm">
+              {errorMessage}
+            </AlertDescription>
+          </Alert>
         )}
         
         <Form {...form}>
