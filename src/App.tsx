@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { CombinedAuthProvider } from '@/contexts/auth/AuthProvider';
 import { useAuth } from '@/hooks/useAuth';
 import { Toaster } from '@/components/ui/toaster';
@@ -101,45 +101,56 @@ const NavigationHandler = () => {
   return null;
 };
 
+// AppRoutes component to separate routing from providers
+const AppRoutes = () => {
+  return (
+    <>
+      <NavigationHandler />
+      <Routes>
+        {/* Guest routes (no auth required) */}
+        <Route element={<GuestRoute />}>
+          <Route path="/" element={<Index />} />
+          <Route path="/sign-in" element={<SignIn />} />
+          <Route path="/sign-up" element={<SignUp />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+        </Route>
+        
+        {/* Protected routes (auth required) */}
+        <Route element={<AuthRoute />}>
+          <Route element={<MainLayout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/mining" element={<Mining />} />
+            <Route path="/rewards" element={<Rewards />} />
+            <Route path="/wallet" element={<Wallet />} />
+            <Route path="/referral" element={<Referral />} />
+            <Route path="/plans" element={<Plans />} />
+          </Route>
+        </Route>
+        
+        {/* Admin routes */}
+        <Route element={<AdminRoute />}>
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/admin/panel" element={<AdminPanel />} />
+        </Route>
+        
+        {/* Catch-all route for 404 */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
+  );
+};
+
 function App() {
   return (
-    <CombinedAuthProvider>
-      <MiningProvider>
-        <NavigationHandler />
-        <Routes>
-          {/* Guest routes (no auth required) */}
-          <Route element={<GuestRoute />}>
-            <Route path="/" element={<Index />} />
-            <Route path="/sign-in" element={<SignIn />} />
-            <Route path="/sign-up" element={<SignUp />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-          </Route>
-          
-          {/* Protected routes (auth required) */}
-          <Route element={<AuthRoute />}>
-            <Route element={<MainLayout />}>
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/mining" element={<Mining />} />
-              <Route path="/rewards" element={<Rewards />} />
-              <Route path="/wallet" element={<Wallet />} />
-              <Route path="/referral" element={<Referral />} />
-              <Route path="/plans" element={<Plans />} />
-            </Route>
-          </Route>
-          
-          {/* Admin routes */}
-          <Route element={<AdminRoute />}>
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/panel" element={<AdminPanel />} />
-          </Route>
-          
-          {/* Catch-all route for 404 */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <Toaster />
-      </MiningProvider>
-    </CombinedAuthProvider>
+    <BrowserRouter>
+      <CombinedAuthProvider>
+        <MiningProvider>
+          <AppRoutes />
+          <Toaster />
+        </MiningProvider>
+      </CombinedAuthProvider>
+    </BrowserRouter>
   );
 }
 
