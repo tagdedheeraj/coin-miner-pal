@@ -1,7 +1,7 @@
 
 import { Dispatch, SetStateAction } from 'react';
 import { User } from '@/types/auth';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SupabaseUserCredential } from '@/contexts/auth/types';
 import { generateReferralCode } from '@/utils/referral';

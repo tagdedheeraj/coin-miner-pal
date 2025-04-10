@@ -4,8 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -36,7 +35,7 @@ type SignInFormValues = z.infer<typeof signInSchema>;
 type SignUpFormValues = z.infer<typeof signUpSchema>;
 
 const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
-  const { signIn, signUp } = useAuth(); // Remove isLoading from here as we'll manage it locally
+  const { signIn, signUp } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -74,8 +73,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
         const signUpValues = values as SignUpFormValues;
         console.log('Starting signup process with:', { name: signUpValues.name, email: signUpValues.email });
         
-        await signUp(signUpValues.name, signUpValues.email, signUpValues.password);
-        console.log('Signup successful');
+        const result = await signUp(signUpValues.name, signUpValues.email, signUpValues.password);
+        console.log('Signup successful', result);
         
         // Give a slight delay before redirect for better UX
         setTimeout(() => {
@@ -96,8 +95,10 @@ const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
       
       // Handle network errors separately for better user experience
       if (error instanceof Error) {
-        if (error.message.includes('fetch') || error.message.includes('network')) {
+        if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed to fetch')) {
           setErrorMessage("Network error. Please check your internet connection and try again.");
+        } else if (error.message.includes('already')) {
+          setErrorMessage("This email is already registered. Please sign in instead.");
         } else {
           setErrorMessage(error.message);
         }
