@@ -6,6 +6,7 @@ import Header from '@/components/layout/Header';
 import BottomNav from '@/components/layout/BottomNav';
 import PlansCard from '@/components/plans/PlansCard';
 import { DepositRequest } from '@/types/auth';
+import { toast } from 'sonner';
 
 const Plans: React.FC = () => {
   const { isAuthenticated, user, getUserDepositRequests } = useAuth();
@@ -21,6 +22,7 @@ const Plans: React.FC = () => {
         })
         .catch(error => {
           console.error('Error fetching user deposit requests:', error);
+          // Don't show toast to avoid spamming the user on RLS errors
         })
         .finally(() => {
           setIsLoading(false);

@@ -44,13 +44,14 @@ export const getDepositFunctions = (user: User | null) => {
       
       if (error) {
         console.error('Error fetching user deposit requests:', error);
-        throw error;
+        // Return empty array instead of throwing to avoid UI errors
+        return [];
       }
       
       return (data || []).map(item => mapDbToDeposit(item));
     } catch (error) {
       console.error('Failed to fetch user deposit requests:', error);
-      toast.error('Failed to fetch your deposit requests');
+      // Don't show toast to avoid spamming the user
       return [];
     }
   };

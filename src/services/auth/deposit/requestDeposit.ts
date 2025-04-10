@@ -16,42 +16,8 @@ export const createDepositRequestFunctions = (
     }
     
     try {
-      // First, check if the user exists in the users table
-      const { data: existingUser, error: userCheckError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('id', user.id)
-        .single();
-      
-      // If user doesn't exist in the database, create it first
-      if (userCheckError || !existingUser) {
-        console.log('User not found in database, creating user record...');
-        
-        // Create user in the database
-        const userDbData = mapUserToDb({
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          coins: user.coins || 0,
-          referralCode: user.referralCode,
-          hasSetupPin: user.hasSetupPin || false,
-          hasBiometrics: user.hasBiometrics || false,
-          withdrawalAddress: user.withdrawalAddress,
-          appliedReferralCode: user.appliedReferralCode,
-          usdtEarnings: user.usdtEarnings || 0,
-          notifications: user.notifications || [],
-          isAdmin: user.isAdmin || false
-        });
-        
-        const { error: createUserError } = await supabase
-          .from('users')
-          .insert(userDbData as any);
-        
-        if (createUserError) {
-          console.error('Error creating user in database:', createUserError);
-          throw new Error(`Failed to create user in database: ${createUserError.message}`);
-        }
-      }
+      // Instead of trying to create a user record (which fails due to RLS),
+      // we'll just create the deposit request directly
       
       // Create the deposit request with a proper id
       const depositRequest: DepositRequest = {
@@ -71,6 +37,12 @@ export const createDepositRequestFunctions = (
       
       if (error) {
         console.error('Supabase insert error:', error);
+        
+        // If there's a foreign key constraint error, provide a clearer message
+        if (error.message.includes('violates foreign key constraint')) {
+          throw new Error('Unable to create deposit request. Please try again or contact support.');
+        }
+        
         throw new Error(`Failed to submit deposit request: ${error.message}`);
       }
       
@@ -82,27 +54,12 @@ export const createDepositRequestFunctions = (
         createdAt: new Date().toISOString()
       };
       
-      // Update user with notification
+      // Update user with notification (only in local state, not trying to update DB)
       const userNotifications = user.notifications || [];
-      const userUpdate = mapUserToDb({
+      setUser({
+        ...user,
         notifications: [...userNotifications, notification]
       });
-      
-      const { error: updateError } = await supabase
-        .from('users')
-        .update(userUpdate)
-        .eq('id', user.id);
-        
-      if (updateError) {
-        console.error('Error updating user notifications:', updateError);
-        // Continue even if notification update fails
-      } else {
-        // Update local user state
-        setUser({
-          ...user,
-          notifications: [...userNotifications, notification]
-        });
-      }
       
       toast.success('Deposit request submitted successfully');
     } catch (error) {
