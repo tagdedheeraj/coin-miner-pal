@@ -2,6 +2,8 @@
 import { User } from '@/types/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { auth } from '@/integrations/firebase/client';
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 
 export const createPasswordService = (user: User | null) => {
   
@@ -10,20 +12,23 @@ export const createPasswordService = (user: User | null) => {
     if (user.isAdmin) throw new Error('Admin password cannot be changed');
     
     try {
-      // Verify current password
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password: currentPassword
-      });
+      // Using Firebase to change password
+      const currentUser = auth.currentUser;
       
-      if (signInError) throw new Error('Current password is incorrect');
+      if (!currentUser || !currentUser.email) {
+        throw new Error('Firebase user not authenticated');
+      }
+      
+      // Re-authenticate the user first
+      const credential = EmailAuthProvider.credential(
+        currentUser.email,
+        currentPassword
+      );
+      
+      await reauthenticateWithCredential(currentUser, credential);
       
       // Update password
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
-      });
-      
-      if (error) throw error;
+      await updatePassword(currentUser, newPassword);
       
       toast.success('Password changed successfully');
     } catch (error) {

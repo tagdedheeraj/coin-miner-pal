@@ -44,7 +44,10 @@ export const mockSupabaseQuery = async (
     }
 
     const querySnapshot = await getDocs(q);
-    const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const data = querySnapshot.docs.map(doc => {
+      const docData = doc.data();
+      return { id: doc.id, ...docData };
+    });
     
     // Simple client-side sorting if orderBy is provided
     if (orderBy) {
@@ -115,7 +118,8 @@ export const getFirestoreDoc = async (
     const docSnap = await getDoc(docRef);
     
     if (docSnap.exists()) {
-      return { data: { id: docSnap.id, ...docSnap.data() }, error: null };
+      const data = docSnap.data();
+      return { data: { id: docSnap.id, ...data }, error: null };
     } else {
       return { data: null, error: null };
     }

@@ -39,7 +39,7 @@ export const supabase = {
   // Database methods
   from: (table: string) => {
     return {
-      select: (columns: string) => {
+      select: (columns: string = '*') => {
         return {
           eq: async (column: string, value: any) => {
             try {
@@ -80,16 +80,21 @@ export const supabase = {
           }
         };
       },
-      insert: async (data: any) => {
-        try {
-          await addDoc(collection(db, table), data);
-          return { error: null };
-        } catch (error) {
-          console.error(`Error inserting into ${table}:`, error);
-          return { error };
-        }
+      insert: (data: any) => {
+        return {
+          // Return an object with a synchronous structure
+          async execute() {
+            try {
+              await addDoc(collection(db, table), data);
+              return { error: null };
+            } catch (error) {
+              console.error(`Error inserting into ${table}:`, error);
+              return { error };
+            }
+          }
+        };
       },
-      update: async (data: any) => {
+      update: (data: any) => {
         return {
           eq: async (column: string, value: any) => {
             try {
