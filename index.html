@@ -17,9 +17,6 @@
         background-color: #f8f9fa;
         color: #333;
       }
-      #root {
-        min-height: 100vh;
-      }
       .loading-fallback {
         display: flex;
         flex-direction: column;
@@ -44,6 +41,20 @@
         <p>Loading application...</p>
       </div>
     </div>
+    <!-- Debug information -->
+    <div id="debug-info" style="display:none; position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); color: white; padding: 10px; font-family: monospace; max-height: 200px; overflow: auto;"></div>
+    <script>
+      // Simple debug helper
+      window.onerror = function(message, source, lineno, colno, error) {
+        const debugDiv = document.getElementById('debug-info');
+        if (debugDiv) {
+          debugDiv.style.display = 'block';
+          debugDiv.innerHTML += `<div>Error: ${message}</div>`;
+        }
+        console.error('Page error:', message, error);
+        return false;
+      };
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

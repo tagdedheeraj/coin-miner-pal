@@ -1,7 +1,8 @@
 
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getAnalytics } from "firebase/analytics";
+
+console.log('Initializing Firebase...');
 
 const firebaseConfig = {
   apiKey: "AIzaSyDin693hz8PWmfZvEx6huJE7Ct20yFLYkE",
@@ -13,14 +14,17 @@ const firebaseConfig = {
   measurementId: "G-MER6MD0LGX"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-let analytics;
-
-// Only initialize analytics in browser environment
-if (typeof window !== 'undefined') {
-  analytics = getAnalytics(app);
+try {
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  console.log('Firebase initialized successfully');
+  
+  export { app, auth };
+} catch (error) {
+  console.error('Firebase initialization failed:', error);
+  // Create fallback exports to prevent import errors
+  const fallbackApp = null;
+  const fallbackAuth = null;
+  export { fallbackApp as app, fallbackAuth as auth };
 }
-
-export { app, auth, analytics };
