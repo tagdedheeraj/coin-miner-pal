@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -22,6 +21,7 @@ import Referral from "./pages/Referral";
 import Plans from "./pages/Plans";
 import AdminPanel from "./pages/AdminPanel";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminManagement from "./pages/AdminManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -76,6 +76,7 @@ const App = () => (
                   <Route path="/plans" element={<Plans />} />
                   <Route path="/admin" element={<AdminPanel />} />
                   <Route path="/admin-dashboard" element={<AdminDashboard />} />
+                  <Route path="/admin-management" element={<AdminManagement />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
                 <Toaster />
