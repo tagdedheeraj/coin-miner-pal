@@ -2,30 +2,28 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Mail } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 interface GoogleSignInButtonProps {
   isSubmitting?: boolean;
 }
 
 const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({ isSubmitting = false }) => {
-  const { signInWithGoogle } = useAuth();
+  const { toast } = useToast();
   
-  const handleGmailSignIn = async () => {
-    try {
-      await signInWithGoogle();
-    } catch (error) {
-      console.error('Google sign-in error:', error);
-      toast.error('Failed to sign in with Google');
-    }
+  const handleGoogleSignIn = async () => {
+    toast({
+      title: "Not Available",
+      description: "Google sign-in is not available in this version. Please use email/password instead.",
+      variant: "destructive"
+    });
   };
   
   return (
     <Button
       type="button"
       variant="outline"
-      onClick={handleGmailSignIn}
+      onClick={handleGoogleSignIn}
       disabled={isSubmitting}
       className="w-full"
     >

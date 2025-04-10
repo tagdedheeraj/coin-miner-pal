@@ -1,30 +1,43 @@
 
-import React from 'react';
-import { BrowserRouter } from 'react-router-dom';
-import AuthProvider from './contexts/auth/AuthProvider';
-import { Toaster } from 'sonner';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as SonnerToaster } from 'sonner';
+import AuthProvider from '@/contexts/auth/AuthProvider';
+import Index from '@/pages/Index';
+import SignIn from '@/pages/SignIn';
+import SignUp from '@/pages/SignUp';
+import Dashboard from '@/pages/Dashboard';
+import AuthCallback from '@/pages/AuthCallback';
+import NotFound from '@/pages/NotFound';
+import Profile from '@/pages/Profile';
+import WithdrawalPage from '@/pages/Withdrawal';
+import ReferralsPage from '@/pages/Referrals';
+import ArbitragePage from '@/pages/Arbitrage';
+import AdminDashboard from '@/pages/admin/AdminDashboard';
+import ScrollToTop from '@/components/shared/ScrollToTop';
 
 function App() {
-  console.log('App component rendering');
-  
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <div className="min-h-screen bg-gray-50">
-          <div className="container mx-auto px-4 py-8">
-            <h1 className="text-3xl font-bold text-center mb-6">Infinium Miner</h1>
-            <p className="text-center mb-8">Welcome! Sign in to start using the application.</p>
-            
-            <div className="flex justify-center">
-              <a href="/sign-in" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                Sign In
-              </a>
-            </div>
-          </div>
-        </div>
-        <Toaster position="top-right" />
-      </AuthProvider>
-    </BrowserRouter>
+    <AuthProvider>
+      <Router>
+        <ScrollToTop />
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/sign-in" element={<SignIn />} />
+          <Route path="/sign-up" element={<SignUp />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/withdrawal" element={<WithdrawalPage />} />
+          <Route path="/referrals" element={<ReferralsPage />} />
+          <Route path="/arbitrage" element={<ArbitragePage />} />
+          <Route path="/admin/*" element={<AdminDashboard />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+        <Toaster />
+        <SonnerToaster position="top-right" richColors closeButton />
+      </Router>
+    </AuthProvider>
   );
 }
 

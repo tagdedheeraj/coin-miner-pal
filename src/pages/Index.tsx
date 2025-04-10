@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -5,11 +6,8 @@ import { ChevronRight, Shield, Activity, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 const Index: React.FC = () => {
-  console.log('Index page rendering');
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  
-  console.log('Authentication status:', isAuthenticated);
   
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
@@ -48,10 +46,6 @@ const Index: React.FC = () => {
               src="/lovable-uploads/e6693d03-b7d5-40c8-a973-c0c99c55a8fe.png" 
               alt="Infinium" 
               className="h-28 w-auto mx-auto"
-              onError={(e) => {
-                console.error('Image failed to load');
-                e.currentTarget.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iIzAwNzBmMyIvPjx0ZXh0IHg9IjUwIiB5PSI1MCIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjIwIiBmaWxsPSJ3aGl0ZSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9IjcuNSI+SW5maW5pdW08L3RleHQ+PC9zdmc+';
-              }}
             />
           </div>
           

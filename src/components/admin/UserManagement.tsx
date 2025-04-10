@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { User } from '@/types/auth';
@@ -10,13 +9,15 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { toast } from "sonner";
+import { db } from '@/integrations/firebase/client';
+import { collection, getDocs } from 'firebase/firestore';
 import { parseNotifications } from '@/utils/notificationUtils';
 import UserSearch from './users/UserSearch';
 import UserTable from './users/UserTable';
 import UserLoadingState from './users/UserLoadingState';
 
 const UserManagement: React.FC = () => {
-  const { user, deleteUser, updateUserUsdtEarnings, updateUserCoins, getAllUsers } = useAuth();
+  const { user, deleteUser, updateUserUsdtEarnings, updateUserCoins } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -27,15 +28,34 @@ const UserManagement: React.FC = () => {
   } | null>(null);
 
   useEffect(() => {
-    // Fetch users from local storage
+    // Fetch real users from Firestore
     const fetchUsers = async () => {
       try {
         setIsLoading(true);
         
-        // Fetch users from the auth context
-        const allUsers = await getAllUsers();
+        // Fetch real users from Firestore
+        const querySnapshot = await getDocs(collection(db, 'users'));
         
-        setUsers(allUsers);
+        // Map from database format to User format with proper type conversion
+        const mappedUsers: User[] = querySnapshot.docs.map(doc => {
+          const userData = doc.data();
+          return {
+            id: doc.id,
+            name: userData.name,
+            email: userData.email,
+            coins: userData.coins,
+            referralCode: userData.referral_code,
+            hasSetupPin: userData.has_setup_pin,
+            hasBiometrics: userData.has_biometrics,
+            withdrawalAddress: userData.withdrawal_address,
+            appliedReferralCode: userData.applied_referral_code,
+            usdtEarnings: userData.usdt_earnings,
+            notifications: parseNotifications(userData.notifications),
+            isAdmin: userData.is_admin
+          };
+        });
+        
+        setUsers(mappedUsers);
         setIsLoading(false);
       } catch (error) {
         console.error('Error fetching users:', error);
@@ -47,7 +67,7 @@ const UserManagement: React.FC = () => {
     if (user?.isAdmin) {
       fetchUsers();
     }
-  }, [user, getAllUsers]);
+  }, [user]);
 
   const handleDeleteUser = async (userId: string) => {
     if (window.confirm('Are you sure you want to delete this user?')) {

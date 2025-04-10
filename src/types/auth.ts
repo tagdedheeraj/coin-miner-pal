@@ -10,16 +10,9 @@ export interface User {
   withdrawalAddress: string | null;
   appliedReferralCode?: string;
   usdtEarnings?: number;
-  notifications?: Notification[];
+  notifications?: Array<{id: string, message: string, read: boolean, createdAt: string}>;
   isAdmin?: boolean;
   password?: string; // Only used during auth, not stored in state
-}
-
-export interface Notification {
-  id: string;
-  message: string;
-  read: boolean;
-  createdAt: string;
 }
 
 export interface WithdrawalRequest {

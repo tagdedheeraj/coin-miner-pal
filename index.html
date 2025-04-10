@@ -4,57 +4,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Infinium Miner</title>
-    <meta name="description" content="Earn cryptocurrency with Infinium Miner" />
-    <meta name="author" content="Infinium" />
+    <title>coin-miner-pal</title>
+    <meta name="description" content="Mining App" />
+    <meta name="author" content="CoinMiner" />
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
-    <style>
-      /* Fallback styles in case CSS doesn't load */
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        margin: 0;
-        padding: 0;
-        background-color: #f8f9fa;
-        color: #333;
-      }
-      .loading-fallback {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        height: 100vh;
-        text-align: center;
-        padding: 0 20px;
-      }
-      .loading-fallback h1 {
-        margin-bottom: 16px;
-        color: #3b82f6;
-      }
-    </style>
   </head>
 
   <body>
-    <div id="root">
-      <!-- Fallback content that shows until React loads -->
-      <div class="loading-fallback">
-        <h1>Infinium Miner</h1>
-        <p>Loading application...</p>
-      </div>
-    </div>
-    <!-- Debug information -->
-    <div id="debug-info" style="display:none; position: fixed; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,0.8); color: white; padding: 10px; font-family: monospace; max-height: 200px; overflow: auto;"></div>
-    <script>
-      // Simple debug helper
-      window.onerror = function(message, source, lineno, colno, error) {
-        const debugDiv = document.getElementById('debug-info');
-        if (debugDiv) {
-          debugDiv.style.display = 'block';
-          debugDiv.innerHTML += `<div>Error: ${message}</div>`;
-        }
-        console.error('Page error:', message, error);
-        return false;
-      };
-    </script>
+    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
