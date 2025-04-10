@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { LayoutGrid, ChevronRight, Check, Clock, Zap, RefreshCw, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { formatUSD } from '@/utils/formatters';
-import PaymentModal from './PaymentModal';
+import PaymentModal from './payment/PaymentModal';
 import { mockArbitragePlans } from '@/data/mockArbitragePlans';
 import { DepositRequest } from '@/types/auth';
 
