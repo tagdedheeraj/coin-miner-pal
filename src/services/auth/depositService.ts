@@ -1,4 +1,3 @@
-
 import { Dispatch, SetStateAction } from 'react';
 import { User, DepositRequest } from '@/types/auth';
 import { supabase } from '@/integrations/supabase/client';
