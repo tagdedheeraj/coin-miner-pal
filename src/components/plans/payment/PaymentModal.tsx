@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import PaymentAddress from './PaymentAddress';
 import PaymentQRCode from './PaymentQRCode';
 import TransactionIdInput from './TransactionIdInput';
+import PaymentTimer from './PaymentTimer';
 
 interface PaymentModalProps {
   open: boolean;
