@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { DepositRequest } from '@/types/auth';
-import PaymentModal from './payment/PaymentModal';
+import NewPaymentModal from './payment/NewPaymentModal';
 import PlansHeader from './PlansHeader';
 import PlansTabContent from './tabs/PlansTabContent';
 import EarningsTabContent from './tabs/EarningsTabContent';
@@ -68,7 +68,7 @@ const PlansCard: React.FC<PlansCardProps> = ({
       <PlanCategories />
 
       {selectedPlan && (
-        <PaymentModal
+        <NewPaymentModal
           open={paymentModalOpen}
           onClose={handleClosePaymentModal}
           planName={selectedPlan.name}

@@ -15,36 +15,21 @@ export const createDepositRequestFunctions = (
     }
     
     try {
-      // Create the deposit request with a proper id
-      const depositRequest: DepositRequest = {
-        ...depositData,
-        id: uuidv4(),  // Generate a proper UUID for the request
-        status: 'pending',
-        timestamp: new Date().toISOString()
-      };
+      // Create a unique ID for the deposit request
+      const depositId = uuidv4();
       
-      // First, ensure the user is authenticated
-      const { data: authUser, error: authError } = await supabase.auth.getUser();
-      
-      if (authError || !authUser.user) {
-        throw new Error('Authentication verification failed. Please try again.');
-      }
-      
-      console.log('Creating deposit request directly');
-      
-      // IMPORTANT: Use a security bypass approach to ensure we can create user records without RLS blocking
-      // This uses the built-in service_role calls which bypass RLS
+      // Get the current session
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
         throw new Error('No active session found. Please sign in again.');
       }
       
-      // Now create the deposit request using the authenticated session
+      // Create the deposit request directly using the current session
       const { error } = await supabase
         .from('deposit_requests')
         .insert({
-          id: depositRequest.id,
+          id: depositId,
           user_id: user.id,
           user_email: depositData.userEmail,
           user_name: depositData.userName,
@@ -77,10 +62,8 @@ export const createDepositRequestFunctions = (
         notifications: [...userNotifications, notification]
       });
       
-      toast.success('Deposit request submitted successfully');
     } catch (error) {
       console.error('Deposit request error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to submit deposit request');
       throw error;
     }
   };

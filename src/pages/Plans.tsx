@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/layout/Header';
@@ -14,36 +14,46 @@ const Plans: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   
-  const fetchDepositRequests = async () => {
+  const fetchDepositRequests = useCallback(async () => {
     if (isAuthenticated && getUserDepositRequests) {
       setIsLoading(true);
       setFetchError(null);
       try {
         const requests = await getUserDepositRequests();
         setDepositRequests(requests);
+        return true;
       } catch (error) {
         console.error('Error fetching user deposit requests:', error);
         setFetchError('Unable to load your deposit requests. Please try again later.');
-        // Don't show toast to avoid spamming the user on RLS errors
+        return false;
       } finally {
         setIsLoading(false);
       }
     }
-  };
+    return false;
+  }, [isAuthenticated, getUserDepositRequests]);
   
   useEffect(() => {
     fetchDepositRequests();
     
     // Set up periodic refresh (every 30 seconds)
-    const intervalId = setInterval(fetchDepositRequests, 30000);
+    const intervalId = setInterval(() => {
+      fetchDepositRequests().catch(err => {
+        console.error("Error in interval fetch:", err);
+      });
+    }, 30000);
     
     return () => clearInterval(intervalId);
-  }, [isAuthenticated, getUserDepositRequests]);
+  }, [fetchDepositRequests]);
 
   // Add a refresh function that PlansCard can call after successful submission
   const refreshDepositRequests = () => {
     toast.info("Refreshing your deposit requests...");
-    fetchDepositRequests();
+    fetchDepositRequests().then(success => {
+      if (success) {
+        toast.success("Your deposit requests have been refreshed");
+      }
+    });
   };
   
   if (!isAuthenticated) {
@@ -70,7 +80,7 @@ const Plans: React.FC = () => {
           <div className="bg-red-50 p-4 rounded-md border border-red-100 mb-6">
             <p className="text-red-700 text-sm">{fetchError}</p>
             <button 
-              onClick={fetchDepositRequests}
+              onClick={() => refreshDepositRequests()}
               className="text-xs mt-2 text-red-700 underline"
             >
               Try Again
