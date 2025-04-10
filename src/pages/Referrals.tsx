@@ -1,146 +1,155 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+import { CheckCircle2, Copy, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-const Referrals = () => {
+const ReferralsPage: React.FC = () => {
   const { user, applyReferralCode } = useAuth();
   const [referralCode, setReferralCode] = useState('');
-  
-  const handleApplyReferral = (e: React.FormEvent) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleApplyReferralCode = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!referralCode) {
+    if (!referralCode.trim()) {
       toast.error('Please enter a referral code');
       return;
     }
     
-    applyReferralCode(referralCode)
+    setIsSubmitting(true);
+    
+    try {
+      await applyReferralCode(referralCode.trim());
+      setReferralCode('');
+    } catch (error) {
+      console.error('Apply referral code error:', error);
+      toast.error('Failed to apply referral code');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const copyToClipboard = () => {
+    if (!user?.referralCode) return;
+    
+    navigator.clipboard.writeText(user.referralCode)
       .then(() => {
-        setReferralCode('');
+        setCopied(true);
+        toast.success('Referral code copied to clipboard');
+        setTimeout(() => setCopied(false), 2000);
       })
-      .catch((error) => {
-        toast.error(error instanceof Error ? error.message : 'Failed to apply referral code');
+      .catch(() => {
+        toast.error('Failed to copy to clipboard');
       });
   };
-  
-  const copyReferralCode = () => {
-    if (user?.referralCode) {
-      navigator.clipboard.writeText(user.referralCode)
-        .then(() => toast.success('Referral code copied to clipboard'))
-        .catch(() => toast.error('Failed to copy referral code'));
+
+  const shareReferralCode = () => {
+    if (!user?.referralCode) return;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: 'Join me on our platform',
+        text: `Use my referral code ${user.referralCode} to sign up and get bonus coins!`,
+        url: window.location.origin,
+      })
+      .catch((error) => {
+        console.error('Error sharing:', error);
+      });
+    } else {
+      copyToClipboard();
     }
   };
 
   return (
-    <div className="container max-w-4xl mx-auto p-4">
-      <h1 className="text-3xl font-bold mb-6">Referrals</h1>
+    <div className="container max-w-4xl mx-auto px-4 py-8">
+      <h1 className="text-2xl font-bold mb-6">Referrals</h1>
       
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Your Referral Code */}
-        <div className="p-6 bg-white rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">Your Referral Code</h2>
-          
-          {user?.referralCode ? (
-            <>
-              <div className="bg-gray-100 p-4 rounded-md mb-4 flex items-center justify-between">
-                <span className="font-mono text-lg">{user.referralCode}</span>
-                <button 
-                  onClick={copyReferralCode}
-                  className="text-blue-600 hover:text-blue-800"
+      <div className="grid md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Your Referral Code</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {user?.referralCode ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <div className="bg-gray-100 p-3 rounded-md flex-1 text-center font-mono text-lg">
+                    {user.referralCode}
+                  </div>
+                  <Button 
+                    size="icon" 
+                    variant="outline" 
+                    onClick={copyToClipboard}
+                    className="min-w-10 h-10"
+                  >
+                    {copied ? <CheckCircle2 className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <Button 
+                  className="w-full" 
+                  onClick={shareReferralCode}
+                  variant="outline"
                 >
-                  Copy
-                </button>
-              </div>
-              
-              <div className="space-y-2">
-                <p className="text-sm text-gray-600">
-                  Share this code with your friends and earn rewards when they sign up!
-                </p>
-                <p className="text-sm text-gray-600">
-                  <span className="font-semibold">You get:</span> 250 coins per referral
-                </p>
-                <p className="text-sm text-gray-600">
-                  <span className="font-semibold">They get:</span> 200 coins on signup
+                  <Share2 className="mr-2 h-4 w-4" />
+                  Share Referral Code
+                </Button>
+                <p className="text-sm text-gray-500">
+                  Share your referral code with friends and earn 250 coins for each friend who joins!
                 </p>
               </div>
-            </>
-          ) : (
-            <p className="text-gray-600">Loading your referral code...</p>
-          )}
-        </div>
+            ) : (
+              <p className="text-sm text-gray-500">
+                Your referral code will be available soon.
+              </p>
+            )}
+          </CardContent>
+        </Card>
         
-        {/* Apply Referral Code */}
-        <div className="p-6 bg-white rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold mb-4">Apply Referral Code</h2>
-          
-          {user?.appliedReferralCode ? (
-            <div className="bg-green-50 p-4 rounded-md text-green-700">
-              <p>You have already applied a referral code: <span className="font-mono">{user.appliedReferralCode}</span></p>
-            </div>
-          ) : (
-            <form onSubmit={handleApplyReferral} className="space-y-4">
-              <div>
-                <label htmlFor="code" className="block text-sm font-medium text-gray-700 mb-1">
-                  Referral Code
-                </label>
-                <input
-                  id="code"
-                  type="text"
+        <Card>
+          <CardHeader>
+            <CardTitle>Apply a Referral Code</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {user?.appliedReferralCode ? (
+              <div className="space-y-4">
+                <p className="text-green-600 font-medium">
+                  You've already applied a referral code: {user.appliedReferralCode}
+                </p>
+                <p className="text-sm text-gray-500">
+                  You received 200 bonus coins for using a referral code!
+                </p>
+              </div>
+            ) : (
+              <form onSubmit={handleApplyReferralCode} className="space-y-4">
+                <Input
+                  placeholder="Enter referral code"
                   value={referralCode}
                   onChange={(e) => setReferralCode(e.target.value)}
-                  className="w-full p-2 border border-gray-300 rounded-md"
-                  placeholder="Enter referral code"
+                  className="uppercase"
                 />
-              </div>
-              
-              <button
-                type="submit"
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
-              >
-                Apply Code
-              </button>
-            </form>
-          )}
-        </div>
-      </div>
-      
-      {/* Referral Stats */}
-      <div className="mt-8 p-6 bg-white rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4">Your Referral Stats</h2>
-        
-        <div className="grid grid-cols-2 gap-4 mb-6">
-          <div className="p-4 bg-gray-50 rounded-md text-center">
-            <p className="text-2xl font-bold text-blue-600">{user?.referrals?.length || 0}</p>
-            <p className="text-sm text-gray-600">Total Referrals</p>
-          </div>
-          
-          <div className="p-4 bg-gray-50 rounded-md text-center">
-            <p className="text-2xl font-bold text-green-600">{user?.referrals?.length ? user.referrals.length * 250 : 0}</p>
-            <p className="text-sm text-gray-600">Coins Earned</p>
-          </div>
-        </div>
-        
-        {/* Referral List */}
-        <div>
-          <h3 className="text-lg font-medium mb-2">Recent Referrals</h3>
-          
-          {user?.referrals && user.referrals.length > 0 ? (
-            <ul className="divide-y">
-              {user.referrals.map((referral, index) => (
-                <li key={index} className="py-3">
-                  <p className="text-gray-800">{referral.name || referral.email}</p>
-                  <p className="text-sm text-gray-500">Joined: {new Date(referral.joinedAt).toLocaleDateString()}</p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-gray-500 py-3">No referrals yet. Share your code to start earning!</p>
-          )}
-        </div>
+                <Button 
+                  type="submit" 
+                  className="w-full" 
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Applying...' : 'Apply Code'}
+                </Button>
+                <p className="text-sm text-gray-500">
+                  Earn 200 coins by applying a friend's referral code!
+                </p>
+              </form>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
 };
 
-export default Referrals;
+export default ReferralsPage;

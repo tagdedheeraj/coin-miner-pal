@@ -3,7 +3,8 @@ import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { User, ArbitragePlan, WithdrawalRequest, DepositRequest } from '@/types/auth';
 import { mockArbitragePlans } from '@/data/mockArbitragePlans';
-import { toast } from 'sonner'; // Using sonner toast only for simplicity
+import { useToast } from "@/hooks/use-toast";
+import { toast } from 'sonner';
 import * as LocalStorageAuth from '@/services/localStorageAuth';
 
 export const AuthContext = createContext<any>(null);
@@ -16,6 +17,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [arbitragePlans, setArbitragePlans] = useState<ArbitragePlan[]>(mockArbitragePlans);
+  const { toast: uiToast } = useToast();
 
   // Initialize local storage and check for existing user on mount
   useEffect(() => {
@@ -366,7 +368,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     const updatedRequests = withdrawalRequests.map(req =>
       req.id === requestId
-        ? { ...req, status: 'approved' as const, updatedAt: new Date().toISOString() }
+        ? { ...req, status: 'approved', updatedAt: new Date().toISOString() }
         : req
     );
     
@@ -412,7 +414,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Update the request status
     const updatedRequests = withdrawalRequests.map(req =>
       req.id === requestId
-        ? { ...req, status: 'rejected' as const, updatedAt: new Date().toISOString() }
+        ? { ...req, status: 'rejected', updatedAt: new Date().toISOString() }
         : req
     );
     
@@ -490,7 +492,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Update the request status
     const updatedRequests = depositRequests.map(req =>
       req.id === requestId
-        ? { ...req, status: 'approved' as const, reviewedAt: new Date().toISOString() }
+        ? { ...req, status: 'approved', reviewedAt: new Date().toISOString() }
         : req
     );
     
@@ -503,7 +505,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     
     const updatedRequests = depositRequests.map(req =>
       req.id === requestId
-        ? { ...req, status: 'rejected' as const, reviewedAt: new Date().toISOString() }
+        ? { ...req, status: 'rejected', reviewedAt: new Date().toISOString() }
         : req
     );
     

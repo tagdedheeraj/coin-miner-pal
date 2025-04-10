@@ -10,10 +10,10 @@ import Dashboard from '@/pages/Dashboard';
 import AuthCallback from '@/pages/AuthCallback';
 import NotFound from '@/pages/NotFound';
 import Profile from '@/pages/Profile';
-import Withdrawal from '@/pages/Withdrawal';
-import Referrals from '@/pages/Referrals';
-import Arbitrage from '@/pages/Arbitrage';
-import AdminDashboard from '@/pages/AdminDashboard'; // Updated import path
+import WithdrawalPage from '@/pages/Withdrawal';
+import ReferralsPage from '@/pages/Referrals';
+import ArbitragePage from '@/pages/Arbitrage';
+import AdminDashboard from '@/pages/admin/AdminDashboard';
 import ScrollToTop from '@/components/shared/ScrollToTop';
 
 function App() {
@@ -28,9 +28,9 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
           <Route path="/profile" element={<Profile />} />
-          <Route path="/withdrawal" element={<Withdrawal />} />
-          <Route path="/referrals" element={<Referrals />} />
-          <Route path="/arbitrage" element={<Arbitrage />} />
+          <Route path="/withdrawal" element={<WithdrawalPage />} />
+          <Route path="/referrals" element={<ReferralsPage />} />
+          <Route path="/arbitrage" element={<ArbitragePage />} />
           <Route path="/admin/*" element={<AdminDashboard />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
