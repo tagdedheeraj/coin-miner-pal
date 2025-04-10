@@ -34,6 +34,7 @@ export interface FullAuthContextType {
   rejectWithdrawalRequest: (requestId: string) => Promise<void>;
   requestPlanPurchase: (depositRequest: Omit<DepositRequest, 'id' | 'status' | 'reviewedAt'>) => Promise<void>;
   getDepositRequests: () => Promise<DepositRequest[]>;
+  getUserDepositRequests: () => Promise<DepositRequest[]>;
   approveDepositRequest: (requestId: string) => Promise<void>;
   rejectDepositRequest: (requestId: string) => Promise<void>;
 }
