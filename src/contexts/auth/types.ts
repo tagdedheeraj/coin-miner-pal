@@ -1,70 +1,72 @@
 
-import { User, ArbitragePlan, WithdrawalRequest, DepositRequest } from '@/types/auth';
-import { Dispatch, SetStateAction } from 'react';
+import { User, WithdrawalRequest, DepositRequest, ArbitragePlan } from '@/types/auth';
+import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 
 export interface AuthStateType {
   user: User | null;
   isLoading: boolean;
-  setUser?: Dispatch<SetStateAction<User | null>>;
-  setIsLoading?: Dispatch<SetStateAction<boolean>>;
 }
 
-export interface FullAuthContextType {
+export interface SupabaseUserCredential {
+  user: SupabaseUser | null;
+  session: Session | null;
+}
+
+export interface AuthBasicContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  setUser?: Dispatch<SetStateAction<User | null>>;
-  
-  // Core Authentication
   signIn: (email: string, password: string) => Promise<void>;
-  signInWithGoogle: () => Promise<void>;
-  signOut: () => Promise<void>;
-  signUp: (name: string, email: string, password: string) => Promise<any>;
-  resendVerificationEmail: (email: string) => Promise<void>;
-  resetPassword: (email: string) => Promise<void>;
-  
-  // User Management
-  updateUser: (updates: Partial<User>) => Promise<void>;
-  updateUserProfile: (updates: Partial<User>) => Promise<void>;
-  setupPin: (pin: string) => Promise<void>;
-  setupBiometrics: (enabled: boolean) => Promise<void>;
-  toggleBiometrics: () => Promise<void>;
+  signUp: (name: string, email: string, password: string) => Promise<SupabaseUserCredential>;
+  signOut: () => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
-  
-  // Referral Management
+}
+
+export interface UserManagementContextType {
+  updateUser: (updates: Partial<User>) => void;
+  setupPin: (pin: string) => Promise<void>;
+  toggleBiometrics: () => Promise<void>;
+  setWithdrawalAddress: (address: string) => void;
+  deleteUser: (userId: string) => void;
+}
+
+export interface ReferralContextType {
   applyReferralCode: (code: string) => Promise<void>;
-  
-  // Notification Management
-  sendNotificationToAllUsers: (message: string) => Promise<void>;
-  markNotificationAsRead: (notificationId: string) => Promise<void>;
-  
-  // Admin Functions
+}
+
+export interface NotificationContextType {
+  sendNotificationToAllUsers: (message: string) => void;
+  markNotificationAsRead: (notificationId: string) => void;
+}
+
+export interface AdminContextType {
   updateUserUsdtEarnings: (email: string, amount: number) => Promise<void>;
-  updateUserCoins: (userId: string, newAmount: number) => Promise<void>;
-  deleteUser: (userId: string) => Promise<void>;
-  
-  // Withdrawal Management
-  updateWithdrawalAddress: (address: string) => Promise<void>;
-  setWithdrawalAddress: (address: string) => Promise<void>;
-  getWithdrawalRequests: () => Promise<WithdrawalRequest[]>;
+  updateUserCoins: (email: string, amount: number) => Promise<void>;
+  updateArbitragePlan?: (planId: string, updates: Partial<ArbitragePlan>) => void;
+  deleteArbitragePlan?: (planId: string) => void;
+  addArbitragePlan?: (plan: Omit<ArbitragePlan, 'id'>) => void;
+}
+
+export interface WithdrawalContextType {
   requestWithdrawal: (amount: number) => Promise<void>;
-  approveWithdrawalRequest: (withdrawalId: string) => Promise<void>;
-  approveWithdrawal: (withdrawalId: string) => Promise<void>;
-  rejectWithdrawalRequest: (withdrawalId: string) => Promise<void>;
-  rejectWithdrawal: (withdrawalId: string) => Promise<void>;
-  
-  // Deposit Management
+  getWithdrawalRequests: () => Promise<WithdrawalRequest[]>;
+  approveWithdrawalRequest: (requestId: string) => Promise<void>;
+  rejectWithdrawalRequest: (requestId: string) => Promise<void>;
+}
+
+export interface DepositContextType {
+  requestPlanPurchase: (depositRequest: Omit<DepositRequest, 'id' | 'status' | 'reviewedAt'>) => Promise<void>;
   getDepositRequests: () => Promise<DepositRequest[]>;
   getUserDepositRequests: () => Promise<DepositRequest[]>;
-  requestDeposit: (amount: number, transactionId: string) => Promise<void>;
-  requestPlanPurchase: (depositRequest: Omit<DepositRequest, 'id' | 'status' | 'reviewedAt'>) => Promise<void>;
-  approveDepositRequest: (depositId: string) => Promise<void>;
-  approveDeposit: (depositId: string) => Promise<void>;
-  rejectDepositRequest: (depositId: string) => Promise<void>;
-  rejectDeposit: (depositId: string) => Promise<void>;
-  
-  // Arbitrage Plan Management
-  updateArbitragePlan: (planId: string, updates: Partial<ArbitragePlan>) => Promise<void>;
-  deleteArbitragePlan: (planId: string) => Promise<void>;
-  addArbitragePlan: (plan: Omit<ArbitragePlan, 'id'>) => Promise<void>;
+  approveDepositRequest: (requestId: string) => Promise<void>;
+  rejectDepositRequest: (requestId: string) => Promise<void>;
 }
+
+export interface FullAuthContextType extends 
+  AuthBasicContextType,
+  UserManagementContextType,
+  ReferralContextType,
+  NotificationContextType,
+  AdminContextType,
+  WithdrawalContextType,
+  DepositContextType {}

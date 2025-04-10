@@ -1,244 +1,31 @@
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
+
+import React, { createContext, useState, ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import { AuthStateProvider } from './AuthStateContext';
+import { useAuthData } from './useAuthData';
 import { User, ArbitragePlan, WithdrawalRequest, DepositRequest } from '@/types/auth';
 import { mockArbitragePlans } from '@/data/mockArbitragePlans';
+import { mockDepositRequests } from '@/data/mockDepositRequests';
+import { mockUsers } from '@/data/mockUsers';
 import { useToast } from "@/hooks/use-toast";
-import { toast } from 'sonner';
-import * as LocalStorageAuth from '@/services/localStorageAuth';
-import { createWithdrawalRequestFunctions } from '@/services/auth/withdrawal/requestWithdrawal';
+import { FullAuthContextType } from './types';
+import { authFunctions } from '@/services/authService';
 
-export const AuthContext = createContext<any>(null);
+export const AuthContext = createContext<FullAuthContextType | null>(null);
 
 interface AuthProviderProps {
   children: ReactNode;
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, setUser, isLoading, setIsLoading } = useAuthData();
   const [arbitragePlans, setArbitragePlans] = useState<ArbitragePlan[]>(mockArbitragePlans);
-  const { toast: uiToast } = useToast();
+  const { toast } = useToast();
 
-  // Initialize local storage and check for existing user on mount
-  useEffect(() => {
-    LocalStorageAuth.initializeLocalStorage();
-    const storedUser = LocalStorageAuth.getCurrentUser();
-    
-    if (storedUser) {
-      setUser(storedUser);
-    }
-    setIsLoading(false);
-  }, []);
+  // Get all auth functions from the service
+  const auth = authFunctions(user, setUser, setIsLoading);
 
-  const signIn = async (email: string, password: string): Promise<void> => {
-    setIsLoading(true);
-    try {
-      const user = await LocalStorageAuth.signIn(email, password);
-      setUser(user);
-      toast.success('Signed in successfully');
-    } catch (error) {
-      console.error('Sign-in error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to sign in');
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const signInWithGoogle = async (): Promise<void> => {
-    toast.error("Google sign-in is not available in this version. Please use email/password instead.");
-    throw new Error("Google sign-in is not available in this version");
-  };
-
-  const signUp = async (name: string, email: string, password: string): Promise<void> => {
-    setIsLoading(true);
-    try {
-      console.log('Starting sign up process with:', { name, email });
-      const user = await LocalStorageAuth.signUp(name, email, password);
-      console.log('Sign up successful, setting user:', user);
-      setUser(user);
-      toast.success('Account created successfully');
-      return Promise.resolve();
-    } catch (error) {
-      console.error('Sign-up error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to sign up');
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const signOut = async (): Promise<void> => {
-    try {
-      await LocalStorageAuth.signOut();
-      setUser(null);
-      toast.success('Signed out successfully');
-    } catch (error) {
-      console.error('Sign-out error:', error);
-      toast.error('Failed to sign out');
-    }
-  };
-
-  const updateUser = async (updates: Partial<User>): Promise<void> => {
-    try {
-      const updatedUser = await LocalStorageAuth.updateUser(updates);
-      setUser(updatedUser);
-    } catch (error) {
-      console.error('Update user error:', error);
-      toast.error('Failed to update user data');
-    }
-  };
-
-  const changePassword = async (currentPassword: string, newPassword: string): Promise<void> => {
-    try {
-      if (!user) throw new Error('Not authenticated');
-      
-      const users = LocalStorageAuth.getAllUsers();
-      const userWithPassword = users.find(u => u.id === user.id);
-      
-      if (!userWithPassword || userWithPassword.password !== currentPassword) {
-        throw new Error('Current password is incorrect');
-      }
-      
-      const updatedUsers = users.map(u => 
-        u.id === user.id ? { ...u, password: newPassword } : u
-      );
-      
-      LocalStorageAuth.saveAllUsers(updatedUsers);
-      toast.success('Password changed successfully');
-    } catch (error) {
-      console.error('Change password error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to change password');
-      throw error;
-    }
-  };
-
-  const setupPin = async (pin: string): Promise<void> => {
-    if (!user) throw new Error('Not authenticated');
-    await updateUser({ hasSetupPin: true });
-    toast.success('PIN set up successfully');
-  };
-
-  const toggleBiometrics = async (): Promise<void> => {
-    if (!user) throw new Error('Not authenticated');
-    await updateUser({ hasBiometrics: !user.hasBiometrics });
-    toast.success(user.hasBiometrics ? 'Biometrics disabled' : 'Biometrics enabled');
-  };
-
-  const setWithdrawalAddress = async (address: string): Promise<void> => {
-    if (!user) throw new Error('Not authenticated');
-    await updateUser({ withdrawalAddress: address });
-    toast.success('Withdrawal address updated');
-  };
-
-  const deleteUser = async (userId: string): Promise<void> => {
-    try {
-      await LocalStorageAuth.deleteUser(userId);
-      toast.success('User deleted successfully');
-    } catch (error) {
-      console.error('Delete user error:', error);
-      toast.error('Failed to delete user');
-    }
-  };
-
-  const applyReferralCode = async (code: string): Promise<void> => {
-    if (!user) throw new Error('Not authenticated');
-    
-    const users = LocalStorageAuth.getAllUsers();
-    const referrer = users.find(u => u.referralCode === code);
-    
-    if (!referrer) {
-      toast.error('Invalid referral code');
-      return;
-    }
-    
-    if (referrer.id === user.id) {
-      toast.error('You cannot use your own referral code');
-      return;
-    }
-    
-    if (user.appliedReferralCode) {
-      toast.error('You have already used a referral code');
-      return;
-    }
-    
-    const updatedUsers = users.map(u => {
-      if (u.id === referrer.id) {
-        return { ...u, coins: u.coins + 250 };
-      }
-      return u;
-    });
-    
-    LocalStorageAuth.saveAllUsers(updatedUsers);
-    
-    await updateUser({ 
-      appliedReferralCode: code,
-      coins: user.coins + 200
-    });
-    
-    toast.success('Referral code applied successfully');
-  };
-
-  const updateUserUsdtEarnings = async (email: string, amount: number): Promise<void> => {
-    try {
-      const users = LocalStorageAuth.getAllUsers();
-      const userToUpdate = users.find(u => u.email === email);
-      
-      if (!userToUpdate) {
-        toast.error('User not found');
-        return;
-      }
-      
-      const updatedUsers = users.map(u => {
-        if (u.email === email) {
-          return { ...u, usdtEarnings: amount };
-        }
-        return u;
-      });
-      
-      LocalStorageAuth.saveAllUsers(updatedUsers);
-      
-      if (user && user.email === email) {
-        setUser({ ...user, usdtEarnings: amount });
-      }
-      
-      toast.success('USDT earnings updated successfully');
-    } catch (error) {
-      console.error('Update USDT earnings error:', error);
-      toast.error('Failed to update USDT earnings');
-    }
-  };
-
-  const updateUserCoins = async (email: string, amount: number): Promise<void> => {
-    try {
-      const users = LocalStorageAuth.getAllUsers();
-      const userToUpdate = users.find(u => u.email === email);
-      
-      if (!userToUpdate) {
-        toast.error('User not found');
-        return;
-      }
-      
-      const updatedUsers = users.map(u => {
-        if (u.email === email) {
-          return { ...u, coins: amount };
-        }
-        return u;
-      });
-      
-      LocalStorageAuth.saveAllUsers(updatedUsers);
-      
-      if (user && user.email === email) {
-        setUser({ ...user, coins: amount });
-      }
-      
-      toast.success('Coins updated successfully');
-    } catch (error) {
-      console.error('Update coins error:', error);
-      toast.error('Failed to update coins');
-    }
-  };
-
+  // Custom implementations for functions that need the local state
   const updateArbitragePlan = async (planId: string, updates: Partial<ArbitragePlan>): Promise<void> => {
     setArbitragePlans(prevPlans =>
       prevPlans.map(plan =>
@@ -259,277 +46,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setArbitragePlans(prevPlans => [...prevPlans, newPlan]);
   };
 
-  const sendNotificationToAllUsers = async (message: string): Promise<void> => {
-    try {
-      const users = LocalStorageAuth.getAllUsers();
-      
-      const notificationId = uuidv4();
-      const notification = {
-        id: notificationId,
-        message,
-        read: false,
-        createdAt: new Date().toISOString()
-      };
-      
-      const updatedUsers = users.map(u => {
-        const notifications = u.notifications || [];
-        return {
-          ...u,
-          notifications: [...notifications, notification]
-        };
-      });
-      
-      LocalStorageAuth.saveAllUsers(updatedUsers);
-      
-      if (user) {
-        const currentNotifications = user.notifications || [];
-        setUser({
-          ...user,
-          notifications: [...currentNotifications, notification]
-        });
-      }
-      
-      toast.success('Notification sent to all users');
-    } catch (error) {
-      console.error('Send notification error:', error);
-      toast.error('Failed to send notification');
-    }
-  };
-
-  const markNotificationAsRead = async (notificationId: string): Promise<void> => {
-    if (!user) return;
-    
-    try {
-      const notifications = user.notifications || [];
-      const updatedNotifications = notifications.map(n =>
-        n.id === notificationId ? { ...n, read: true } : n
-      );
-      
-      await updateUser({ notifications: updatedNotifications });
-    } catch (error) {
-      console.error('Mark notification as read error:', error);
-      toast.error('Failed to mark notification as read');
-    }
-  };
-
-  const { requestWithdrawal } = createWithdrawalRequestFunctions(user, setUser);
-
-  const getWithdrawalRequests = async (): Promise<WithdrawalRequest[]> => {
-    const withdrawalRequestsJson = localStorage.getItem('withdrawalRequests');
-    return withdrawalRequestsJson ? JSON.parse(withdrawalRequestsJson) : [];
-  };
-
-  const saveWithdrawalRequests = async (requests: WithdrawalRequest[]): Promise<void> => {
-    localStorage.setItem('withdrawalRequests', JSON.stringify(requests));
-  };
-
-  const approveWithdrawalRequest = async (requestId: string): Promise<void> => {
-    const withdrawalRequests = await getWithdrawalRequests();
-    
-    const updatedRequests = withdrawalRequests.map(req =>
-      req.id === requestId
-        ? { ...req, status: 'approved' as const, updatedAt: new Date().toISOString() }
-        : req
-    ) as WithdrawalRequest[];
-    
-    await saveWithdrawalRequests(updatedRequests);
-    toast.success('Withdrawal approved');
-  };
-
-  const rejectWithdrawalRequest = async (requestId: string): Promise<void> => {
-    const withdrawalRequests = await getWithdrawalRequests();
-    
-    const requestToReject = withdrawalRequests.find(req => req.id === requestId);
-    if (!requestToReject) {
-      toast.error('Withdrawal request not found');
-      return;
-    }
-    
-    const users = LocalStorageAuth.getAllUsers();
-    const requestUser = users.find(u => u.id === requestToReject.userId);
-    
-    if (requestUser) {
-      const updatedUsers = users.map(u => {
-        if (u.id === requestUser.id) {
-          return {
-            ...u,
-            usdtEarnings: (u.usdtEarnings || 0) + requestToReject.amount
-          };
-        }
-        return u;
-      });
-      
-      LocalStorageAuth.saveAllUsers(updatedUsers);
-      
-      if (user && user.id === requestToReject.userId) {
-        setUser({
-          ...user,
-          usdtEarnings: (user.usdtEarnings || 0) + requestToReject.amount
-        });
-      }
-    }
-    
-    const updatedRequests = withdrawalRequests.map(req =>
-      req.id === requestId
-        ? { ...req, status: 'rejected' as const, updatedAt: new Date().toISOString() }
-        : req
-    ) as WithdrawalRequest[];
-    
-    await saveWithdrawalRequests(updatedRequests);
-    toast.success('Withdrawal rejected and funds returned');
-  };
-
-  const getDepositRequests = async (): Promise<DepositRequest[]> => {
-    const depositRequestsJson = localStorage.getItem('depositRequests');
-    return depositRequestsJson ? JSON.parse(depositRequestsJson) : [];
-  };
-
-  const saveDepositRequests = async (requests: DepositRequest[]): Promise<void> => {
-    localStorage.setItem('depositRequests', JSON.stringify(requests));
-  };
-
-  const getUserDepositRequests = async (): Promise<DepositRequest[]> => {
-    if (!user) return [];
-    
-    const depositRequests = await getDepositRequests();
-    return depositRequests.filter(req => req.userId === user.id);
-  };
-
-  const requestPlanPurchase = async (depositRequest: Omit<DepositRequest, 'id' | 'status' | 'reviewedAt'>): Promise<void> => {
-    if (!user) throw new Error('Not authenticated');
-    
-    const depositRequests = await getDepositRequests();
-    
-    const newDeposit: DepositRequest = {
-      id: uuidv4(),
-      ...depositRequest,
-      status: 'pending',
-    };
-    
-    await saveDepositRequests([...depositRequests, newDeposit]);
-    toast.success('Plan purchase requested successfully');
-  };
-
-  const approveDepositRequest = async (requestId: string): Promise<void> => {
-    const depositRequests = await getDepositRequests();
-    
-    const requestToApprove = depositRequests.find(req => req.id === requestId);
-    if (!requestToApprove) {
-      toast.error('Deposit request not found');
-      return;
-    }
-    
-    const users = LocalStorageAuth.getAllUsers();
-    const requestUser = users.find(u => u.id === requestToApprove.userId);
-    
-    if (requestUser) {
-      const updatedUsers = users.map(u => {
-        if (u.id === requestUser.id) {
-          return {
-            ...u,
-            coins: u.coins + requestToApprove.amount
-          };
-        }
-        return u;
-      });
-      
-      LocalStorageAuth.saveAllUsers(updatedUsers);
-      
-      if (user && user.id === requestToApprove.userId) {
-        setUser({
-          ...user,
-          coins: user.coins + requestToApprove.amount
-        });
-      }
-    }
-    
-    const updatedRequests = depositRequests.map(req =>
-      req.id === requestId
-        ? { ...req, status: 'approved' as const, reviewedAt: new Date().toISOString() }
-        : req
-    ) as DepositRequest[];
-    
-    await saveDepositRequests(updatedRequests);
-    toast.success('Deposit approved and coins added');
-  };
-
-  const rejectDepositRequest = async (requestId: string): Promise<void> => {
-    const depositRequests = await getDepositRequests();
-    
-    const updatedRequests = depositRequests.map(req =>
-      req.id === requestId
-        ? { ...req, status: 'rejected' as const, reviewedAt: new Date().toISOString() }
-        : req
-    ) as DepositRequest[];
-    
-    await saveDepositRequests(updatedRequests);
-    toast.success('Deposit rejected');
-  };
-
-  const resendVerificationEmail = async (email: string): Promise<void> => {
-    toast.success('Verification email resent. Please check your inbox.');
-  };
-
-  const resetPassword = async (email: string): Promise<void> => {
-    toast.success('Password reset instructions have been sent to your email.');
-  };
-
-  const contextValue = {
+  // Combine auth service functions with local state functions
+  const contextValue: FullAuthContextType = {
+    ...auth,
     user,
     isAuthenticated: !!user,
     isLoading,
-    setUser,
-    
-    signIn,
-    signInWithGoogle,
-    signOut,
-    signUp,
-    resendVerificationEmail,
-    resetPassword,
-    
-    updateUser,
-    updateUserProfile: updateUser,
-    setupPin,
-    setupBiometrics: async (enabled: boolean) => {
-      if (user) {
-        await updateUser({ hasBiometrics: enabled });
-      }
-    },
-    toggleBiometrics,
-    changePassword,
-    
-    applyReferralCode,
-    
-    sendNotificationToAllUsers,
-    markNotificationAsRead,
-    
-    updateUserUsdtEarnings,
-    updateUserCoins,
-    deleteUser,
-    
-    updateWithdrawalAddress: setWithdrawalAddress,
-    setWithdrawalAddress,
-    getWithdrawalRequests,
-    requestWithdrawal,
-    approveWithdrawalRequest,
-    approveWithdrawal: approveWithdrawalRequest,
-    rejectWithdrawalRequest,
-    rejectWithdrawal: rejectWithdrawalRequest,
-    
-    getDepositRequests,
-    getUserDepositRequests,
-    requestDeposit: async (amount: number, transactionId: string) => {
-      toast.success('Deposit request submitted for review.');
-    },
-    requestPlanPurchase,
-    approveDepositRequest,
-    approveDeposit: approveDepositRequest,
-    rejectDepositRequest,
-    rejectDeposit: rejectDepositRequest,
-    
     updateArbitragePlan,
     deleteArbitragePlan,
-    addArbitragePlan
+    addArbitragePlan,
   };
 
   return (
@@ -539,4 +64,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   );
 };
 
-export default AuthProvider;
+// Wrap component with both context providers
+export const CombinedAuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  return (
+    <AuthStateProvider>
+      <AuthProvider>
+        {children}
+      </AuthProvider>
+    </AuthStateProvider>
+  );
+};

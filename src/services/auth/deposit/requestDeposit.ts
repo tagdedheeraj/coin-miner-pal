@@ -1,11 +1,9 @@
 
 import { Dispatch, SetStateAction } from 'react';
 import { User, DepositRequest } from '@/types/auth';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
-import { createFirestoreDoc } from '@/utils/migrationUtils';
-import { collection, addDoc } from 'firebase/firestore';
-import { db } from '@/integrations/firebase/client';
 
 export const createDepositRequestFunctions = (
   user: User | null,
@@ -25,22 +23,37 @@ export const createDepositRequestFunctions = (
         timestamp: new Date().toISOString()
       };
       
+      // First, ensure the user is authenticated
+      const { data: authUser, error: authError } = await supabase.auth.getUser();
+      
+      if (authError || !authUser.user) {
+        throw new Error('Authentication verification failed. Please try again.');
+      }
+      
       console.log('Creating deposit request directly');
       
-      // Now create the deposit request directly using Firebase
-      await addDoc(collection(db, 'deposit_requests'), {
-        id: depositRequest.id,
-        user_id: user.id,
-        user_email: depositData.userEmail,
-        user_name: depositData.userName,
-        plan_id: depositData.planId,
-        plan_name: depositData.planName,
-        amount: depositData.amount,
-        transaction_id: depositData.transactionId,
-        status: 'pending',
-        timestamp: new Date().toISOString(),
-        reviewed_at: null
-      });
+      // Now create the deposit request directly - no need to check for user existence
+      // as RLS policies should handle this automatically
+      const { error } = await supabase
+        .from('deposit_requests')
+        .insert({
+          id: depositRequest.id,
+          user_id: user.id,
+          user_email: depositData.userEmail,
+          user_name: depositData.userName,
+          plan_id: depositData.planId,
+          plan_name: depositData.planName,
+          amount: depositData.amount,
+          transaction_id: depositData.transactionId,
+          status: 'pending',
+          timestamp: new Date().toISOString(),
+          reviewed_at: null
+        });
+      
+      if (error) {
+        console.error('Supabase insert error:', error);
+        throw new Error(`Failed to submit deposit request: ${error.message}`);
+      }
       
       // Add notification to user
       const notification = {

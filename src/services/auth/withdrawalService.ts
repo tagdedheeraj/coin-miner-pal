@@ -1,43 +1,25 @@
 
-import { User, WithdrawalRequest } from '@/types/auth';
-import { toast } from 'sonner';
-import { v4 as uuidv4 } from 'uuid';
-import createWithdrawalRequestFunctions from './withdrawal/requestWithdrawal';
+import { Dispatch, SetStateAction } from 'react';
+import { User } from '@/types/auth';
+import { createWithdrawalRequestFunctions } from './withdrawal/requestWithdrawal';
+import { getWithdrawalFunctions } from './withdrawal/getWithdrawals';
+import { approveWithdrawalFunctions } from './withdrawal/approveWithdrawal';
+import { rejectWithdrawalFunctions } from './withdrawal/rejectWithdrawal';
 
-export const getWithdrawalFunctions = (user: User | null, setUser: React.Dispatch<React.SetStateAction<User | null>>) => {
-  // Create the withdrawal request functions with the current user and setter
+export const withdrawalServiceFunctions = (
+  user: User | null,
+  setUser: Dispatch<SetStateAction<User | null>>
+) => {
+  // Initialize the withdrawal sub-functions
   const { requestWithdrawal } = createWithdrawalRequestFunctions(user, setUser);
-
-  // Get all withdrawal requests
-  const getWithdrawalRequests = async (): Promise<WithdrawalRequest[]> => {
-    // In local storage version, we get from localStorage
-    const withdrawalRequestsJson = localStorage.getItem('withdrawalRequests');
-    return withdrawalRequestsJson ? JSON.parse(withdrawalRequestsJson) : [];
-  };
-
-  // Get user's withdrawal requests
-  const getUserWithdrawalRequests = async (): Promise<WithdrawalRequest[]> => {
-    if (!user) return [];
-    
-    const withdrawalRequests = await getWithdrawalRequests();
-    return withdrawalRequests.filter(req => req.userId === user.id);
-  };
-
-  // Update a withdrawal request in localStorage
-  const updateWithdrawalRequest = async (requestId: string, updates: Partial<WithdrawalRequest>): Promise<void> => {
-    const withdrawalRequests = await getWithdrawalRequests();
-    
-    const updatedRequests = withdrawalRequests.map(req =>
-      req.id === requestId ? { ...req, ...updates } : req
-    );
-    
-    localStorage.setItem('withdrawalRequests', JSON.stringify(updatedRequests));
-  };
-
+  const { getWithdrawalRequests } = getWithdrawalFunctions(user);
+  const { approveWithdrawalRequest } = approveWithdrawalFunctions(user);
+  const { rejectWithdrawalRequest } = rejectWithdrawalFunctions(user);
+  
   return {
     requestWithdrawal,
     getWithdrawalRequests,
-    getUserWithdrawalRequests,
-    updateWithdrawalRequest
+    approveWithdrawalRequest,
+    rejectWithdrawalRequest
   };
 };

@@ -12,7 +12,6 @@ export interface User {
   usdtEarnings?: number;
   notifications?: Array<{id: string, message: string, read: boolean, createdAt: string}>;
   isAdmin?: boolean;
-  password?: string; // Only used during auth, not stored in state
 }
 
 export interface WithdrawalRequest {
@@ -70,8 +69,6 @@ export interface AuthContextType {
   getDepositRequests: () => Promise<DepositRequest[]>;
   approveDepositRequest: (requestId: string) => Promise<void>;
   rejectDepositRequest: (requestId: string) => Promise<void>;
-  resendVerificationEmail: (email: string) => Promise<void>;
-  resetPassword: (email: string) => Promise<void>;
 }
 
 export interface MockUser extends User {
