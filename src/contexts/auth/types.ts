@@ -1,23 +1,19 @@
 
 import { User, WithdrawalRequest, DepositRequest, ArbitragePlan } from '@/types/auth';
-import { Session, User as SupabaseUser } from '@supabase/supabase-js';
+import { UserCredential } from 'firebase/auth';
 
 export interface AuthStateType {
   user: User | null;
   isLoading: boolean;
 }
 
-export interface SupabaseUserCredential {
-  user: SupabaseUser | null;
-  session: Session | null;
-}
-
+// Update to use Firebase UserCredential instead of Supabase User
 export interface AuthBasicContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (name: string, email: string, password: string) => Promise<SupabaseUserCredential>;
+  signUp: (name: string, email: string, password: string) => Promise<UserCredential>;
   signOut: () => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   resendVerificationEmail: (email: string) => Promise<void>;

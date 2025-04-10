@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { User } from '@/types/auth';
@@ -10,7 +9,8 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { toast } from "sonner";
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/integrations/firebase/client';
+import { collection, getDocs } from 'firebase/firestore';
 import { parseNotifications } from '@/utils/notificationUtils';
 import UserSearch from './users/UserSearch';
 import UserTable from './users/UserTable';
@@ -28,33 +28,32 @@ const UserManagement: React.FC = () => {
   } | null>(null);
 
   useEffect(() => {
-    // Fetch real users from Supabase
+    // Fetch real users from Firestore
     const fetchUsers = async () => {
       try {
         setIsLoading(true);
         
-        // Fetch real users from Supabase
-        const { data, error } = await supabase
-          .from('users')
-          .select('*');
-          
-        if (error) throw error;
+        // Fetch real users from Firestore
+        const querySnapshot = await getDocs(collection(db, 'users'));
         
         // Map from database format to User format with proper type conversion
-        const mappedUsers: User[] = data.map(userData => ({
-          id: userData.id,
-          name: userData.name,
-          email: userData.email,
-          coins: userData.coins,
-          referralCode: userData.referral_code,
-          hasSetupPin: userData.has_setup_pin,
-          hasBiometrics: userData.has_biometrics,
-          withdrawalAddress: userData.withdrawal_address,
-          appliedReferralCode: userData.applied_referral_code,
-          usdtEarnings: userData.usdt_earnings,
-          notifications: parseNotifications(userData.notifications),
-          isAdmin: userData.is_admin
-        }));
+        const mappedUsers: User[] = querySnapshot.docs.map(doc => {
+          const userData = doc.data();
+          return {
+            id: doc.id,
+            name: userData.name,
+            email: userData.email,
+            coins: userData.coins,
+            referralCode: userData.referral_code,
+            hasSetupPin: userData.has_setup_pin,
+            hasBiometrics: userData.has_biometrics,
+            withdrawalAddress: userData.withdrawal_address,
+            appliedReferralCode: userData.applied_referral_code,
+            usdtEarnings: userData.usdt_earnings,
+            notifications: parseNotifications(userData.notifications),
+            isAdmin: userData.is_admin
+          };
+        });
         
         setUsers(mappedUsers);
         setIsLoading(false);
