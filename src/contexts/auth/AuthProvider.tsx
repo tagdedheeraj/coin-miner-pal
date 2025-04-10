@@ -62,11 +62,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signUp: auth.signUp,
     resendVerificationEmail: async (email: string) => {
       console.log("Resending verification email to:", email);
-      toast.success("Verification email sent");
+      toast({
+        title: "Verification Email Sent",
+        description: "Please check your inbox for the verification email."
+      });
     },
     resetPassword: async (email: string) => {
       console.log("Resetting password for:", email);
-      toast.success("Password reset instructions sent");
+      toast({
+        title: "Password Reset",
+        description: "Password reset instructions have been sent to your email."
+      });
     },
     
     // User Management
@@ -108,7 +114,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     getUserDepositRequests: auth.getUserDepositRequests,
     requestDeposit: async (amount: number, transactionId: string) => {
       console.log("Requesting deposit:", amount, transactionId);
-      toast.success("Deposit request submitted");
+      toast({
+        title: "Deposit Requested",
+        description: "Your deposit request has been submitted for review."
+      });
     },
     requestPlanPurchase: auth.requestPlanPurchase,
     approveDepositRequest: auth.approveDepositRequest,
