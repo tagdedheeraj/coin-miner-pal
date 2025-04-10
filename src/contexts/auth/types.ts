@@ -24,9 +24,12 @@ export interface FullAuthContextType {
   resetPassword: (email: string) => Promise<void>;
   
   // User Management
+  updateUser: (updates: Partial<User>) => Promise<void>;
   updateUserProfile: (updates: Partial<User>) => Promise<void>;
   setupPin: (pin: string) => Promise<void>;
   setupBiometrics: (enabled: boolean) => Promise<void>;
+  toggleBiometrics: () => Promise<void>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
   
   // Referral Management
   applyReferralCode: (code: string) => Promise<void>;
@@ -36,19 +39,28 @@ export interface FullAuthContextType {
   markNotificationAsRead: (notificationId: string) => Promise<void>;
   
   // Admin Functions
+  updateUserUsdtEarnings: (email: string, amount: number) => Promise<void>;
   updateUserCoins: (userId: string, newAmount: number) => Promise<void>;
+  deleteUser: (userId: string) => Promise<void>;
   
   // Withdrawal Management
   updateWithdrawalAddress: (address: string) => Promise<void>;
+  setWithdrawalAddress: (address: string) => Promise<void>;
   getWithdrawalRequests: () => Promise<WithdrawalRequest[]>;
   requestWithdrawal: (amount: number) => Promise<void>;
+  approveWithdrawalRequest: (withdrawalId: string) => Promise<void>;
   approveWithdrawal: (withdrawalId: string) => Promise<void>;
+  rejectWithdrawalRequest: (withdrawalId: string) => Promise<void>;
   rejectWithdrawal: (withdrawalId: string) => Promise<void>;
   
   // Deposit Management
   getDepositRequests: () => Promise<DepositRequest[]>;
+  getUserDepositRequests: () => Promise<DepositRequest[]>;
   requestDeposit: (amount: number, transactionId: string) => Promise<void>;
+  requestPlanPurchase: (depositRequest: Omit<DepositRequest, 'id' | 'status' | 'reviewedAt'>) => Promise<void>;
+  approveDepositRequest: (depositId: string) => Promise<void>;
   approveDeposit: (depositId: string) => Promise<void>;
+  rejectDepositRequest: (depositId: string) => Promise<void>;
   rejectDeposit: (depositId: string) => Promise<void>;
   
   // Arbitrage Plan Management
