@@ -1,5 +1,6 @@
 
 import { User, WithdrawalRequest, DepositRequest } from '@/types/auth';
+import { Json } from '@/integrations/supabase/types';
 
 // Convert camelCase JavaScript object keys to snake_case for Supabase
 export const toSnakeCase = (obj: Record<string, any>): Record<string, any> => {
@@ -25,9 +26,53 @@ export const toCamelCase = (obj: Record<string, any>): Record<string, any> => {
   return result;
 };
 
+// Type for insertion into users table
+export type UserDbInsert = {
+  id: string;
+  name: string;
+  email: string;
+  coins?: number;
+  referral_code: string;
+  has_setup_pin?: boolean;
+  has_biometrics?: boolean;
+  withdrawal_address?: string | null;
+  applied_referral_code?: string | null;
+  usdt_earnings?: number | null;
+  notifications?: Json | null;
+  is_admin?: boolean | null;
+}
+
+// Type for insertion into withdrawal_requests table
+export type WithdrawalDbInsert = {
+  id?: string;
+  user_id: string;
+  user_email: string;
+  user_name: string;
+  amount: number;
+  address: string;
+  status?: string;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+// Type for insertion into deposit_requests table
+export type DepositDbInsert = {
+  id?: string;
+  user_id: string;
+  user_email: string;
+  user_name: string;
+  plan_id: string;
+  plan_name: string;
+  amount: number;
+  transaction_id: string;
+  status?: string;
+  timestamp?: string | null;
+  reviewed_at?: string | null;
+}
+
 // Map User object to database format
-export const mapUserToDb = (user: Partial<User>): Record<string, any> => {
-  const mapped: Record<string, any> = {};
+export const mapUserToDb = (user: Partial<User>): Partial<UserDbInsert> => {
+  const mapped: Partial<UserDbInsert> = {};
   
   if ('id' in user) mapped.id = user.id;
   if ('name' in user) mapped.name = user.name;
@@ -64,8 +109,8 @@ export const mapDbToUser = (data: Record<string, any>): User => {
 };
 
 // Map WithdrawalRequest object to database format
-export const mapWithdrawalToDb = (withdrawal: Partial<WithdrawalRequest>): Record<string, any> => {
-  const mapped: Record<string, any> = {};
+export const mapWithdrawalToDb = (withdrawal: Partial<WithdrawalRequest>): Partial<WithdrawalDbInsert> => {
+  const mapped: Partial<WithdrawalDbInsert> = {};
   
   if ('id' in withdrawal) mapped.id = withdrawal.id;
   if ('userId' in withdrawal) mapped.user_id = withdrawal.userId;
@@ -96,8 +141,8 @@ export const mapDbToWithdrawal = (data: Record<string, any>): WithdrawalRequest 
 };
 
 // Map DepositRequest object to database format
-export const mapDepositToDb = (deposit: Partial<DepositRequest>): Record<string, any> => {
-  const mapped: Record<string, any> = {};
+export const mapDepositToDb = (deposit: Partial<DepositRequest>): Partial<DepositDbInsert> => {
+  const mapped: Partial<DepositDbInsert> = {};
   
   if ('id' in deposit) mapped.id = deposit.id;
   if ('userId' in deposit) mapped.user_id = deposit.userId;

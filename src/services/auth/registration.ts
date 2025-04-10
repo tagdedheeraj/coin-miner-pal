@@ -62,7 +62,7 @@ export const createRegistrationService = (
       
       const { error: insertError } = await supabase
         .from('users')
-        .insert(userDbData);
+        .insert([userDbData]);
       
       if (insertError) {
         console.error('User profile creation error:', insertError);

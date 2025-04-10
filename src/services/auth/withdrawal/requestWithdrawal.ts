@@ -43,7 +43,7 @@ export const createWithdrawalRequestFunctions = (
       
       const { error } = await supabase
         .from('withdrawal_requests')
-        .insert(withdrawalRequest);
+        .insert([withdrawalRequest]);
       
       if (error) throw error;
       

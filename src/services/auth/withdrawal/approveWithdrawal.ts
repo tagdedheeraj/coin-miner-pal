@@ -1,9 +1,9 @@
 
-import { User } from '@/types/auth';
+import { User, WithdrawalRequest } from '@/types/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
-import { mapWithdrawalToDb, mapDbToUser, mapUserToDb } from '@/utils/supabaseUtils';
+import { mapWithdrawalToDb, mapDbToUser, mapUserToDb, mapDbToWithdrawal } from '@/utils/supabaseUtils';
 
 export const approveWithdrawalFunctions = (user: User | null) => {
   const approveWithdrawalRequest = async (requestId: string): Promise<void> => {
@@ -23,9 +23,9 @@ export const approveWithdrawalFunctions = (user: User | null) => {
       if (requestError) throw new Error('Withdrawal request not found');
       if (!requestData) throw new Error('Withdrawal request data is empty');
       
-      const request = mapDbToUser(requestData);
+      const request = mapDbToWithdrawal(requestData);
       
-      if (!request || request.status !== 'pending') {
+      if (request.status !== 'pending') {
         throw new Error('This request has already been processed');
       }
       
