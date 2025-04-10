@@ -1,7 +1,6 @@
 
 import { User } from '@/types/auth';
 import { toast } from 'sonner';
-import { v4 as uuidv4 } from 'uuid';
 
 export const rejectDepositFunctions = (user: User | null) => {
   const rejectDepositRequest = async (requestId: string): Promise<void> => {
@@ -11,7 +10,20 @@ export const rejectDepositFunctions = (user: User | null) => {
     }
     
     try {
-      // Now handled in AuthProvider
+      // Get deposit requests from local storage
+      const depositRequestsJson = localStorage.getItem('depositRequests');
+      const depositRequests = depositRequestsJson ? JSON.parse(depositRequestsJson) : [];
+      
+      // Update the request status
+      const updatedRequests = depositRequests.map(req =>
+        req.id === requestId
+          ? { ...req, status: 'rejected', reviewedAt: new Date().toISOString() }
+          : req
+      );
+      
+      // Save updated requests
+      localStorage.setItem('depositRequests', JSON.stringify(updatedRequests));
+      
       toast.success('Deposit request rejected successfully');
     } catch (error) {
       console.error(error);

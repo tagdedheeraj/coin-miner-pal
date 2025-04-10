@@ -9,8 +9,9 @@ export const getWithdrawalFunctions = (user: User | null) => {
     }
     
     try {
-      // Now handled in AuthProvider
-      return [];
+      // Get withdrawal requests from local storage
+      const withdrawalRequestsJson = localStorage.getItem('withdrawalRequests');
+      return withdrawalRequestsJson ? JSON.parse(withdrawalRequestsJson) : [];
     } catch (error) {
       console.error(error);
       toast.error('Failed to fetch withdrawal requests');
