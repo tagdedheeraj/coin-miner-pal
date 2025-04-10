@@ -17,7 +17,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [arbitragePlans, setArbitragePlans] = useState<ArbitragePlan[]>(mockArbitragePlans);
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
 
   // Initialize local storage and check for existing user on mount
   useEffect(() => {
