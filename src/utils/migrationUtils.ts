@@ -71,7 +71,7 @@ export const mockSupabaseQuery = async (
 export const updateFirestoreDoc = async (
   table: string,
   id: string,
-  data: any
+  data: Record<string, any>
 ) => {
   try {
     const docRef = doc(db, table, id);
@@ -88,7 +88,7 @@ export const updateFirestoreDoc = async (
  */
 export const createFirestoreDoc = async (
   table: string,
-  data: any,
+  data: Record<string, any>,
   id?: string
 ) => {
   try {

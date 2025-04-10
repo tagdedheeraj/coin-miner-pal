@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { mockUsers } from '@/data/mockUsers';
 import { auth, db } from '@/integrations/firebase/client';
 import { signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { mapFirebaseToUser } from '@/utils/firebaseUtils';
 
 export const createAuthenticationService = (
@@ -55,22 +55,59 @@ export const createAuthenticationService = (
       const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
       
       if (!userDoc.exists()) {
-        throw new Error('User profile not found');
+        console.log('User document not found in Firestore, creating from auth data');
+        
+        // Create a new user profile if it doesn't exist
+        const newUserObj: User = {
+          id: userCredential.user.uid,
+          name: userCredential.user.displayName || email.split('@')[0],
+          email: userCredential.user.email || email,
+          coins: 200, // Default starting coins
+          referralCode: generateRandomCode(),
+          hasSetupPin: false,
+          hasBiometrics: false,
+          withdrawalAddress: null,
+          appliedReferralCode: null,
+          usdtEarnings: 0,
+          notifications: [],
+          isAdmin: false
+        };
+        
+        // Save to Firestore
+        await setDoc(doc(db, 'users', userCredential.user.uid), {
+          name: newUserObj.name,
+          email: newUserObj.email,
+          coins: newUserObj.coins,
+          referral_code: newUserObj.referralCode,
+          has_setup_pin: newUserObj.hasSetupPin,
+          has_biometrics: newUserObj.hasBiometrics,
+          withdrawal_address: newUserObj.withdrawalAddress,
+          applied_referral_code: newUserObj.appliedReferralCode,
+          usdt_earnings: newUserObj.usdtEarnings,
+          notifications: newUserObj.notifications,
+          is_admin: newUserObj.isAdmin,
+          created_at: new Date().toISOString()
+        });
+        
+        setUser(newUserObj);
+        localStorage.setItem('user', JSON.stringify(newUserObj));
+        toast.success('Signed in successfully. User profile created.');
+        return;
       }
       
       // Map the user data
       const userData = userDoc.data();
       const userObj: User = {
         id: userCredential.user.uid,
-        name: userData.name,
-        email: userData.email,
-        coins: userData.coins,
-        referralCode: userData.referral_code,
-        hasSetupPin: userData.has_setup_pin,
-        hasBiometrics: userData.has_biometrics,
-        withdrawalAddress: userData.withdrawal_address,
-        appliedReferralCode: userData.applied_referral_code,
-        usdtEarnings: userData.usdt_earnings,
+        name: userData.name || userCredential.user.displayName || email.split('@')[0],
+        email: userData.email || userCredential.user.email || email,
+        coins: userData.coins || 0,
+        referralCode: userData.referral_code || generateRandomCode(),
+        hasSetupPin: userData.has_setup_pin || false,
+        hasBiometrics: userData.has_biometrics || false,
+        withdrawalAddress: userData.withdrawal_address || null,
+        appliedReferralCode: userData.applied_referral_code || null,
+        usdtEarnings: userData.usdt_earnings || 0,
         notifications: userData.notifications || [],
         isAdmin: userData.is_admin || false
       };
@@ -101,6 +138,16 @@ export const createAuthenticationService = (
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  // Helper function to generate a random referral code
+  const generateRandomCode = (): string => {
+    const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let result = '';
+    for (let i = 0; i < 6; i++) {
+      result += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    return result;
   };
   
   const signOut = async () => {

@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { generateReferralCode } from '@/utils/referral';
 import { auth, db } from '@/integrations/firebase/client';
 import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from 'firebase/auth';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, setDoc } from 'firebase/firestore';
 import { saveUserToFirestore } from '@/utils/firebaseUtils';
 
 export const createRegistrationService = (
@@ -19,7 +19,7 @@ export const createRegistrationService = (
     console.log('Attempting to sign up with Firebase');
     
     try {
-      // Check if user already exists with this email
+      // Check if user already exists with this email in Firestore
       const usersRef = collection(db, 'users');
       const q = query(usersRef, where('email', '==', email));
       const querySnapshot = await getDocs(q);
@@ -28,7 +28,7 @@ export const createRegistrationService = (
         throw new Error('An account with this email already exists. Please sign in instead.');
       }
       
-      // Register with Firebase
+      // Register with Firebase Authentication
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
       // Update profile with name
@@ -49,13 +49,34 @@ export const createRegistrationService = (
         hasSetupPin: false,
         hasBiometrics: false,
         withdrawalAddress: null,
+        appliedReferralCode: null,
         usdtEarnings: 0,
-        notifications: []
+        notifications: [],
+        isAdmin: false
       };
       
-      // Store in Firestore
+      // Store in Firestore directly with document ID matching the auth user ID
       console.log('Creating user profile in Firestore');
-      await saveUserToFirestore(newUser);
+      const userDocRef = doc(db, 'users', userCredential.user.uid);
+      
+      // Format the data for Firestore storage
+      const userData = {
+        name: newUser.name,
+        email: newUser.email,
+        coins: newUser.coins,
+        referral_code: newUser.referralCode,
+        has_setup_pin: newUser.hasSetupPin,
+        has_biometrics: newUser.hasBiometrics,
+        withdrawal_address: newUser.withdrawalAddress,
+        applied_referral_code: newUser.appliedReferralCode,
+        usdt_earnings: newUser.usdtEarnings,
+        notifications: newUser.notifications,
+        is_admin: newUser.isAdmin,
+        created_at: new Date().toISOString()
+      };
+      
+      // Create the user document in Firestore
+      await setDoc(userDocRef, userData);
       
       // Send verification email
       await sendEmailVerification(userCredential.user, {

@@ -1,45 +1,34 @@
+// Supabase client compatibility layer for Firebase migration
+// This provides API compatibility during migration period
 
-// Re-export Firebase client for backward compatibility with existing imports
-import { auth, db, storage } from '@/integrations/firebase/client';
-import { collection, doc, getDoc, getDocs, query, where, addDoc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { toast } from 'sonner';
+import { collection, query, where, getDocs, doc, getDoc, updateDoc, deleteDoc, setDoc, orderBy, limit } from "firebase/firestore";
+import { db, auth } from '@/integrations/firebase/client';
+import { logMigrationWarning } from '@/utils/migrationUtils';
 
-// Create a mock supabase client that redirects operations to Firebase
+// Mock Supabase client with Firebase implementations
 export const supabase = {
-  // Authentication methods
   auth: {
-    signInWithPassword: async ({ email, password }: { email: string; password: string }) => {
+    getUser: async () => {
+      const user = auth.currentUser;
+      return {
+        data: { user },
+        error: user ? null : new Error('Not authenticated')
+      };
+    },
+    signOut: async () => {
       try {
-        // This is just a compatibility layer, actual auth is handled in auth service
+        await auth.signOut();
         return { error: null };
       } catch (error) {
         return { error };
       }
-    },
-    signUp: async () => {
-      // This is just a compatibility layer, actual auth is handled in auth service
-      return { error: null };
-    },
-    updateUser: async () => {
-      // This is just a compatibility layer, actual auth is handled in auth service
-      return { error: null };
-    },
-    getUser: async () => {
-      try {
-        const currentUser = auth.currentUser;
-        return { 
-          data: { user: currentUser }, 
-          error: null 
-        };
-      } catch (error) {
-        return { data: { user: null }, error };
-      }
     }
   },
-  // Database methods
   from: (table: string) => {
+    logMigrationWarning(`Using 'supabase.from(${table})' - This is a compatibility layer`);
+    
     return {
-      select: (columns: string = '*') => {
+      select: (fields = '*') => {
         return {
           eq: async (column: string, value: any) => {
             try {
@@ -48,31 +37,34 @@ export const supabase = {
               const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
               return { data, error: null };
             } catch (error) {
-              console.error(`Error querying ${table}:`, error);
               return { data: null, error };
             }
           },
           single: async () => {
             try {
               const querySnapshot = await getDocs(collection(db, table));
-              const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))[0] || null;
-              return { data, error: null };
+              if (querySnapshot.empty) {
+                return { data: null, error: null };
+              }
+              const doc = querySnapshot.docs[0];
+              return { data: { id: doc.id, ...doc.data() }, error: null };
             } catch (error) {
-              console.error(`Error querying ${table}:`, error);
               return { data: null, error };
             }
           },
-          order: (column: string, { ascending }: { ascending: boolean }) => {
-            // Simple implementation without actual ordering (would require more complex Firebase query)
+          order: (column: string, { ascending = true }) => {
             return {
-              eq: async (column: string, value: any) => {
+              eq: async (filterColumn: string, value: any) => {
                 try {
-                  const q = query(collection(db, table), where(column, '==', value));
+                  const q = query(
+                    collection(db, table),
+                    where(filterColumn, '==', value),
+                    orderBy(column, ascending ? 'asc' : 'desc')
+                  );
                   const querySnapshot = await getDocs(q);
                   const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                   return { data, error: null };
                 } catch (error) {
-                  console.error(`Error querying ${table}:`, error);
                   return { data: null, error };
                 }
               }
@@ -80,47 +72,82 @@ export const supabase = {
           }
         };
       },
-      insert: (data: any) => {
-        return {
-          // Return an object with a synchronous structure
-          async execute() {
-            try {
-              await addDoc(collection(db, table), data);
-              return { error: null };
-            } catch (error) {
-              console.error(`Error inserting into ${table}:`, error);
-              return { error };
-            }
-          }
-        };
+      insert: async (data: any) => {
+        try {
+          const newDocRef = doc(collection(db, table));
+          await setDoc(newDocRef, { ...data, created_at: new Date().toISOString() });
+          return { data: { id: newDocRef.id, ...data }, error: null };
+        } catch (error) {
+          return { data: null, error };
+        }
       },
       update: (data: any) => {
         return {
           eq: async (column: string, value: any) => {
             try {
-              // Find the document first
               const q = query(collection(db, table), where(column, '==', value));
               const querySnapshot = await getDocs(q);
               
               if (querySnapshot.empty) {
-                throw new Error(`No ${table} found with ${column} = ${value}`);
+                return { error: new Error('No document found to update') };
               }
               
-              // Update the document
               const docRef = doc(db, table, querySnapshot.docs[0].id);
-              await updateDoc(docRef, data);
-              
+              await updateDoc(docRef, { ...data, updated_at: new Date().toISOString() });
               return { error: null };
             } catch (error) {
-              console.error(`Error updating ${table}:`, error);
               return { error };
             }
           }
         };
+      },
+      delete: () => {
+        return {
+          eq: async (column: string, value: any) => {
+            try {
+              const q = query(collection(db, table), where(column, '==', value));
+              const querySnapshot = await getDocs(q);
+              
+              if (querySnapshot.empty) {
+                return { error: new Error('No document found to delete') };
+              }
+              
+              const docRef = doc(db, table, querySnapshot.docs[0].id);
+              await deleteDoc(docRef);
+              return { error: null };
+            } catch (error) {
+              return { error };
+            }
+          }
+        };
+      },
+      execute: async () => {
+        try {
+          const querySnapshot = await getDocs(collection(db, table));
+          return { error: null };
+        } catch (error) {
+          return { error };
+        }
       }
     };
+  },
+  storage: {
+    from: (bucket: string) => {
+      return {
+        upload: async (path: string, file: File) => {
+          logMigrationWarning('Storage operations not yet implemented in migration layer');
+          return { data: null, error: new Error('Not implemented') };
+        },
+        getPublicUrl: (path: string) => {
+          logMigrationWarning('Storage operations not yet implemented in migration layer');
+          return { publicUrl: '' };
+        }
+      };
+    }
   }
 };
 
-// Re-export Firebase services as well
-export { auth, db, storage };
+// Export a helper for Firebase operations that's type-compatible with Supabase responses
+export const firebaseHelper = {
+  // Other methods can be added as needed
+};

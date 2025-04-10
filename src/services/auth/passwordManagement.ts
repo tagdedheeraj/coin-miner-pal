@@ -1,6 +1,5 @@
 
 import { User } from '@/types/auth';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { auth } from '@/integrations/firebase/client';
 import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
