@@ -78,10 +78,21 @@ export const createRegistrationService = (
       // Create the user document in Firestore
       await setDoc(userDocRef, userData);
       
-      // Send verification email
-      await sendEmailVerification(userCredential.user, {
-        url: window.location.origin + '/auth/callback'
-      });
+      try {
+        // Use actionCodeSettings to set allowed domains
+        const actionCodeSettings = {
+          url: window.location.origin + '/auth/callback',
+          // This must be true for email verification
+          handleCodeInApp: true,
+        };
+        
+        // Send verification email with action code settings
+        await sendEmailVerification(userCredential.user, actionCodeSettings);
+      } catch (verificationError) {
+        console.error('Error sending verification email:', verificationError);
+        // Don't throw here, as we still want the user to be created
+        toast.error('Account created, but could not send verification email. Please contact support.');
+      }
       
       // Store in local state and localStorage
       setUser(newUser);
@@ -100,6 +111,8 @@ export const createRegistrationService = (
           errorMessage = 'This email is already registered. Please sign in instead.';
         } else if (error.message.includes('auth/network-request-failed')) {
           errorMessage = 'Network error. Please check your internet connection and try again.';
+        } else if (error.message.includes('auth/unauthorized-continue-uri')) {
+          errorMessage = 'Authentication domain not configured. Please contact support or try using another browser.';
         } else {
           errorMessage = error.message;
         }
@@ -122,16 +135,25 @@ export const createRegistrationService = (
         throw new Error('No authenticated user found');
       }
       
-      await sendEmailVerification(currentUser, {
-        url: window.location.origin + '/auth/callback'
-      });
+      // Use actionCodeSettings to set allowed domains
+      const actionCodeSettings = {
+        url: window.location.origin + '/auth/callback',
+        // This must be true for email verification
+        handleCodeInApp: true,
+      };
+      
+      await sendEmailVerification(currentUser, actionCodeSettings);
       
       toast.success('Verification email sent. Please check your inbox.');
     } catch (error) {
       console.error('Error sending verification email:', error);
       let errorMessage = 'Failed to send verification email';
       if (error instanceof Error) {
-        errorMessage = error.message;
+        if (error.message.includes('auth/unauthorized-continue-uri')) {
+          errorMessage = 'Authentication domain not configured. Please try using another browser or contact support.';
+        } else {
+          errorMessage = error.message;
+        }
       }
       toast.error(errorMessage);
       throw error;
