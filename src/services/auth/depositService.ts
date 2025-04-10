@@ -27,7 +27,7 @@ export const depositServiceFunctions = (
       // Save to Supabase
       const { error } = await supabase
         .from('deposit_requests')
-        .insert([depositRequest]);
+        .insert(depositRequest);
       
       if (error) throw error;
       
@@ -41,11 +41,13 @@ export const depositServiceFunctions = (
       
       // Update user with notification
       const userNotifications = user.notifications || [];
+      const userUpdate = mapUserToDb({
+        notifications: [...userNotifications, notification]
+      });
+      
       const { error: updateError } = await supabase
         .from('users')
-        .update(mapUserToDb({
-          notifications: [...userNotifications, notification]
-        }))
+        .update(userUpdate)
         .eq('id', user.id);
         
       if (updateError) throw updateError;
@@ -109,12 +111,14 @@ export const depositServiceFunctions = (
       }
       
       // Update request status
+      const updateData = mapDepositToDb({
+        status: 'approved',
+        reviewedAt: new Date().toISOString()
+      });
+      
       await supabase
         .from('deposit_requests')
-        .update(mapDepositToDb({
-          status: 'approved',
-          reviewedAt: new Date().toISOString()
-        }))
+        .update(updateData)
         .eq('id', requestId);
       
       // Find the user and send notification
@@ -129,20 +133,20 @@ export const depositServiceFunctions = (
       
       const targetUser = mapDbToUser(userData);
       const userNotifications = targetUser.notifications || [];
+      const newNotification = {
+        id: uuidv4(),
+        message: `Your deposit for ${request.planName} has been approved! Your plan is now active.`,
+        read: false,
+        createdAt: new Date().toISOString()
+      };
+      
+      const userUpdate = mapUserToDb({
+        notifications: [...userNotifications, newNotification]
+      });
       
       await supabase
         .from('users')
-        .update(mapUserToDb({
-          notifications: [
-            ...userNotifications,
-            {
-              id: uuidv4(),
-              message: `Your deposit for ${request.planName} has been approved! Your plan is now active.`,
-              read: false,
-              createdAt: new Date().toISOString()
-            }
-          ]
-        }))
+        .update(userUpdate)
         .eq('id', targetUser.id);
       
       toast.success('Deposit request approved successfully');
@@ -176,12 +180,14 @@ export const depositServiceFunctions = (
       }
       
       // Update request status
+      const updateData = mapDepositToDb({
+        status: 'rejected',
+        reviewedAt: new Date().toISOString()
+      });
+      
       await supabase
         .from('deposit_requests')
-        .update(mapDepositToDb({
-          status: 'rejected',
-          reviewedAt: new Date().toISOString()
-        }))
+        .update(updateData)
         .eq('id', requestId);
       
       // Find the user and send notification
@@ -196,20 +202,20 @@ export const depositServiceFunctions = (
       
       const targetUser = mapDbToUser(userData);
       const userNotifications = targetUser.notifications || [];
+      const newNotification = {
+        id: uuidv4(),
+        message: `Your deposit for ${request.planName} has been rejected. Please contact support for more information.`,
+        read: false,
+        createdAt: new Date().toISOString()
+      };
+      
+      const userUpdate = mapUserToDb({
+        notifications: [...userNotifications, newNotification]
+      });
       
       await supabase
         .from('users')
-        .update(mapUserToDb({
-          notifications: [
-            ...userNotifications,
-            {
-              id: uuidv4(),
-              message: `Your deposit for ${request.planName} has been rejected. Please contact support for more information.`,
-              read: false,
-              createdAt: new Date().toISOString()
-            }
-          ]
-        }))
+        .update(userUpdate)
         .eq('id', targetUser.id);
       
       toast.success('Deposit request rejected successfully');

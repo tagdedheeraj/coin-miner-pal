@@ -98,7 +98,7 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({ children }
               
               // Save to Supabase
               const userDbData = mapUserToDb(newUser);
-              await supabase.from('users').insert([userDbData]);
+              await supabase.from('users').insert(userDbData);
               
               // Save to localStorage for persistence
               localStorage.setItem('user', JSON.stringify(newUser));

@@ -43,7 +43,7 @@ export const createWithdrawalRequestFunctions = (
       
       const { error } = await supabase
         .from('withdrawal_requests')
-        .insert([withdrawalRequest]);
+        .insert(withdrawalRequest);
       
       if (error) throw error;
       
@@ -57,11 +57,13 @@ export const createWithdrawalRequestFunctions = (
       
       // Update user notifications
       const userNotifications = user.notifications || [];
+      const userUpdate = mapUserToDb({
+        notifications: [...userNotifications, notification]
+      });
+      
       await supabase
         .from('users')
-        .update(mapUserToDb({
-          notifications: [...userNotifications, notification]
-        }))
+        .update(userUpdate)
         .eq('id', user.id);
       
       // Update local user state
