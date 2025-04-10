@@ -1,17 +1,9 @@
 
 import { Dispatch, SetStateAction } from 'react';
 import { User } from '@/types/auth';
-import { auth } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import { 
-  EmailAuthProvider,
-  reauthenticateWithCredential,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut as firebaseSignOut,
-  updatePassword,
-  UserCredential
-} from 'firebase/auth';
+import { SupabaseUserCredential } from '@/contexts/auth/types';
 
 // Admin credentials
 const ADMIN_EMAIL = 'admin@infinium.com';
@@ -51,12 +43,17 @@ export const coreAuthFunctions = (
         return;
       }
       
-      // Regular user login with Firebase
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      // Regular user login with Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
+      
+      if (error) throw error;
       
       // The rest of the user data fetching will be handled by AuthStateContext
-      // which will check localStorage first and then Firebase
-      return userCredential;
+      // which will check localStorage first and then Supabase
+      return data;
     } catch (error) {
       console.error(error);
       toast.error(error instanceof Error ? error.message : 'Failed to sign in');
@@ -66,12 +63,23 @@ export const coreAuthFunctions = (
     }
   };
 
-  const signUp = async (name: string, email: string, password: string): Promise<UserCredential> => {
+  const signUp = async (name: string, email: string, password: string): Promise<SupabaseUserCredential> => {
     setIsLoading(true);
     try {
-      // Create new user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      return userCredential;
+      // Register with Supabase
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            name
+          }
+        }
+      });
+      
+      if (error) throw error;
+      
+      return data as SupabaseUserCredential;
     } catch (error) {
       console.error(error);
       toast.error(error instanceof Error ? error.message : 'Failed to sign up');
@@ -83,9 +91,9 @@ export const coreAuthFunctions = (
 
   const signOut = async () => {
     try {
-      // Only sign out from Firebase if not admin
+      // Only sign out from Supabase if not admin
       if (user && !user.isAdmin) {
-        await firebaseSignOut(auth);
+        await supabase.auth.signOut();
       }
       setUser(null);
       localStorage.removeItem('user');
@@ -101,15 +109,20 @@ export const coreAuthFunctions = (
     if (user.isAdmin) throw new Error('Admin password cannot be changed');
     
     try {
-      const currentUser = auth.currentUser;
-      if (!currentUser) throw new Error('Authentication error');
+      // Verify current password
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword
+      });
       
-      // Re-authenticate user
-      const credential = EmailAuthProvider.credential(user.email, currentPassword);
-      await reauthenticateWithCredential(currentUser, credential);
+      if (signInError) throw new Error('Current password is incorrect');
       
-      // Change password
-      await updatePassword(currentUser, newPassword);
+      // Update password
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      
+      if (error) throw error;
       
       toast.success('Password changed successfully');
     } catch (error) {

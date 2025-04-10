@@ -2,8 +2,7 @@
 import { Dispatch, SetStateAction } from 'react';
 import { User, WithdrawalRequest, DepositRequest } from '@/types/auth';
 import { toast } from 'sonner';
-import { db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, collection } from 'firebase/firestore';
+import { supabase } from '@/lib/supabase';
 
 // Import all service modules
 import { coreAuthFunctions } from './auth/core';
@@ -28,43 +27,37 @@ export const authFunctions = (
   const withdrawalService = withdrawalServiceFunctions(user);
   const depositService = depositServiceFunctions(user);
   
-  // Override signIn method to handle Firestore data fetching
+  // Override signIn method to handle Supabase data fetching
   const signIn = async (email: string, password: string) => {
     try {
       await coreAuth.signIn(email, password);
       
-      // If we're still loading or have a user at this point,
-      // it means the admin login was successful or we need to fetch user data
-      if (user && user.isAdmin) {
-        return; // Admin login completed in coreAuth
-      }
-      
-      // If we get here, we need to fetch the user data from Firestore
-      // This will happen when auth.currentUser exists but we haven't loaded the Firestore data yet
+      // If we get here, we need to fetch the user data from Supabase
+      // This will happen when auth.currentUser exists but we haven't loaded the Supabase data yet
       // We'll complete this in the auth state change listener in the application
     } catch (error) {
       throw error;
     }
   };
   
-  // Override signUp method to handle Firestore data creation
+  // Override signUp method to handle Supabase data creation
   const signUp = async (name: string, email: string, password: string) => {
     setIsLoading(true);
     try {
-      // First create the Firebase Auth user
+      // First create the Supabase Auth user
       const userCredential = await coreAuth.signUp(name, email, password);
       
-      // Get the newly created Firebase user ID
-      const firebaseUser = userCredential.user;
+      // Get the newly created Supabase user ID
+      const supabaseUser = userCredential.user;
       
-      if (!firebaseUser) {
+      if (!supabaseUser) {
         throw new Error('Failed to create user');
       }
       
       // Generate referral code
       const referralCode = 'REF' + Math.random().toString(36).substring(2, 8).toUpperCase();
       
-      // Create user document in Firestore
+      // Create user document in Supabase
       const newUser: Omit<User, 'id'> = {
         name,
         email,
@@ -78,11 +71,16 @@ export const authFunctions = (
         notifications: []
       };
       
-      // For now, let's use a mock user approach instead of trying to write to Firestore
-      // This will bypass the permission error while maintaining functionality
+      // Add user to Supabase
+      const { error } = await supabase
+        .from('users')
+        .insert([{ id: supabaseUser.id, ...newUser }]);
       
+      if (error) throw error;
+      
+      // Create user with ID
       const userWithId = {
-        id: firebaseUser.uid,
+        id: supabaseUser.id,
         ...newUser
       };
       

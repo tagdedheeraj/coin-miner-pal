@@ -1,15 +1,7 @@
 
 import { User } from '@/types/auth';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import {
-  doc,
-  updateDoc,
-  collection,
-  query,
-  where,
-  getDocs,
-} from 'firebase/firestore';
 
 export const adminServiceFunctions = (user: User | null) => {
 
@@ -21,35 +13,35 @@ export const adminServiceFunctions = (user: User | null) => {
 
     try {
       // Find the user by email
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('email', '==', email));
-      const querySnapshot = await getDocs(q);
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .single();
       
-      if (querySnapshot.empty) {
-        throw new Error('User not found');
-      }
+      if (userError) throw new Error('User not found');
       
-      // Get the first user doc (there should only be one)
-      const userDoc = querySnapshot.docs[0];
-      const userId = userDoc.id;
-      const userData = userDoc.data() as User;
+      const targetUser = userData as User;
+      const userNotifications = targetUser.notifications || [];
       
       // Update USDT earnings and add notification
-      const userRef = doc(db, 'users', userId);
-      const userNotifications = userData.notifications || [];
-      
-      await updateDoc(userRef, {
-        usdtEarnings: amount,
-        notifications: [
-          ...userNotifications,
-          {
-            id: Date.now().toString(),
-            message: `Your USDT earnings have been updated from ${userData.usdtEarnings || 0} to ${amount} by admin.`,
-            read: false,
-            createdAt: new Date().toISOString()
-          }
-        ]
-      });
+      const { error } = await supabase
+        .from('users')
+        .update({
+          usdtEarnings: amount,
+          notifications: [
+            ...userNotifications,
+            {
+              id: Date.now().toString(),
+              message: `Your USDT earnings have been updated from ${targetUser.usdtEarnings || 0} to ${amount} by admin.`,
+              read: false,
+              createdAt: new Date().toISOString()
+            }
+          ]
+        })
+        .eq('id', targetUser.id);
+        
+      if (error) throw error;
       
       toast.success(`USDT earnings updated for ${email}`);
     } catch (error) {
@@ -67,35 +59,35 @@ export const adminServiceFunctions = (user: User | null) => {
 
     try {
       // Find the user by email
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('email', '==', email));
-      const querySnapshot = await getDocs(q);
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .single();
       
-      if (querySnapshot.empty) {
-        throw new Error('User not found');
-      }
+      if (userError) throw new Error('User not found');
       
-      // Get the first user doc (there should only be one)
-      const userDoc = querySnapshot.docs[0];
-      const userId = userDoc.id;
-      const userData = userDoc.data() as User;
+      const targetUser = userData as User;
+      const userNotifications = targetUser.notifications || [];
       
       // Update coins and add notification
-      const userRef = doc(db, 'users', userId);
-      const userNotifications = userData.notifications || [];
-      
-      await updateDoc(userRef, {
-        coins: amount,
-        notifications: [
-          ...userNotifications,
-          {
-            id: Date.now().toString(),
-            message: `Your coin balance has been updated from ${userData.coins} to ${amount} by admin.`,
-            read: false,
-            createdAt: new Date().toISOString()
-          }
-        ]
-      });
+      const { error } = await supabase
+        .from('users')
+        .update({
+          coins: amount,
+          notifications: [
+            ...userNotifications,
+            {
+              id: Date.now().toString(),
+              message: `Your coin balance has been updated from ${targetUser.coins} to ${amount} by admin.`,
+              read: false,
+              createdAt: new Date().toISOString()
+            }
+          ]
+        })
+        .eq('id', targetUser.id);
+        
+      if (error) throw error;
       
       toast.success(`Coins updated for ${email}`);
     } catch (error) {

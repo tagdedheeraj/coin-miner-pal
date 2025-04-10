@@ -1,10 +1,15 @@
 
 import { User, WithdrawalRequest, DepositRequest, ArbitragePlan } from '@/types/auth';
-import { UserCredential } from 'firebase/auth';
+import { Session } from '@supabase/supabase-js';
 
 export interface AuthStateType {
   user: User | null;
   isLoading: boolean;
+}
+
+export interface SupabaseUserCredential {
+  user: User | null;
+  session: Session | null;
 }
 
 export interface AuthBasicContextType {
@@ -12,7 +17,7 @@ export interface AuthBasicContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (name: string, email: string, password: string) => Promise<UserCredential>;
+  signUp: (name: string, email: string, password: string) => Promise<SupabaseUserCredential>;
   signOut: () => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
 }

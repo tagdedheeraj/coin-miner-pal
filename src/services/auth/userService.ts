@@ -1,19 +1,8 @@
 
 import { Dispatch, SetStateAction } from 'react';
 import { User } from '@/types/auth';
-import { db } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
-import {
-  doc,
-  setDoc,
-  updateDoc,
-  getDoc,
-  deleteDoc,
-  collection,
-  query,
-  where,
-  getDocs,
-} from 'firebase/firestore';
 
 export const userServiceFunctions = (
   user: User | null, 
@@ -26,15 +15,18 @@ export const userServiceFunctions = (
     try {
       const updatedUser = { ...user, ...updates };
       
-      // Update in Firebase if not admin user
+      // Update in Supabase if not admin user
       if (!user.isAdmin) {
-        // For now, let's skip the actual Firestore update to avoid permission errors
-        // Just update the local state
+        const { error } = await supabase
+          .from('users')
+          .update(updates)
+          .eq('id', user.id);
         
-        // Update localStorage for persistence
-        localStorage.setItem('user', JSON.stringify(updatedUser));
+        if (error) throw error;
       }
       
+      // Update localStorage for persistence
+      localStorage.setItem('user', JSON.stringify(updatedUser));
       setUser(updatedUser);
     } catch (error) {
       console.error(error);
@@ -87,7 +79,13 @@ export const userServiceFunctions = (
     }
 
     try {
-      // For now, we're skipping the actual Firestore deletion to avoid permission errors
+      const { error } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', userId);
+      
+      if (error) throw error;
+      
       toast.success('User deleted successfully');
     } catch (error) {
       console.error(error);
@@ -95,18 +93,17 @@ export const userServiceFunctions = (
     }
   };
 
-  const fetchUserByFirebaseId = async (firebaseUid: string): Promise<User | null> => {
+  const fetchUserBySupabaseId = async (supabaseId: string): Promise<User | null> => {
     try {
-      // For now, let's try to get the user from localStorage instead of Firestore
-      const localUser = localStorage.getItem('user');
-      if (localUser) {
-        const parsedUser = JSON.parse(localUser) as User;
-        if (parsedUser.id === firebaseUid) {
-          return parsedUser;
-        }
-      }
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', supabaseId)
+        .single();
       
-      return null;
+      if (error) return null;
+      
+      return data as User;
     } catch (error) {
       console.error('Error fetching user:', error);
       return null;
@@ -115,16 +112,18 @@ export const userServiceFunctions = (
 
   const findUserByEmail = async (email: string): Promise<{userId: string, userData: User} | null> => {
     try {
-      // For now, let's try to get the user from localStorage instead of Firestore
-      const localUser = localStorage.getItem('user');
-      if (localUser) {
-        const parsedUser = JSON.parse(localUser) as User;
-        if (parsedUser.email === email) {
-          return { userId: parsedUser.id, userData: parsedUser };
-        }
-      }
+      const { data, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .single();
       
-      return null;
+      if (error) return null;
+      
+      return { 
+        userId: data.id, 
+        userData: data as User 
+      };
     } catch (error) {
       console.error('Error finding user by email:', error);
       return null;
@@ -137,7 +136,7 @@ export const userServiceFunctions = (
     toggleBiometrics,
     setWithdrawalAddress,
     deleteUser,
-    fetchUserByFirebaseId,
+    fetchUserBySupabaseId,
     findUserByEmail,
   };
 };
