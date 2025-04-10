@@ -2,13 +2,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import PaymentAddress from './PaymentAddress';
 import PaymentQRCode from './PaymentQRCode';
 import TransactionIdInput from './TransactionIdInput';
 import PaymentTimer from './PaymentTimer';
 import { Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface PaymentModalProps {
   open: boolean;
@@ -27,8 +28,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   planId,
   onSuccess
 }) => {
-  const { toast } = useToast();
-  const { user, requestPlanPurchase } = useAuth();
+  const { user } = useAuth();
   const [transactionId, setTransactionId] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
@@ -69,41 +69,39 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   
   const handleSubmit = async () => {
     if (!transactionId.trim()) {
-      toast({
-        title: "Transaction ID required",
-        description: "Please enter your transaction ID to continue.",
-        variant: "destructive"
-      });
+      toast.error("Transaction ID required. Please enter your transaction ID to continue.");
       return;
     }
     
     if (!user) {
-      toast({
-        title: "Authentication required",
-        description: "Please sign in to purchase plans.",
-        variant: "destructive"
-      });
+      toast.error("Authentication required. Please sign in to purchase plans.");
       return;
     }
     
     setIsSubmitting(true);
     
     try {
-      await requestPlanPurchase({
-        planId,
-        planName,
-        amount: planPrice,
-        transactionId: transactionId.trim(),
-        timestamp: new Date().toISOString(),
-        userId: user.id,
-        userEmail: user.email,
-        userName: user.name,
-      });
+      // Insert directly into deposit_requests table using supabase client
+      const { data, error } = await supabase
+        .from('deposit_requests')
+        .insert({
+          user_id: user.id,
+          user_email: user.email,
+          user_name: user.name,
+          plan_id: planId,
+          plan_name: planName,
+          amount: planPrice,
+          transaction_id: transactionId.trim(),
+          status: 'pending',
+          timestamp: new Date().toISOString()
+        });
       
-      toast({
-        title: "Payment Submitted!",
-        description: "Your plan will be activated as soon as payment is confirmed by admin. Check back soon!",
-      });
+      if (error) {
+        console.error('Supabase insert error:', error);
+        throw new Error(`Failed to submit deposit request: ${error.message}`);
+      }
+      
+      toast.success("Payment Submitted! Your plan will be activated as soon as payment is confirmed by admin.");
       
       // Call the success callback if provided
       if (onSuccess) {
@@ -119,11 +117,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         errorMessage = error.message;
       }
       
-      toast({
-        title: "Failed to submit",
-        description: errorMessage,
-        variant: "destructive"
-      });
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

@@ -7,27 +7,55 @@ import BottomNav from '@/components/layout/BottomNav';
 import PlansCard from '@/components/plans/PlansCard';
 import { DepositRequest } from '@/types/auth';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const Plans: React.FC = () => {
-  const { isAuthenticated, user, getUserDepositRequests } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [depositRequests, setDepositRequests] = useState<DepositRequest[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   
   const fetchDepositRequests = async () => {
-    if (isAuthenticated && getUserDepositRequests) {
-      setIsLoading(true);
-      setFetchError(null);
-      try {
-        const requests = await getUserDepositRequests();
-        setDepositRequests(requests);
-      } catch (error) {
-        console.error('Error fetching user deposit requests:', error);
+    if (!isAuthenticated || !user) {
+      return;
+    }
+    
+    setIsLoading(true);
+    setFetchError(null);
+    
+    try {
+      // Fetch deposit requests directly using Supabase client
+      const { data, error } = await supabase
+        .from('deposit_requests')
+        .select('*')
+        .eq('user_id', user.id);
+      
+      if (error) {
+        console.error('Error fetching deposit requests:', error);
         setFetchError('Unable to load your deposit requests. Please try again later.');
-        // Don't show toast to avoid spamming the user on RLS errors
-      } finally {
-        setIsLoading(false);
+      } else {
+        // Transform data to match DepositRequest type
+        const transformedData: DepositRequest[] = data.map(item => ({
+          id: item.id,
+          userId: item.user_id,
+          userEmail: item.user_email,
+          userName: item.user_name,
+          planId: item.plan_id,
+          planName: item.plan_name,
+          amount: item.amount,
+          transactionId: item.transaction_id,
+          status: item.status as 'pending' | 'approved' | 'rejected',
+          timestamp: item.timestamp,
+          reviewedAt: item.reviewed_at
+        }));
+        
+        setDepositRequests(transformedData);
       }
+    } catch (error) {
+      console.error('Error in fetchDepositRequests:', error);
+      setFetchError('An unexpected error occurred. Please try again later.');
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -38,7 +66,7 @@ const Plans: React.FC = () => {
     const intervalId = setInterval(fetchDepositRequests, 30000);
     
     return () => clearInterval(intervalId);
-  }, [isAuthenticated, getUserDepositRequests]);
+  }, [isAuthenticated, user]);
 
   // Add a refresh function that PlansCard can call after successful submission
   const refreshDepositRequests = () => {
@@ -60,7 +88,7 @@ const Plans: React.FC = () => {
           <p className="text-gray-500">Boost your mining with premium plans and earn USDT daily</p>
         </div>
         
-        {isLoading ? (
+        {isLoading && depositRequests.length === 0 ? (
           <div className="flex justify-center py-8">
             <div className="animate-pulse text-center">
               <p className="text-gray-500">Loading your plans...</p>
