@@ -16,15 +16,47 @@ export const getDepositFunctions = (user: User | null) => {
         .select('*')
         .order('timestamp', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching deposit requests:', error);
+        throw error;
+      }
       
       return (data || []).map(item => mapDbToDeposit(item));
     } catch (error) {
-      console.error(error);
+      console.error('Failed to fetch deposit requests:', error);
       toast.error('Failed to fetch deposit requests');
       return [];
     }
   };
 
-  return { getDepositRequests };
+  // Function to get deposit requests for a specific user (non-admin)
+  const getUserDepositRequests = async (): Promise<DepositRequest[]> => {
+    if (!user) {
+      return [];
+    }
+    
+    try {
+      const { data, error } = await supabase
+        .from('deposit_requests')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('timestamp', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching user deposit requests:', error);
+        throw error;
+      }
+      
+      return (data || []).map(item => mapDbToDeposit(item));
+    } catch (error) {
+      console.error('Failed to fetch user deposit requests:', error);
+      toast.error('Failed to fetch your deposit requests');
+      return [];
+    }
+  };
+
+  return { 
+    getDepositRequests,
+    getUserDepositRequests
+  };
 };

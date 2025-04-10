@@ -91,6 +91,15 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       return;
     }
     
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to purchase plans.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
     
     try {
@@ -100,9 +109,9 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
         amount: planPrice,
         transactionId: transactionId.trim(),
         timestamp: new Date().toISOString(),
-        userId: user?.id || '',
-        userEmail: user?.email || '',
-        userName: user?.name || '',
+        userId: user.id,
+        userEmail: user.email,
+        userName: user.name,
       });
       
       toast({
@@ -113,9 +122,15 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
       onClose();
     } catch (error) {
       console.error('Error submitting deposit request:', error);
+      
+      let errorMessage = "There was an error submitting your deposit request. Please try again.";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Failed to submit",
-        description: "There was an error submitting your deposit request. Please try again.",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {

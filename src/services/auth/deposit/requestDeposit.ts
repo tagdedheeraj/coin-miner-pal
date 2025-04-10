@@ -16,19 +16,26 @@ export const createDepositRequestFunctions = (
     }
     
     try {
-      // Create the deposit request
-      const depositRequest = mapDepositToDb({
+      // Create the deposit request with a proper id
+      const depositRequest = {
         ...depositData,
+        id: uuidv4(),  // Generate a proper UUID for the request
         status: 'pending',
         timestamp: new Date().toISOString()
-      });
+      };
       
-      // Save to Supabase - using 'as any' to bypass TypeScript for this operation
+      // Map to database format
+      const dbDeposit = mapDepositToDb(depositRequest);
+      
+      // Save to Supabase
       const { error } = await supabase
         .from('deposit_requests')
-        .insert(depositRequest as any);
+        .insert(dbDeposit);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase insert error:', error);
+        throw new Error(`Failed to submit deposit request: ${error.message}`);
+      }
       
       // Add notification to user
       const notification = {
@@ -46,20 +53,23 @@ export const createDepositRequestFunctions = (
       
       const { error: updateError } = await supabase
         .from('users')
-        .update(userUpdate as any)
+        .update(userUpdate)
         .eq('id', user.id);
         
-      if (updateError) throw updateError;
-      
-      // Update local user state
-      setUser({
-        ...user,
-        notifications: [...userNotifications, notification]
-      });
+      if (updateError) {
+        console.error('Error updating user notifications:', updateError);
+        // Continue even if notification update fails
+      } else {
+        // Update local user state
+        setUser({
+          ...user,
+          notifications: [...userNotifications, notification]
+        });
+      }
       
       toast.success('Deposit request submitted successfully');
     } catch (error) {
-      console.error(error);
+      console.error('Deposit request error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to submit deposit request');
       throw error;
     }

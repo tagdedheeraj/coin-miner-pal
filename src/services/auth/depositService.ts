@@ -12,13 +12,14 @@ export const depositServiceFunctions = (
 ) => {
   // Initialize the deposit sub-functions
   const { requestPlanPurchase } = createDepositRequestFunctions(user, setUser);
-  const { getDepositRequests } = getDepositFunctions(user);
+  const { getDepositRequests, getUserDepositRequests } = getDepositFunctions(user);
   const { approveDepositRequest } = approveDepositFunctions(user);
   const { rejectDepositRequest } = rejectDepositFunctions(user);
   
   return {
     requestPlanPurchase,
     getDepositRequests,
+    getUserDepositRequests,
     approveDepositRequest,
     rejectDepositRequest
   };
