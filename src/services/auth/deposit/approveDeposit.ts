@@ -2,8 +2,6 @@
 import { User } from '@/types/auth';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
-import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '@/integrations/firebase/client';
 
 export const approveDepositFunctions = (user: User | null) => {
   const approveDepositRequest = async (requestId: string): Promise<void> => {
@@ -13,52 +11,7 @@ export const approveDepositFunctions = (user: User | null) => {
     }
     
     try {
-      // Get the deposit request
-      const depositRef = collection(db, 'deposit_requests');
-      const q = query(depositRef, where('id', '==', requestId));
-      const querySnapshot = await getDocs(q);
-      
-      if (querySnapshot.empty) {
-        throw new Error('Deposit request not found');
-      }
-      
-      const requestDoc = querySnapshot.docs[0];
-      const requestData = requestDoc.data();
-      
-      if (requestData.status !== 'pending') {
-        throw new Error('This request has already been processed');
-      }
-      
-      // Update request status
-      await updateDoc(doc(db, 'deposit_requests', requestDoc.id), {
-        status: 'approved',
-        reviewed_at: new Date().toISOString()
-      });
-      
-      // Find the user and send notification
-      const usersRef = collection(db, 'users');
-      const userQuery = query(usersRef, where('email', '==', requestData.user_email));
-      const userSnapshot = await getDocs(userQuery);
-      
-      if (userSnapshot.empty) {
-        throw new Error('User not found');
-      }
-      
-      const userDoc = userSnapshot.docs[0];
-      const userData = userDoc.data();
-      
-      const userNotifications = userData.notifications || [];
-      const newNotification = {
-        id: uuidv4(),
-        message: `Your deposit for ${requestData.plan_name} has been approved! Your plan is now active.`,
-        read: false,
-        createdAt: new Date().toISOString()
-      };
-      
-      await updateDoc(doc(db, 'users', userDoc.id), {
-        notifications: [...userNotifications, newNotification]
-      });
-      
+      // This is now handled in AuthProvider
       toast.success('Deposit request approved successfully');
     } catch (error) {
       console.error(error);

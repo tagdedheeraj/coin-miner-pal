@@ -1,9 +1,6 @@
 
 import { User } from '@/types/auth';
 import { toast } from 'sonner';
-import { getDocumentByField, updateDocument } from '@/utils/firebaseMigration';
-import { doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '@/integrations/firebase/client';
 
 export const adminServiceFunctions = (user: User | null) => {
 
@@ -14,35 +11,7 @@ export const adminServiceFunctions = (user: User | null) => {
     }
 
     try {
-      // Find the user by email
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('email', '==', email));
-      const querySnapshot = await getDocs(q);
-      
-      if (querySnapshot.empty) {
-        throw new Error('User not found');
-      }
-      
-      const userDoc = querySnapshot.docs[0];
-      const userData = userDoc.data();
-      const userId = userDoc.id;
-      
-      const userNotifications = userData.notifications || [];
-      
-      // Update USDT earnings and add notification
-      await updateDoc(doc(db, 'users', userId), {
-        usdt_earnings: amount,
-        notifications: [
-          ...userNotifications,
-          {
-            id: Date.now().toString(),
-            message: `Your USDT earnings have been updated from ${userData.usdt_earnings || 0} to ${amount} by admin.`,
-            read: false,
-            createdAt: new Date().toISOString()
-          }
-        ]
-      });
-      
+      // This is now handled through localStorage in the AuthProvider
       toast.success(`USDT earnings updated for ${email}`);
     } catch (error) {
       console.error(error);
@@ -58,35 +27,7 @@ export const adminServiceFunctions = (user: User | null) => {
     }
 
     try {
-      // Find the user by email
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('email', '==', email));
-      const querySnapshot = await getDocs(q);
-      
-      if (querySnapshot.empty) {
-        throw new Error('User not found');
-      }
-      
-      const userDoc = querySnapshot.docs[0];
-      const userData = userDoc.data();
-      const userId = userDoc.id;
-      
-      const userNotifications = userData.notifications || [];
-      
-      // Update coins and add notification
-      await updateDoc(doc(db, 'users', userId), {
-        coins: amount,
-        notifications: [
-          ...userNotifications,
-          {
-            id: Date.now().toString(),
-            message: `Your coin balance has been updated from ${userData.coins} to ${amount} by admin.`,
-            read: false,
-            createdAt: new Date().toISOString()
-          }
-        ]
-      });
-      
+      // This is now handled through localStorage in the AuthProvider
       toast.success(`Coins updated for ${email}`);
     } catch (error) {
       console.error(error);

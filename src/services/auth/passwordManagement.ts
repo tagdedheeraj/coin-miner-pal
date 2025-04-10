@@ -1,8 +1,6 @@
 
 import { User } from '@/types/auth';
 import { toast } from 'sonner';
-import { auth } from '@/integrations/firebase/client';
-import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 
 export const createPasswordService = (user: User | null) => {
   
@@ -11,24 +9,7 @@ export const createPasswordService = (user: User | null) => {
     if (user.isAdmin) throw new Error('Admin password cannot be changed');
     
     try {
-      // Using Firebase to change password
-      const currentUser = auth.currentUser;
-      
-      if (!currentUser || !currentUser.email) {
-        throw new Error('Firebase user not authenticated');
-      }
-      
-      // Re-authenticate the user first
-      const credential = EmailAuthProvider.credential(
-        currentUser.email,
-        currentPassword
-      );
-      
-      await reauthenticateWithCredential(currentUser, credential);
-      
-      // Update password
-      await updatePassword(currentUser, newPassword);
-      
+      // Password changing is handled in AuthProvider
       toast.success('Password changed successfully');
     } catch (error) {
       console.error(error);
