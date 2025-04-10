@@ -13,38 +13,28 @@ const Plans: React.FC = () => {
   const [depositRequests, setDepositRequests] = useState<DepositRequest[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
-  useEffect(() => {
+  const fetchDepositRequests = async () => {
     if (isAuthenticated && getUserDepositRequests) {
       setIsLoading(true);
-      getUserDepositRequests()
-        .then(requests => {
-          setDepositRequests(requests);
-        })
-        .catch(error => {
-          console.error('Error fetching user deposit requests:', error);
-          // Don't show toast to avoid spamming the user on RLS errors
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
+      try {
+        const requests = await getUserDepositRequests();
+        setDepositRequests(requests);
+      } catch (error) {
+        console.error('Error fetching user deposit requests:', error);
+        // Don't show toast to avoid spamming the user on RLS errors
+      } finally {
+        setIsLoading(false);
+      }
     }
+  };
+  
+  useEffect(() => {
+    fetchDepositRequests();
   }, [isAuthenticated, getUserDepositRequests]);
 
   // Add a refresh function that PlansCard can call after successful submission
   const refreshDepositRequests = () => {
-    if (isAuthenticated && getUserDepositRequests) {
-      setIsLoading(true);
-      getUserDepositRequests()
-        .then(requests => {
-          setDepositRequests(requests);
-        })
-        .catch(error => {
-          console.error('Error refreshing deposit requests:', error);
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
-    }
+    fetchDepositRequests();
   };
   
   if (!isAuthenticated) {

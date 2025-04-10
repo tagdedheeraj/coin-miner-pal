@@ -31,60 +31,65 @@ export const createDepositRequestFunctions = (
         throw new Error('Authentication verification failed. Please try again.');
       }
       
+      // IMPORTANT: First ensure the user exists in the users table
+      // Check if the user exists in the database
+      const { data: existingUser, error: userCheckError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', user.id)
+        .single();
+        
+      if (userCheckError || !existingUser) {
+        console.log('User does not exist in database, creating user record first');
+        // User doesn't exist in the database, create the user record
+        const userDbData = mapUserToDb(user);
+        
+        const { error: createUserError } = await supabase
+          .from('users')
+          .insert({
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            coins: user.coins || 0,
+            referral_code: user.referralCode,
+            has_setup_pin: user.hasSetupPin || false,
+            has_biometrics: user.hasBiometrics || false,
+            withdrawal_address: user.withdrawalAddress,
+            applied_referral_code: user.appliedReferralCode,
+            usdt_earnings: user.usdtEarnings || 0,
+            notifications: user.notifications || [],
+            is_admin: user.isAdmin || false
+          });
+          
+        if (createUserError) {
+          console.error('Failed to create user record:', createUserError);
+          throw new Error(`Failed to create user record: ${createUserError.message}`);
+        }
+      }
+      
       // Map to database format
       const dbDeposit = mapDepositToDb(depositRequest);
       
-      // Save to Supabase with explicit foreign key
+      // Now create the deposit request
       const { error } = await supabase
         .from('deposit_requests')
         .insert({
           id: dbDeposit.id,
           user_id: user.id,
-          user_email: dbDeposit.user_email,
-          user_name: dbDeposit.user_name,
-          plan_id: dbDeposit.plan_id,
-          plan_name: dbDeposit.plan_name,
-          amount: dbDeposit.amount,
-          transaction_id: dbDeposit.transaction_id,
-          status: dbDeposit.status,
-          timestamp: dbDeposit.timestamp,
-          reviewed_at: dbDeposit.reviewed_at
+          user_email: depositData.userEmail,
+          user_name: depositData.userName,
+          plan_id: depositData.planId,
+          plan_name: depositData.planName,
+          amount: depositData.amount,
+          transaction_id: depositData.transactionId,
+          status: 'pending',
+          timestamp: new Date().toISOString(),
+          reviewed_at: null
         });
       
       if (error) {
         console.error('Supabase insert error:', error);
-        
-        if (error.message.includes('violates foreign key constraint')) {
-          // Try to create the user record first since it might be missing
-          const userDbData = mapUserToDb(user);
-          
-          await supabase
-            .from('users')
-            .upsert(userDbData as any, { onConflict: 'id' });
-          
-          // Try the deposit request again
-          const { error: retryError } = await supabase
-            .from('deposit_requests')
-            .insert({
-              id: dbDeposit.id,
-              user_id: user.id,
-              user_email: dbDeposit.user_email,
-              user_name: dbDeposit.user_name,
-              plan_id: dbDeposit.plan_id,
-              plan_name: dbDeposit.plan_name,
-              amount: dbDeposit.amount,
-              transaction_id: dbDeposit.transaction_id,
-              status: dbDeposit.status,
-              timestamp: dbDeposit.timestamp,
-              reviewed_at: dbDeposit.reviewed_at
-            });
-            
-          if (retryError) {
-            throw new Error(`Unable to create deposit request after retry: ${retryError.message}`);
-          }
-        } else {
-          throw new Error(`Failed to submit deposit request: ${error.message}`);
-        }
+        throw new Error(`Failed to submit deposit request: ${error.message}`);
       }
       
       // Add notification to user
