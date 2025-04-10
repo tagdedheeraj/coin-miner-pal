@@ -1,5 +1,6 @@
 
 import { User, WithdrawalRequest, DepositRequest } from '@/types/auth';
+import { Json } from '@/integrations/supabase/types';
 
 // Maps our User model to Supabase DB columns
 export const mapUserToDb = (user: Partial<User>) => {

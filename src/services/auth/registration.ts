@@ -47,15 +47,16 @@ export const createRegistrationService = (
         notifications: []
       };
       
+      // Map the user object for Supabase
+      const supabaseUserData = mapUserToDb({
+        ...newUser,
+        isAdmin: false
+      });
+      
       // Also save to Supabase for admin panel visibility
       const { error: supabaseError } = await supabase
         .from('users')
-        .insert([
-          mapUserToDb({
-            ...newUser,
-            isAdmin: false
-          })
-        ]);
+        .insert(supabaseUserData);
       
       if (supabaseError) {
         console.error('Failed to save user to Supabase:', supabaseError);
