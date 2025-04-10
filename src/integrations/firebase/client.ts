@@ -14,22 +14,17 @@ const firebaseConfig = {
   measurementId: "G-MER6MD0LGX"
 };
 
-// Define app and auth as variables that will be populated in try-catch
-let app;
-let auth;
+let firebaseApp = null;
+let firebaseAuth = null;
 
 try {
-  // Initialize Firebase
   console.log('Attempting to initialize Firebase...');
-  app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
+  firebaseApp = initializeApp(firebaseConfig);
+  firebaseAuth = getAuth(firebaseApp);
   console.log('Firebase initialized successfully');
 } catch (error) {
   console.error('Firebase initialization failed:', error);
-  // Create fallback exports to prevent import errors
-  app = null;
-  auth = null;
 }
 
-// Export the variables that were set in the try-catch
-export { app, auth };
+export const app = firebaseApp;
+export const auth = firebaseAuth;

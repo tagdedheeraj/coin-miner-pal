@@ -7,7 +7,6 @@ export const useAuth = () => {
     const context = useContext(AuthContext);
     if (context === undefined) {
       console.error('useAuth must be used within an AuthProvider');
-      // Return default values to prevent app crashes
       return {
         user: null,
         isAuthenticated: false,
@@ -17,12 +16,10 @@ export const useAuth = () => {
     return context;
   } catch (error) {
     console.error('Error in useAuth hook:', error);
-    // Return default values to prevent app crashes
     return {
       user: null,
       isAuthenticated: false,
-      isLoading: false,
-      error: true
+      isLoading: false
     };
   }
 };

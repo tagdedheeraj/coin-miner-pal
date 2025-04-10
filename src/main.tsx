@@ -6,7 +6,6 @@ import './index.css'
 
 console.log('Starting application initialization...');
 
-// Create root with error handling
 try {
   console.log('Finding root element...');
   const rootElement = document.getElementById('root');
@@ -16,8 +15,7 @@ try {
     document.body.innerHTML = '<div style="padding: 20px; text-align: center;"><h1>Error</h1><p>Application failed to initialize. Root element not found.</p></div>';
   } else {
     console.log('Root element found, rendering app...');
-    const root = ReactDOM.createRoot(rootElement);
-    root.render(
+    ReactDOM.createRoot(rootElement).render(
       <React.StrictMode>
         <App />
       </React.StrictMode>
