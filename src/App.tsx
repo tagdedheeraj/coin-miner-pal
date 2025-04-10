@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { CombinedAuthProvider } from '@/contexts/auth/AuthProvider';
 import { useAuth } from '@/hooks/useAuth';
 import { Toaster } from '@/components/ui/toaster';
@@ -26,19 +26,14 @@ import NotFound from '@/pages/NotFound';
 import Header from '@/components/layout/Header';
 import BottomNav from '@/components/layout/BottomNav';
 
-// Loading spinner component
-const LoadingSpinner = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-  </div>
-);
-
 // Route protection components
 const AuthRoute = () => {
   const { isAuthenticated, isLoading } = useAuth();
   
   if (isLoading) {
-    return <LoadingSpinner />;
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+    </div>;
   }
   
   return isAuthenticated ? <Outlet /> : <Navigate to="/sign-in" />;
@@ -48,7 +43,9 @@ const AdminRoute = () => {
   const { user, isLoading } = useAuth();
   
   if (isLoading) {
-    return <LoadingSpinner />;
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+    </div>;
   }
   
   return user?.isAdmin ? <Outlet /> : <Navigate to="/dashboard" />;
@@ -58,7 +55,9 @@ const GuestRoute = () => {
   const { isAuthenticated, isLoading } = useAuth();
   
   if (isLoading) {
-    return <LoadingSpinner />;
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+    </div>;
   }
   
   return !isAuthenticated ? <Outlet /> : <Navigate to="/dashboard" />;
@@ -102,56 +101,45 @@ const NavigationHandler = () => {
   return null;
 };
 
-// AppRoutes component to separate routing from providers
-const AppRoutes = () => {
-  return (
-    <>
-      <NavigationHandler />
-      <Routes>
-        {/* Guest routes (no auth required) */}
-        <Route element={<GuestRoute />}>
-          <Route path="/" element={<Index />} />
-          <Route path="/sign-in" element={<SignIn />} />
-          <Route path="/sign-up" element={<SignUp />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-        </Route>
-        
-        {/* Protected routes (auth required) */}
-        <Route element={<AuthRoute />}>
-          <Route element={<MainLayout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/mining" element={<Mining />} />
-            <Route path="/rewards" element={<Rewards />} />
-            <Route path="/wallet" element={<Wallet />} />
-            <Route path="/referral" element={<Referral />} />
-            <Route path="/plans" element={<Plans />} />
-          </Route>
-        </Route>
-        
-        {/* Admin routes */}
-        <Route element={<AdminRoute />}>
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/panel" element={<AdminPanel />} />
-        </Route>
-        
-        {/* Catch-all route for 404 */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </>
-  );
-};
-
 function App() {
   return (
-    <BrowserRouter>
-      <CombinedAuthProvider>
-        <MiningProvider>
-          <AppRoutes />
-          <Toaster />
-        </MiningProvider>
-      </CombinedAuthProvider>
-    </BrowserRouter>
+    <CombinedAuthProvider>
+      <MiningProvider>
+        <NavigationHandler />
+        <Routes>
+          {/* Guest routes (no auth required) */}
+          <Route element={<GuestRoute />}>
+            <Route path="/" element={<Index />} />
+            <Route path="/sign-in" element={<SignIn />} />
+            <Route path="/sign-up" element={<SignUp />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+          </Route>
+          
+          {/* Protected routes (auth required) */}
+          <Route element={<AuthRoute />}>
+            <Route element={<MainLayout />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/mining" element={<Mining />} />
+              <Route path="/rewards" element={<Rewards />} />
+              <Route path="/wallet" element={<Wallet />} />
+              <Route path="/referral" element={<Referral />} />
+              <Route path="/plans" element={<Plans />} />
+            </Route>
+          </Route>
+          
+          {/* Admin routes */}
+          <Route element={<AdminRoute />}>
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/panel" element={<AdminPanel />} />
+          </Route>
+          
+          {/* Catch-all route for 404 */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+        <Toaster />
+      </MiningProvider>
+    </CombinedAuthProvider>
   );
 }
 
