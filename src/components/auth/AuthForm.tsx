@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -73,8 +72,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
         const signUpValues = values as SignUpFormValues;
         console.log('Starting signup process with:', { name: signUpValues.name, email: signUpValues.email });
         
-        const result = await signUp(signUpValues.name, signUpValues.email, signUpValues.password);
-        console.log('Signup successful', result);
+        await signUp(signUpValues.name, signUpValues.email, signUpValues.password);
+        console.log('Signup successful');
         
         // Give a slight delay before redirect for better UX
         setTimeout(() => {
@@ -95,10 +94,12 @@ const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
       
       // Handle network errors separately for better user experience
       if (error instanceof Error) {
-        if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed to fetch')) {
+        if (error.message.includes('auth/network-request-failed')) {
           setErrorMessage("Network error. Please check your internet connection and try again.");
-        } else if (error.message.includes('already')) {
+        } else if (error.message.includes('auth/email-already-in-use')) {
           setErrorMessage("This email is already registered. Please sign in instead.");
+        } else if (error.message.includes('auth/user-not-found') || error.message.includes('auth/wrong-password')) {
+          setErrorMessage("Invalid email or password. Please try again.");
         } else {
           setErrorMessage(error.message);
         }

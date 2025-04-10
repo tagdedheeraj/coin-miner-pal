@@ -1,12 +1,12 @@
 
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { User } from '@/types/auth';
 import { mockUsers } from '@/data/mockUsers';
 import { generateReferralCode } from '@/utils/referral';
 import { AuthStateType } from './types';
 import { userServiceFunctions } from '@/services/auth/userService';
-import { mapUserToDb, mapDbToUser } from '@/utils/supabaseUtils';
+import { auth } from '@/integrations/firebase/client';
+import { onAuthStateChanged } from 'firebase/auth';
 
 // Create context for auth state
 export const AuthStateContext = createContext<AuthStateType | null>(null);
@@ -30,22 +30,26 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({ children }
         const parsedUser = JSON.parse(storedUser) as User;
         setUser(parsedUser);
         setIsLoading(false);
-        return;
       } catch (error) {
         console.error('Error parsing stored user:', error);
         localStorage.removeItem('user');
       }
     }
 
-    // Set up Supabase auth listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session) {
+    // Set up Firebase auth listener
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
         // Check if we have this user in localStorage with the correct email
         const storedUserData = localStorage.getItem('user');
         if (storedUserData) {
           try {
             const parsedStoredUser = JSON.parse(storedUserData) as User;
-            if (parsedStoredUser.email === session.user.email) {
+            if (parsedStoredUser.email === firebaseUser.email) {
+              // Make sure the ID matches
+              if (parsedStoredUser.id !== firebaseUser.uid) {
+                parsedStoredUser.id = firebaseUser.uid;
+                localStorage.setItem('user', JSON.stringify(parsedStoredUser));
+              }
               setUser(parsedStoredUser);
               setIsLoading(false);
               return;
@@ -55,65 +59,24 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({ children }
           }
         }
 
-        // If not in localStorage, get from Supabase
-        try {
-          // Use the fetchUserBySupabaseId function from userService
-          const userData = await userService.fetchUserBySupabaseId(session.user.id);
-          
-          if (!userData) {
-            // If not found in Supabase, check mock users
-            const mockUser = mockUsers.find(u => u.email === session.user.email);
-            if (mockUser) {
-              const userObj = {
-                id: mockUser.id,
-                name: mockUser.name,
-                email: mockUser.email,
-                coins: mockUser.coins,
-                referralCode: mockUser.referralCode,
-                hasSetupPin: mockUser.hasSetupPin,
-                hasBiometrics: mockUser.hasBiometrics,
-                withdrawalAddress: mockUser.withdrawalAddress,
-                appliedReferralCode: mockUser.appliedReferralCode,
-                usdtEarnings: mockUser.usdtEarnings,
-                notifications: mockUser.notifications,
-                isAdmin: mockUser.isAdmin
-              };
-              
-              // Save to localStorage for persistence
-              localStorage.setItem('user', JSON.stringify(userObj));
-              setUser(userObj);
-            } else {
-              // Create new user if not found
-              const newUser = {
-                id: session.user.id,
-                name: session.user.user_metadata?.name || 'New User',
-                email: session.user.email || '',
-                coins: 0,
-                referralCode: generateReferralCode(),
-                hasSetupPin: false,
-                hasBiometrics: false,
-                withdrawalAddress: null,
-                isAdmin: false
-              };
-              
-              // Save to Supabase
-              const userDbData = mapUserToDb(newUser);
-
-              // We need to cast this to ensure it has the required properties
-              await supabase.from('users').insert(userDbData as any);
-              
-              // Save to localStorage for persistence
-              localStorage.setItem('user', JSON.stringify(newUser));
-              setUser(newUser);
-            }
-          } else {
-            // User found in Supabase
-            localStorage.setItem('user', JSON.stringify(userData));
-            setUser(userData);
-          }
-        } catch (error) {
-          console.error('Error fetching user data:', error);
-        }
+        // If not in localStorage, create new user
+        const newUser = {
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName || 'New User',
+          email: firebaseUser.email || '',
+          coins: 200,
+          referralCode: generateReferralCode(),
+          hasSetupPin: false,
+          hasBiometrics: false,
+          withdrawalAddress: null,
+          isAdmin: false,
+          usdtEarnings: 0,
+          notifications: []
+        };
+        
+        // Save to localStorage for persistence
+        localStorage.setItem('user', JSON.stringify(newUser));
+        setUser(newUser);
       } else {
         // User is signed out
         localStorage.removeItem('user');
@@ -123,7 +86,7 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({ children }
     });
 
     return () => {
-      subscription.unsubscribe();
+      unsubscribe();
     };
   }, []);
 

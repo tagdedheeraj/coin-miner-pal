@@ -1,9 +1,9 @@
 
 import { Dispatch, SetStateAction } from 'react';
 import { User } from '@/types/auth';
-import { supabase } from '@/integrations/supabase/client';
+import { auth } from '@/integrations/firebase/client';
+import { signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth';
 import { toast } from 'sonner';
-import { mapDbToUser } from '@/utils/supabaseUtils';
 import { mockUsers } from '@/data/mockUsers';
 
 export const createAuthenticationService = (
@@ -16,7 +16,7 @@ export const createAuthenticationService = (
     setIsLoading(true);
     
     try {
-      // Check for admin/mock users first before trying Supabase
+      // Check for admin/mock users first before trying Firebase
       const mockUser = mockUsers.find(u => u.email === email && u.password === password);
       
       if (mockUser) {
@@ -46,47 +46,54 @@ export const createAuthenticationService = (
         return;
       }
       
-      // If not a mock user, proceed with Supabase authentication
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
+      // If not a mock user, proceed with Firebase authentication
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
       
-      if (error) throw error;
-      
-      // Get user data from the database
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .single();
-      
-      if (userError) {
-        console.error('Error fetching user data:', userError);
-        throw new Error('Failed to fetch user data');
+      // Check if we already have user data saved
+      const storedUserData = localStorage.getItem('user');
+      if (storedUserData) {
+        try {
+          const parsedUser = JSON.parse(storedUserData) as User;
+          if (parsedUser.email === email) {
+            // Update the ID to match Firebase UID
+            parsedUser.id = firebaseUser.uid;
+            setUser(parsedUser);
+            localStorage.setItem('user', JSON.stringify(parsedUser));
+            toast.success('Signed in successfully');
+            return;
+          }
+        } catch (error) {
+          console.error('Error parsing stored user data:', error);
+        }
       }
       
-      if (!userData) {
-        throw new Error('User profile not found');
-      }
-      
-      // Map the user data and update local state
-      const userObj = mapDbToUser(userData);
+      // If we don't have user data, create new user profile
+      const userObj: User = {
+        id: firebaseUser.uid,
+        name: firebaseUser.displayName || email.split('@')[0],
+        email: email,
+        coins: 200, // Sign-up bonus
+        referralCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
+        hasSetupPin: false,
+        hasBiometrics: false,
+        withdrawalAddress: null,
+        usdtEarnings: 0,
+        notifications: []
+      };
       
       setUser(userObj);
-      
-      // Store in localStorage for persistence
       localStorage.setItem('user', JSON.stringify(userObj));
-      
       toast.success('Signed in successfully');
     } catch (error) {
       console.error('Sign-in error:', error);
       
       let errorMessage = 'Failed to sign in';
       if (error instanceof Error) {
-        if (error.message.includes('fetch') || 
-            error.message.includes('network') || 
-            error.message.includes('Failed to fetch')) {
+        if (error.message.includes('auth/user-not-found') || 
+            error.message.includes('auth/wrong-password')) {
+          errorMessage = 'Invalid email or password';
+        } else if (error.message.includes('auth/network-request-failed')) {
           errorMessage = 'Network error. Please check your internet connection and try again.';
         } else {
           errorMessage = error.message;
@@ -101,7 +108,7 @@ export const createAuthenticationService = (
   };
   
   const signOut = () => {
-    supabase.auth.signOut().then(() => {
+    firebaseSignOut(auth).then(() => {
       localStorage.removeItem('user');
       setUser(null);
       toast.success('Signed out successfully');
