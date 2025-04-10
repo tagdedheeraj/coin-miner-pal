@@ -1,6 +1,6 @@
 
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
-import { auth } from '@/lib/firebase';
+import { supabase } from '@/lib/supabase';
 import { User } from '@/types/auth';
 import { mockUsers } from '@/data/mockUsers';
 import { generateReferralCode } from '@/utils/referral';
@@ -32,14 +32,15 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({ children }
       }
     }
 
-    const unsubscribe = auth.onAuthStateChanged(firebaseUser => {
-      if (firebaseUser) {
+    // Set up Supabase auth listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session) {
         // Check if we have this user in localStorage with the correct email
         const storedUserData = localStorage.getItem('user');
         if (storedUserData) {
           try {
             const parsedStoredUser = JSON.parse(storedUserData) as User;
-            if (parsedStoredUser.email === firebaseUser.email) {
+            if (parsedStoredUser.email === session.user.email) {
               setUser(parsedStoredUser);
               setIsLoading(false);
               return;
@@ -49,44 +50,64 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({ children }
           }
         }
 
-        // If not in localStorage, check mock users
-        const mockUser = mockUsers.find(u => u.email === firebaseUser.email);
-        if (mockUser) {
-          const userObj = {
-            id: mockUser.id,
-            name: mockUser.name,
-            email: mockUser.email,
-            coins: mockUser.coins,
-            referralCode: mockUser.referralCode,
-            hasSetupPin: mockUser.hasSetupPin,
-            hasBiometrics: mockUser.hasBiometrics,
-            withdrawalAddress: mockUser.withdrawalAddress,
-            appliedReferralCode: mockUser.appliedReferralCode,
-            usdtEarnings: mockUser.usdtEarnings,
-            notifications: mockUser.notifications,
-            isAdmin: mockUser.isAdmin
-          };
-          
-          // Save to localStorage for persistence
-          localStorage.setItem('user', JSON.stringify(userObj));
-          setUser(userObj);
-        } else {
-          // Create new user if not found
-          const newUser = {
-            id: firebaseUser.uid,
-            name: firebaseUser.displayName || 'New User',
-            email: firebaseUser.email || '',
-            coins: 0,
-            referralCode: generateReferralCode(),
-            hasSetupPin: false,
-            hasBiometrics: false,
-            withdrawalAddress: null,
-            isAdmin: false
-          };
-          
-          // Save to localStorage for persistence
-          localStorage.setItem('user', JSON.stringify(newUser));
-          setUser(newUser);
+        // If not in localStorage, get from Supabase
+        try {
+          const { data: userData, error } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+          if (error || !userData) {
+            // If not found in Supabase, check mock users
+            const mockUser = mockUsers.find(u => u.email === session.user.email);
+            if (mockUser) {
+              const userObj = {
+                id: mockUser.id,
+                name: mockUser.name,
+                email: mockUser.email,
+                coins: mockUser.coins,
+                referralCode: mockUser.referralCode,
+                hasSetupPin: mockUser.hasSetupPin,
+                hasBiometrics: mockUser.hasBiometrics,
+                withdrawalAddress: mockUser.withdrawalAddress,
+                appliedReferralCode: mockUser.appliedReferralCode,
+                usdtEarnings: mockUser.usdtEarnings,
+                notifications: mockUser.notifications,
+                isAdmin: mockUser.isAdmin
+              };
+              
+              // Save to localStorage for persistence
+              localStorage.setItem('user', JSON.stringify(userObj));
+              setUser(userObj);
+            } else {
+              // Create new user if not found
+              const newUser = {
+                id: session.user.id,
+                name: session.user.user_metadata?.name || 'New User',
+                email: session.user.email || '',
+                coins: 0,
+                referralCode: generateReferralCode(),
+                hasSetupPin: false,
+                hasBiometrics: false,
+                withdrawalAddress: null,
+                isAdmin: false
+              };
+              
+              // Save to Supabase
+              await supabase.from('users').insert([newUser]);
+              
+              // Save to localStorage for persistence
+              localStorage.setItem('user', JSON.stringify(newUser));
+              setUser(newUser);
+            }
+          } else {
+            // User found in Supabase
+            localStorage.setItem('user', JSON.stringify(userData));
+            setUser(userData);
+          }
+        } catch (error) {
+          console.error('Error fetching user data:', error);
         }
       } else {
         // User is signed out
@@ -96,7 +117,9 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({ children }
       setIsLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   return (
