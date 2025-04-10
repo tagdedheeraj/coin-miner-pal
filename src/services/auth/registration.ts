@@ -5,6 +5,8 @@ import { auth } from '@/integrations/firebase/client';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { toast } from 'sonner';
 import { generateReferralCode } from '@/utils/referral';
+import { supabase } from '@/integrations/supabase/client';
+import { mapUserToDb } from '@/utils/supabaseUtils';
 
 export const createRegistrationService = (
   user: User | null, 
@@ -44,6 +46,23 @@ export const createRegistrationService = (
         usdtEarnings: 0,
         notifications: []
       };
+      
+      // Also save to Supabase for admin panel visibility
+      const { error: supabaseError } = await supabase
+        .from('users')
+        .insert([
+          mapUserToDb({
+            ...newUser,
+            isAdmin: false
+          })
+        ]);
+      
+      if (supabaseError) {
+        console.error('Failed to save user to Supabase:', supabaseError);
+        // Continue anyway since Firebase auth is successful
+      } else {
+        console.log('User successfully saved to Supabase');
+      }
       
       // Save in local state
       setUser(newUser);

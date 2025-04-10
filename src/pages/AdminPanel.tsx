@@ -11,9 +11,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Trash2, User, Search, LayoutGrid, DollarSign, Coins, BellRing, CheckCircle, XCircle, FileText, CreditCard } from 'lucide-react';
-import { mockUsers } from '@/data/mockUsers';
 import ArbitragePlanManagement from '@/components/admin/ArbitragePlanManagement';
-import { WithdrawalRequest, DepositRequest } from '@/types/auth';
+import { WithdrawalRequest, DepositRequest, User as UserType } from '@/types/auth';
+import { supabase } from '@/integrations/supabase/client';
+import { mapDbToUser } from '@/utils/supabaseUtils';
+import { toast } from 'sonner';
 
 const AdminPanel: React.FC = () => {
   const { 
@@ -39,8 +41,10 @@ const AdminPanel: React.FC = () => {
   const [notificationMessage, setNotificationMessage] = useState('');
   const [withdrawalRequests, setWithdrawalRequests] = useState<WithdrawalRequest[]>([]);
   const [depositRequests, setDepositRequests] = useState<DepositRequest[]>([]);
+  const [allUsers, setAllUsers] = useState<UserType[]>([]);
   const [loadingWithdrawals, setLoadingWithdrawals] = useState(true);
   const [loadingDeposits, setLoadingDeposits] = useState(true);
+  const [loadingUsers, setLoadingUsers] = useState(true);
   
   useEffect(() => {
     const fetchWithdrawalRequests = async () => {
@@ -69,8 +73,32 @@ const AdminPanel: React.FC = () => {
       }
     };
     
+    const fetchAllUsers = async () => {
+      if (user?.isAdmin) {
+        try {
+          setLoadingUsers(true);
+          const { data, error } = await supabase
+            .from('users')
+            .select('*');
+          
+          if (error) {
+            throw error;
+          }
+          
+          const mappedUsers = data?.map(dbUser => mapDbToUser(dbUser)) || [];
+          setAllUsers(mappedUsers);
+        } catch (error) {
+          console.error('Error fetching users:', error);
+          toast.error('Failed to fetch users');
+        } finally {
+          setLoadingUsers(false);
+        }
+      }
+    };
+    
     fetchWithdrawalRequests();
     fetchDepositRequests();
+    fetchAllUsers();
   }, [user, getWithdrawalRequests, getDepositRequests]);
   
   if (!isAuthenticated || !user?.isAdmin) {
@@ -80,14 +108,16 @@ const AdminPanel: React.FC = () => {
   const pendingWithdrawals = withdrawalRequests.filter(req => req.status === 'pending');
   const pendingDeposits = depositRequests.filter(req => req.status === 'pending');
   
-  const filteredUsers = mockUsers.filter(user => 
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredUsers = allUsers.filter(user => 
+    user.name?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    user.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
   
   const handleDeleteUser = (userId: string) => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       deleteUser(userId);
+      // Remove user from local state
+      setAllUsers(prev => prev.filter(u => u.id !== userId));
     }
   };
 
@@ -98,6 +128,13 @@ const AdminPanel: React.FC = () => {
 
     try {
       await updateUserUsdtEarnings(userEmail, parseFloat(usdtAmount));
+      // Update user in local state
+      setAllUsers(prev => prev.map(u => {
+        if (u.email === userEmail) {
+          return { ...u, usdtEarnings: parseFloat(usdtAmount) };
+        }
+        return u;
+      }));
       setUserEmail('');
       setUsdtAmount('');
     } catch (error) {
@@ -112,6 +149,13 @@ const AdminPanel: React.FC = () => {
 
     try {
       await updateUserCoins(coinEmail, parseInt(coinAmount, 10));
+      // Update user in local state
+      setAllUsers(prev => prev.map(u => {
+        if (u.email === coinEmail) {
+          return { ...u, coins: parseInt(coinAmount, 10) };
+        }
+        return u;
+      }));
       setCoinEmail('');
       setCoinAmount('');
     } catch (error) {
@@ -250,53 +294,90 @@ const AdminPanel: React.FC = () => {
                       className="pl-10"
                     />
                   </div>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      // Refresh users list
+                      const fetchAllUsers = async () => {
+                        try {
+                          setLoadingUsers(true);
+                          const { data, error } = await supabase
+                            .from('users')
+                            .select('*');
+                          
+                          if (error) {
+                            throw error;
+                          }
+                          
+                          const mappedUsers = data?.map(dbUser => mapDbToUser(dbUser)) || [];
+                          setAllUsers(mappedUsers);
+                          toast.success('User list refreshed');
+                        } catch (error) {
+                          console.error('Error fetching users:', error);
+                          toast.error('Failed to refresh users');
+                        } finally {
+                          setLoadingUsers(false);
+                        }
+                      };
+                      fetchAllUsers();
+                    }}
+                  >
+                    Refresh
+                  </Button>
                 </div>
                 
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>ID</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Coins</TableHead>
-                        <TableHead>USDT Earnings</TableHead>
-                        <TableHead>Referral Code</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredUsers.length > 0 ? (
-                        filteredUsers.map(u => (
-                          <TableRow key={u.id}>
-                            <TableCell className="font-mono text-xs">{u.id}</TableCell>
-                            <TableCell className="font-medium">{u.name}</TableCell>
-                            <TableCell>{u.email}</TableCell>
-                            <TableCell>{u.coins}</TableCell>
-                            <TableCell>{u.usdtEarnings || 0}</TableCell>
-                            <TableCell className="font-mono text-xs">{u.referralCode}</TableCell>
-                            <TableCell>
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                onClick={() => handleDeleteUser(u.id)}
-                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                {loadingUsers ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
+                    <p className="text-gray-500">Loading users...</p>
+                  </div>
+                ) : (
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>ID</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Coins</TableHead>
+                          <TableHead>USDT Earnings</TableHead>
+                          <TableHead>Referral Code</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredUsers.length > 0 ? (
+                          filteredUsers.map(u => (
+                            <TableRow key={u.id}>
+                              <TableCell className="font-mono text-xs">{u.id}</TableCell>
+                              <TableCell className="font-medium">{u.name || 'N/A'}</TableCell>
+                              <TableCell>{u.email || 'N/A'}</TableCell>
+                              <TableCell>{u.coins}</TableCell>
+                              <TableCell>{u.usdtEarnings || 0}</TableCell>
+                              <TableCell className="font-mono text-xs">{u.referralCode}</TableCell>
+                              <TableCell>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  onClick={() => handleDeleteUser(u.id)}
+                                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow>
+                            <TableCell colSpan={7} className="text-center py-6 text-gray-500">
+                              No users found
                             </TableCell>
                           </TableRow>
-                        ))
-                      ) : (
-                        <TableRow>
-                          <TableCell colSpan={7} className="text-center py-6 text-gray-500">
-                            No users found
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

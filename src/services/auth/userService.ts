@@ -16,21 +16,23 @@ export const userServiceFunctions = (
     try {
       const updatedUser = { ...user, ...updates };
       
-      // Update in Supabase if not admin user
-      if (!user.isAdmin) {
-        const { error } = await supabase
-          .from('users')
-          .update(mapUserToDb(updates))
-          .eq('id', user.id);
-        
-        if (error) throw error;
+      // Update in Supabase
+      const { error } = await supabase
+        .from('users')
+        .update(mapUserToDb(updates))
+        .eq('id', user.id);
+      
+      if (error) {
+        console.error('Supabase error updating user:', error);
+        // Still proceed with local update even if Supabase fails
       }
       
       // Update localStorage for persistence
       localStorage.setItem('user', JSON.stringify(updatedUser));
       setUser(updatedUser);
+      console.log('User updated successfully:', updatedUser);
     } catch (error) {
-      console.error(error);
+      console.error('Failed to update user data:', error);
       toast.error('Failed to update user data');
     }
   };
