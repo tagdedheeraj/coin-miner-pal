@@ -1,15 +1,21 @@
+
 // Supabase client compatibility layer for Firebase migration
 // This provides API compatibility during migration period
 
 import { collection, query, where, getDocs, doc, getDoc, updateDoc, deleteDoc, setDoc, orderBy, limit } from "firebase/firestore";
-import { db, auth } from '@/integrations/firebase/client';
+import { db as firebaseDb, auth as firebaseAuth, storage as firebaseStorage } from '@/integrations/firebase/client';
 import { logMigrationWarning } from '@/utils/migrationUtils';
+
+// Export Firebase instances under Supabase-compatible names
+export const db = firebaseDb;
+export const auth = firebaseAuth;
+export const storage = firebaseStorage;
 
 // Mock Supabase client with Firebase implementations
 export const supabase = {
   auth: {
     getUser: async () => {
-      const user = auth.currentUser;
+      const user = firebaseAuth.currentUser;
       return {
         data: { user },
         error: user ? null : new Error('Not authenticated')
@@ -17,7 +23,7 @@ export const supabase = {
     },
     signOut: async () => {
       try {
-        await auth.signOut();
+        await firebaseAuth.signOut();
         return { error: null };
       } catch (error) {
         return { error };
@@ -29,10 +35,10 @@ export const supabase = {
     
     return {
       select: (fields = '*') => {
-        return {
+        const selectQuery = {
           eq: async (column: string, value: any) => {
             try {
-              const q = query(collection(db, table), where(column, '==', value));
+              const q = query(collection(firebaseDb, table), where(column, '==', value));
               const querySnapshot = await getDocs(q);
               const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
               return { data, error: null };
@@ -42,7 +48,7 @@ export const supabase = {
           },
           single: async () => {
             try {
-              const querySnapshot = await getDocs(collection(db, table));
+              const querySnapshot = await getDocs(collection(firebaseDb, table));
               if (querySnapshot.empty) {
                 return { data: null, error: null };
               }
@@ -52,12 +58,12 @@ export const supabase = {
               return { data: null, error };
             }
           },
-          order: (column: string, { ascending = true }) => {
+          order: (column: string, { ascending = true } = {}) => {
             return {
               eq: async (filterColumn: string, value: any) => {
                 try {
                   const q = query(
-                    collection(db, table),
+                    collection(firebaseDb, table),
                     where(filterColumn, '==', value),
                     orderBy(column, ascending ? 'asc' : 'desc')
                   );
@@ -71,10 +77,13 @@ export const supabase = {
             };
           }
         };
+
+        // Fix for chaining methods - return as properties, not promises
+        return selectQuery;
       },
       insert: async (data: any) => {
         try {
-          const newDocRef = doc(collection(db, table));
+          const newDocRef = doc(collection(firebaseDb, table));
           await setDoc(newDocRef, { ...data, created_at: new Date().toISOString() });
           return { data: { id: newDocRef.id, ...data }, error: null };
         } catch (error) {
@@ -82,17 +91,17 @@ export const supabase = {
         }
       },
       update: (data: any) => {
-        return {
+        const updateQuery = {
           eq: async (column: string, value: any) => {
             try {
-              const q = query(collection(db, table), where(column, '==', value));
+              const q = query(collection(firebaseDb, table), where(column, '==', value));
               const querySnapshot = await getDocs(q);
               
               if (querySnapshot.empty) {
                 return { error: new Error('No document found to update') };
               }
               
-              const docRef = doc(db, table, querySnapshot.docs[0].id);
+              const docRef = doc(firebaseDb, table, querySnapshot.docs[0].id);
               await updateDoc(docRef, { ...data, updated_at: new Date().toISOString() });
               return { error: null };
             } catch (error) {
@@ -100,19 +109,22 @@ export const supabase = {
             }
           }
         };
+        
+        // Return as object, not promise
+        return updateQuery;
       },
       delete: () => {
-        return {
+        const deleteQuery = {
           eq: async (column: string, value: any) => {
             try {
-              const q = query(collection(db, table), where(column, '==', value));
+              const q = query(collection(firebaseDb, table), where(column, '==', value));
               const querySnapshot = await getDocs(q);
               
               if (querySnapshot.empty) {
                 return { error: new Error('No document found to delete') };
               }
               
-              const docRef = doc(db, table, querySnapshot.docs[0].id);
+              const docRef = doc(firebaseDb, table, querySnapshot.docs[0].id);
               await deleteDoc(docRef);
               return { error: null };
             } catch (error) {
@@ -120,14 +132,36 @@ export const supabase = {
             }
           }
         };
+        
+        // Return as object, not promise
+        return deleteQuery;
       },
       execute: async () => {
         try {
-          const querySnapshot = await getDocs(collection(db, table));
+          const querySnapshot = await getDocs(collection(firebaseDb, table));
           return { error: null };
         } catch (error) {
           return { error };
         }
+      },
+      // Add base-level order method
+      order: (column: string, { ascending = true } = {}) => {
+        return {
+          eq: async (filterColumn: string, value: any) => {
+            try {
+              const q = query(
+                collection(firebaseDb, table),
+                where(filterColumn, '==', value),
+                orderBy(column, ascending ? 'asc' : 'desc')
+              );
+              const querySnapshot = await getDocs(q);
+              const data = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+              return { data, error: null };
+            } catch (error) {
+              return { data: null, error };
+            }
+          }
+        };
       }
     };
   },
