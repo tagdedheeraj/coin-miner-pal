@@ -9,7 +9,148 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      deposit_requests: {
+        Row: {
+          amount: number
+          id: string
+          plan_id: string
+          plan_name: string
+          reviewed_at: string | null
+          status: string
+          timestamp: string | null
+          transaction_id: string
+          user_email: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          amount: number
+          id?: string
+          plan_id: string
+          plan_name: string
+          reviewed_at?: string | null
+          status?: string
+          timestamp?: string | null
+          transaction_id: string
+          user_email: string
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          amount?: number
+          id?: string
+          plan_id?: string
+          plan_name?: string
+          reviewed_at?: string | null
+          status?: string
+          timestamp?: string | null
+          transaction_id?: string
+          user_email?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deposit_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          applied_referral_code: string | null
+          coins: number
+          created_at: string | null
+          email: string
+          has_biometrics: boolean
+          has_setup_pin: boolean
+          id: string
+          is_admin: boolean | null
+          name: string
+          notifications: Json | null
+          referral_code: string
+          usdt_earnings: number | null
+          withdrawal_address: string | null
+        }
+        Insert: {
+          applied_referral_code?: string | null
+          coins?: number
+          created_at?: string | null
+          email: string
+          has_biometrics?: boolean
+          has_setup_pin?: boolean
+          id: string
+          is_admin?: boolean | null
+          name: string
+          notifications?: Json | null
+          referral_code: string
+          usdt_earnings?: number | null
+          withdrawal_address?: string | null
+        }
+        Update: {
+          applied_referral_code?: string | null
+          coins?: number
+          created_at?: string | null
+          email?: string
+          has_biometrics?: boolean
+          has_setup_pin?: boolean
+          id?: string
+          is_admin?: boolean | null
+          name?: string
+          notifications?: Json | null
+          referral_code?: string
+          usdt_earnings?: number | null
+          withdrawal_address?: string | null
+        }
+        Relationships: []
+      }
+      withdrawal_requests: {
+        Row: {
+          address: string
+          amount: number
+          created_at: string | null
+          id: string
+          status: string
+          updated_at: string | null
+          user_email: string
+          user_id: string
+          user_name: string
+        }
+        Insert: {
+          address: string
+          amount: number
+          created_at?: string | null
+          id?: string
+          status?: string
+          updated_at?: string | null
+          user_email: string
+          user_id: string
+          user_name: string
+        }
+        Update: {
+          address?: string
+          amount?: number
+          created_at?: string | null
+          id?: string
+          status?: string
+          updated_at?: string | null
+          user_email?: string
+          user_id?: string
+          user_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "withdrawal_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

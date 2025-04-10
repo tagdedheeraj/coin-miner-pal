@@ -1,9 +1,10 @@
 
 import { Dispatch, SetStateAction } from 'react';
 import { User, DepositRequest } from '@/types/auth';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
+import { mapDepositToDb, mapDbToDeposit, mapUserToDb, mapDbToUser } from '@/utils/supabaseUtils';
 
 export const depositServiceFunctions = (
   user: User | null,
@@ -17,15 +18,15 @@ export const depositServiceFunctions = (
     
     try {
       // Create the deposit request
-      const depositRequest = {
+      const depositRequest = mapDepositToDb({
         ...depositData,
         status: 'pending',
         timestamp: new Date().toISOString()
-      };
+      });
       
       // Save to Supabase
       const { error } = await supabase
-        .from('depositRequests')
+        .from('deposit_requests')
         .insert([depositRequest]);
       
       if (error) throw error;
@@ -42,9 +43,9 @@ export const depositServiceFunctions = (
       const userNotifications = user.notifications || [];
       const { error: updateError } = await supabase
         .from('users')
-        .update({
+        .update(mapUserToDb({
           notifications: [...userNotifications, notification]
-        })
+        }))
         .eq('id', user.id);
         
       if (updateError) throw updateError;
@@ -70,13 +71,13 @@ export const depositServiceFunctions = (
     
     try {
       const { data, error } = await supabase
-        .from('depositRequests')
+        .from('deposit_requests')
         .select('*')
         .order('timestamp', { ascending: false });
       
       if (error) throw error;
       
-      return data || [];
+      return (data || []).map(item => mapDbToDeposit(item));
     } catch (error) {
       console.error(error);
       toast.error('Failed to fetch deposit requests');
@@ -93,14 +94,15 @@ export const depositServiceFunctions = (
     try {
       // Get the deposit request
       const { data: requestData, error: requestError } = await supabase
-        .from('depositRequests')
+        .from('deposit_requests')
         .select('*')
         .eq('id', requestId)
         .single();
       
       if (requestError) throw new Error('Deposit request not found');
+      if (!requestData) throw new Error('Deposit request data is empty');
       
-      const request = requestData;
+      const request = mapDbToDeposit(requestData);
       
       if (request.status !== 'pending') {
         throw new Error('This request has already been processed');
@@ -108,11 +110,11 @@ export const depositServiceFunctions = (
       
       // Update request status
       await supabase
-        .from('depositRequests')
-        .update({
+        .from('deposit_requests')
+        .update(mapDepositToDb({
           status: 'approved',
           reviewedAt: new Date().toISOString()
-        })
+        }))
         .eq('id', requestId);
       
       // Find the user and send notification
@@ -123,13 +125,14 @@ export const depositServiceFunctions = (
         .single();
       
       if (userError) throw new Error('User not found');
+      if (!userData) throw new Error('User data is empty');
       
-      const targetUser = userData as User;
+      const targetUser = mapDbToUser(userData);
       const userNotifications = targetUser.notifications || [];
       
       await supabase
         .from('users')
-        .update({
+        .update(mapUserToDb({
           notifications: [
             ...userNotifications,
             {
@@ -139,7 +142,7 @@ export const depositServiceFunctions = (
               createdAt: new Date().toISOString()
             }
           ]
-        })
+        }))
         .eq('id', targetUser.id);
       
       toast.success('Deposit request approved successfully');
@@ -158,14 +161,15 @@ export const depositServiceFunctions = (
     try {
       // Get the deposit request
       const { data: requestData, error: requestError } = await supabase
-        .from('depositRequests')
+        .from('deposit_requests')
         .select('*')
         .eq('id', requestId)
         .single();
       
       if (requestError) throw new Error('Deposit request not found');
+      if (!requestData) throw new Error('Deposit request data is empty');
       
-      const request = requestData;
+      const request = mapDbToDeposit(requestData);
       
       if (request.status !== 'pending') {
         throw new Error('This request has already been processed');
@@ -173,11 +177,11 @@ export const depositServiceFunctions = (
       
       // Update request status
       await supabase
-        .from('depositRequests')
-        .update({
+        .from('deposit_requests')
+        .update(mapDepositToDb({
           status: 'rejected',
           reviewedAt: new Date().toISOString()
-        })
+        }))
         .eq('id', requestId);
       
       // Find the user and send notification
@@ -188,13 +192,14 @@ export const depositServiceFunctions = (
         .single();
       
       if (userError) throw new Error('User not found');
+      if (!userData) throw new Error('User data is empty');
       
-      const targetUser = userData as User;
+      const targetUser = mapDbToUser(userData);
       const userNotifications = targetUser.notifications || [];
       
       await supabase
         .from('users')
-        .update({
+        .update(mapUserToDb({
           notifications: [
             ...userNotifications,
             {
@@ -204,7 +209,7 @@ export const depositServiceFunctions = (
               createdAt: new Date().toISOString()
             }
           ]
-        })
+        }))
         .eq('id', targetUser.id);
       
       toast.success('Deposit request rejected successfully');

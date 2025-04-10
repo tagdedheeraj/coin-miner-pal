@@ -1,11 +1,12 @@
 
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { User } from '@/types/auth';
 import { mockUsers } from '@/data/mockUsers';
 import { generateReferralCode } from '@/utils/referral';
 import { AuthStateType } from './types';
 import { userServiceFunctions } from '@/services/auth/userService';
+import { mapUserToDb, mapDbToUser } from '@/utils/supabaseUtils';
 
 // Create context for auth state
 export const AuthStateContext = createContext<AuthStateType | null>(null);
@@ -96,7 +97,7 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({ children }
               };
               
               // Save to Supabase
-              await supabase.from('users').insert([newUser]);
+              await supabase.from('users').insert([mapUserToDb(newUser)]);
               
               // Save to localStorage for persistence
               localStorage.setItem('user', JSON.stringify(newUser));

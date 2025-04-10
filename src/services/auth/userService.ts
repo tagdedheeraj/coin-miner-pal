@@ -1,8 +1,9 @@
 
 import { Dispatch, SetStateAction } from 'react';
 import { User } from '@/types/auth';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { mapUserToDb, mapDbToUser } from '@/utils/supabaseUtils';
 
 export const userServiceFunctions = (
   user: User | null, 
@@ -19,7 +20,7 @@ export const userServiceFunctions = (
       if (!user.isAdmin) {
         const { error } = await supabase
           .from('users')
-          .update(updates)
+          .update(mapUserToDb(updates))
           .eq('id', user.id);
         
         if (error) throw error;
@@ -103,7 +104,7 @@ export const userServiceFunctions = (
       
       if (error) return null;
       
-      return data as User;
+      return data ? mapDbToUser(data) : null;
     } catch (error) {
       console.error('Error fetching user:', error);
       return null;
@@ -118,11 +119,11 @@ export const userServiceFunctions = (
         .eq('email', email)
         .single();
       
-      if (error) return null;
+      if (error || !data) return null;
       
       return { 
         userId: data.id, 
-        userData: data as User 
+        userData: mapDbToUser(data) 
       };
     } catch (error) {
       console.error('Error finding user by email:', error);

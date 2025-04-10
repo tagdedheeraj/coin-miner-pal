@@ -1,9 +1,10 @@
 
 import { Dispatch, SetStateAction } from 'react';
 import { User } from '@/types/auth';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
+import { mapUserToDb, mapDbToUser } from '@/utils/supabaseUtils';
 
 export const notificationServiceFunctions = (
   user: User | null,
@@ -34,14 +35,15 @@ export const notificationServiceFunctions = (
       
       // Update each user with the notification
       for (const userData of users) {
-        const userNotifications = userData.notifications || [];
+        const userObj = mapDbToUser(userData);
+        const userNotifications = userObj.notifications || [];
         
         await supabase
           .from('users')
-          .update({
+          .update(mapUserToDb({
             notifications: [...userNotifications, notification]
-          })
-          .eq('id', userData.id);
+          }))
+          .eq('id', userObj.id);
       }
       
       // Update current admin user's state if they have notifications
@@ -83,9 +85,9 @@ export const notificationServiceFunctions = (
       // Update in Supabase
       const { error } = await supabase
         .from('users')
-        .update({
+        .update(mapUserToDb({
           notifications: updatedNotifications
-        })
+        }))
         .eq('id', user.id);
         
       if (error) throw error;

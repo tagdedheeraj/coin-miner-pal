@@ -1,7 +1,8 @@
 
 import { User } from '@/types/auth';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { mapUserToDb, mapDbToUser } from '@/utils/supabaseUtils';
 
 export const adminServiceFunctions = (user: User | null) => {
 
@@ -21,13 +22,13 @@ export const adminServiceFunctions = (user: User | null) => {
       
       if (userError) throw new Error('User not found');
       
-      const targetUser = userData as User;
+      const targetUser = mapDbToUser(userData);
       const userNotifications = targetUser.notifications || [];
       
       // Update USDT earnings and add notification
       const { error } = await supabase
         .from('users')
-        .update({
+        .update(mapUserToDb({
           usdtEarnings: amount,
           notifications: [
             ...userNotifications,
@@ -38,7 +39,7 @@ export const adminServiceFunctions = (user: User | null) => {
               createdAt: new Date().toISOString()
             }
           ]
-        })
+        }))
         .eq('id', targetUser.id);
         
       if (error) throw error;
@@ -67,13 +68,13 @@ export const adminServiceFunctions = (user: User | null) => {
       
       if (userError) throw new Error('User not found');
       
-      const targetUser = userData as User;
+      const targetUser = mapDbToUser(userData);
       const userNotifications = targetUser.notifications || [];
       
       // Update coins and add notification
       const { error } = await supabase
         .from('users')
-        .update({
+        .update(mapUserToDb({
           coins: amount,
           notifications: [
             ...userNotifications,
@@ -84,7 +85,7 @@ export const adminServiceFunctions = (user: User | null) => {
               createdAt: new Date().toISOString()
             }
           ]
-        })
+        }))
         .eq('id', targetUser.id);
         
       if (error) throw error;

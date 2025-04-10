@@ -1,9 +1,10 @@
 
 import { Dispatch, SetStateAction } from 'react';
 import { User, WithdrawalRequest } from '@/types/auth';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
+import { mapWithdrawalToDb, mapDbToWithdrawal, mapUserToDb, mapDbToUser } from '@/utils/supabaseUtils';
 
 export const withdrawalServiceFunctions = (
   user: User | null,
@@ -31,7 +32,7 @@ export const withdrawalServiceFunctions = (
       }
       
       // Create withdrawal request in Supabase
-      const withdrawalRequest = {
+      const withdrawalRequest = mapWithdrawalToDb({
         userId: user.id,
         userEmail: user.email,
         userName: user.name,
@@ -39,10 +40,10 @@ export const withdrawalServiceFunctions = (
         address: user.withdrawalAddress,
         status: 'pending',
         createdAt: new Date().toISOString()
-      };
+      });
       
       const { error } = await supabase
-        .from('withdrawalRequests')
+        .from('withdrawal_requests')
         .insert([withdrawalRequest]);
       
       if (error) throw error;
@@ -59,9 +60,9 @@ export const withdrawalServiceFunctions = (
       const userNotifications = user.notifications || [];
       await supabase
         .from('users')
-        .update({
+        .update(mapUserToDb({
           notifications: [...userNotifications, notification]
-        })
+        }))
         .eq('id', user.id);
       
       // Update local user state
@@ -85,13 +86,13 @@ export const withdrawalServiceFunctions = (
     
     try {
       const { data, error } = await supabase
-        .from('withdrawalRequests')
+        .from('withdrawal_requests')
         .select('*')
-        .order('createdAt', { ascending: false });
+        .order('created_at', { ascending: false });
       
       if (error) throw error;
       
-      return data || [];
+      return (data || []).map(item => mapDbToWithdrawal(item));
     } catch (error) {
       console.error(error);
       toast.error('Failed to fetch withdrawal requests');
@@ -108,14 +109,15 @@ export const withdrawalServiceFunctions = (
     try {
       // Get the withdrawal request
       const { data: requestData, error: requestError } = await supabase
-        .from('withdrawalRequests')
+        .from('withdrawal_requests')
         .select('*')
         .eq('id', requestId)
         .single();
       
       if (requestError) throw new Error('Withdrawal request not found');
+      if (!requestData) throw new Error('Withdrawal request data is empty');
       
-      const request = requestData;
+      const request = mapDbToWithdrawal(requestData);
       
       if (request.status !== 'pending') {
         throw new Error('This request has already been processed');
@@ -123,11 +125,11 @@ export const withdrawalServiceFunctions = (
       
       // Update request status
       await supabase
-        .from('withdrawalRequests')
-        .update({
+        .from('withdrawal_requests')
+        .update(mapWithdrawalToDb({
           status: 'approved',
           updatedAt: new Date().toISOString()
-        })
+        }))
         .eq('id', requestId);
       
       // Find the user and update their USDT earnings
@@ -138,14 +140,15 @@ export const withdrawalServiceFunctions = (
         .single();
       
       if (userError) throw new Error('User not found');
+      if (!userData) throw new Error('User data is empty');
       
-      const targetUser = userData as User;
+      const targetUser = mapDbToUser(userData);
       const currentEarnings = targetUser.usdtEarnings || 0;
       const userNotifications = targetUser.notifications || [];
       
       await supabase
         .from('users')
-        .update({
+        .update(mapUserToDb({
           usdtEarnings: currentEarnings - request.amount,
           notifications: [
             ...userNotifications,
@@ -156,7 +159,7 @@ export const withdrawalServiceFunctions = (
               createdAt: new Date().toISOString()
             }
           ]
-        })
+        }))
         .eq('id', targetUser.id);
       
       toast.success('Withdrawal request approved successfully');
@@ -175,14 +178,15 @@ export const withdrawalServiceFunctions = (
     try {
       // Get the withdrawal request
       const { data: requestData, error: requestError } = await supabase
-        .from('withdrawalRequests')
+        .from('withdrawal_requests')
         .select('*')
         .eq('id', requestId)
         .single();
       
       if (requestError) throw new Error('Withdrawal request not found');
+      if (!requestData) throw new Error('Withdrawal request data is empty');
       
-      const request = requestData;
+      const request = mapDbToWithdrawal(requestData);
       
       if (request.status !== 'pending') {
         throw new Error('This request has already been processed');
@@ -190,11 +194,11 @@ export const withdrawalServiceFunctions = (
       
       // Update request status
       await supabase
-        .from('withdrawalRequests')
-        .update({
+        .from('withdrawal_requests')
+        .update(mapWithdrawalToDb({
           status: 'rejected',
           updatedAt: new Date().toISOString()
-        })
+        }))
         .eq('id', requestId);
       
       // Find the user and send notification
@@ -205,13 +209,14 @@ export const withdrawalServiceFunctions = (
         .single();
       
       if (userError) throw new Error('User not found');
+      if (!userData) throw new Error('User data is empty');
       
-      const targetUser = userData as User;
+      const targetUser = mapDbToUser(userData);
       const userNotifications = targetUser.notifications || [];
       
       await supabase
         .from('users')
-        .update({
+        .update(mapUserToDb({
           notifications: [
             ...userNotifications,
             {
@@ -221,7 +226,7 @@ export const withdrawalServiceFunctions = (
               createdAt: new Date().toISOString()
             }
           ]
-        })
+        }))
         .eq('id', targetUser.id);
       
       toast.success('Withdrawal request rejected successfully');

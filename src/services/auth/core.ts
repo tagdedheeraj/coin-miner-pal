@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SupabaseUserCredential } from '@/contexts/auth/types';
 import { generateReferralCode } from '@/utils/referral';
+import { mapUserToDb, mapDbToUser } from '@/utils/supabaseUtils';
 
 // Admin credentials
 const ADMIN_EMAIL = 'admin@infinium.com';
@@ -75,7 +76,9 @@ export const coreAuthFunctions = (
           };
           
           // Create profile in Supabase
-          const { error: insertError } = await supabase.from('users').insert([newUser]);
+          const { error: insertError } = await supabase
+            .from('users')
+            .insert([mapUserToDb(newUser)]);
           
           if (insertError) {
             console.error("Failed to create user profile:", insertError);
@@ -90,7 +93,7 @@ export const coreAuthFunctions = (
         }
       } else {
         // Use existing profile
-        const userData: User = profileData;
+        const userData = mapDbToUser(profileData);
         localStorage.setItem('user', JSON.stringify(userData));
         setUser(userData);
       }
@@ -163,7 +166,7 @@ export const coreAuthFunctions = (
       console.log('Creating user profile in Supabase');
       const { error: insertError } = await supabase
         .from('users')
-        .insert([newUser]);
+        .insert([mapUserToDb(newUser)]);
       
       if (insertError) {
         console.error('User profile creation error:', insertError);

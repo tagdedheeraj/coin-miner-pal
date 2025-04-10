@@ -1,9 +1,10 @@
 
 import { Dispatch, SetStateAction } from 'react';
 import { User } from '@/types/auth';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
+import { mapUserToDb, mapDbToUser } from '@/utils/supabaseUtils';
 
 export const referralServiceFunctions = (
   user: User | null,
@@ -29,7 +30,7 @@ export const referralServiceFunctions = (
       const { data: referrerData, error: referrerError } = await supabase
         .from('users')
         .select('*')
-        .eq('referralCode', code)
+        .eq('referral_code', code)
         .single();
       
       if (referrerError || !referrerData) {
@@ -37,12 +38,12 @@ export const referralServiceFunctions = (
       }
       
       // Update the referrer's coins and add notification
-      const referrer = referrerData as User;
+      const referrer = mapDbToUser(referrerData);
       const referrerNotifications = referrer.notifications || [];
       
       const { error: updateError } = await supabase
         .from('users')
-        .update({
+        .update(mapUserToDb({
           coins: (referrer.coins || 0) + 250,
           notifications: [
             ...referrerNotifications,
@@ -53,7 +54,7 @@ export const referralServiceFunctions = (
               createdAt: new Date().toISOString()
             }
           ]
-        })
+        }))
         .eq('id', referrer.id);
       
       if (updateError) throw updateError;
@@ -61,9 +62,9 @@ export const referralServiceFunctions = (
       // Update current user with applied referral code
       const { error } = await supabase
         .from('users')
-        .update({ 
+        .update(mapUserToDb({ 
           appliedReferralCode: code 
-        })
+        }))
         .eq('id', user.id);
       
       if (error) throw error;
