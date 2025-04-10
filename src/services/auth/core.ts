@@ -10,7 +10,8 @@ import {
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
   updatePassword,
-  UserCredential
+  UserCredential,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 
 // Admin credentials
@@ -119,10 +120,22 @@ export const coreAuthFunctions = (
     }
   };
 
+  const resetPassword = async (email: string) => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+      toast.success('Password reset email sent');
+    } catch (error) {
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : 'Failed to send reset email');
+      throw error;
+    }
+  };
+
   return {
     signIn,
     signUp,
     signOut,
     changePassword,
+    resetPassword,
   };
 };

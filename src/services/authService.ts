@@ -109,6 +109,7 @@ export const authFunctions = (
     signUp,
     signOut: coreAuth.signOut,
     changePassword: coreAuth.changePassword,
+    resetPassword: coreAuth.resetPassword,
     
     // User management functions
     updateUser: userService.updateUser,
