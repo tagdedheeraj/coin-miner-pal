@@ -3,7 +3,7 @@ import { Dispatch, SetStateAction } from 'react';
 import { User } from '@/types/auth';
 import { createAuthenticationService } from './authentication';
 import { createRegistrationService } from './registration';
-import { createPasswordService } from './passwordManagement';
+import { createPasswordService } from './passwordManagement/index';
 
 export const coreAuthFunctions = (
   user: User | null, 
