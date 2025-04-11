@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { FullAuthContextType } from './customTypes';
 import { authFunctions } from '@/services/authService';
 import { adminServiceFunctions } from '@/services/auth/adminService';
-import { supabase } from '@/integrations/supabase/client';
+import { auth } from '@/integrations/firebase/client';
 import { toast } from 'sonner';
 
 export const AuthContext = createContext<FullAuthContextType | null>(null);
@@ -31,23 +31,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Get admin functions
   const adminFunctions = adminServiceFunctions(user);
 
-  // Listen to auth state changes in Supabase
+  // Listen to auth state changes in Firebase
   useEffect(() => {
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Supabase auth state changed:', event, session?.user?.id);
+    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+      console.log('Firebase auth state changed:', firebaseUser?.uid);
       // You can handle auth state changes here if needed
     });
 
     return () => {
-      authListener.subscription.unsubscribe();
+      unsubscribe();
     };
   }, []);
 
   // Custom implementations for functions that need the local state
   const updateArbitragePlan = async (planId: string, updates: Partial<ArbitragePlan>): Promise<void> => {
     try {
-      // Since we can't directly update the supabase table due to schema issues,
-      // we'll update our local state and use the mock data
       console.log("Updating plan with ID:", planId, "Updates:", updates);
       
       // Update local state
@@ -66,8 +64,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   
   const deleteArbitragePlan = async (planId: string): Promise<void> => {
     try {
-      // Since we can't directly delete from supabase due to schema issues,
-      // we'll update our local state
       console.log("Deleting plan with ID:", planId);
       
       // Update local state
@@ -85,8 +81,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const newPlanId = uuidv4();
       console.log("Adding new plan with generated ID:", newPlanId);
       
-      // Since we can't directly insert to supabase due to schema issues,
-      // we'll update our local state
+      // Create new plan
       const newPlan: ArbitragePlan = {
         id: newPlanId,
         ...plan,

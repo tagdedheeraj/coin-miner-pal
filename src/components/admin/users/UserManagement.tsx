@@ -6,8 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search, Trash2, RefreshCw } from 'lucide-react';
 import { User } from '@/types/auth';
-import { supabase } from '@/integrations/supabase/client';
-import { mapDbToUser } from '@/utils/supabaseUtils';
 import { toast } from 'sonner';
 
 interface UserManagementProps {
@@ -28,50 +26,17 @@ const UserManagement: React.FC<UserManagementProps> = ({ deleteUser, users: prov
   useEffect(() => {
     if (providedUsers && providedUsers.length > 0) {
       // If users are provided as props, use them
-      console.log('Using provided users:', providedUsers);
+      console.log('Using provided users:', providedUsers.length);
       setAllUsers(providedUsers);
       setLoadingUsers(false);
     } else {
-      // Otherwise fetch them
-      fetchAllUsers();
+      // No users provided and no way to fetch them without calling getAllUsers
+      console.log('No users provided');
+      setAllUsers([]);
+      setLoadingUsers(false);
+      toast.error('No users data available. Please refresh.');
     }
   }, [providedUsers]);
-  
-  const fetchAllUsers = async () => {
-    try {
-      setLoadingUsers(true);
-      console.log('Fetching all users directly...');
-      
-      // Explicitly fetch all users from Supabase
-      const { data, error } = await supabase
-        .from('users')
-        .select('*');
-      
-      if (error) {
-        console.error('Error fetching users:', error);
-        toast.error('उपयोगकर्ताओं को लोड करने में त्रुटि हुई');
-        throw error;
-      }
-      
-      console.log('Fetched users data:', data);
-      
-      if (!data || data.length === 0) {
-        console.log('No users found in the database');
-        setAllUsers([]);
-        toast.error('कोई उपयोगकर्ता नहीं मिला');
-      } else {
-        const mappedUsers = data.map(dbUser => mapDbToUser(dbUser)) || [];
-        console.log('Mapped users:', mappedUsers);
-        setAllUsers(mappedUsers);
-        toast.success('उपयोगकर्ता सूची अपडेट की गई');
-      }
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      toast.error('उपयोगकर्ताओं को लोड करने में त्रुटि हुई');
-    } finally {
-      setLoadingUsers(false);
-    }
-  };
   
   const handleDeleteUser = (userId: string) => {
     if (window.confirm('क्या आप वाकई इस उपयोगकर्ता को हटाना चाहते हैं?')) {
@@ -99,14 +64,6 @@ const UserManagement: React.FC<UserManagementProps> = ({ deleteUser, users: prov
               className="pl-10"
             />
           </div>
-          <Button 
-            variant="outline" 
-            onClick={fetchAllUsers}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className="h-4 w-4" />
-            Refresh
-          </Button>
         </div>
         
         {loadingUsers ? (

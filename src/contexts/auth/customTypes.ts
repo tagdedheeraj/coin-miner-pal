@@ -1,5 +1,5 @@
 
-import { User, ArbitragePlan, WithdrawalRequest, DepositRequest } from '@/types/auth';
+import { User, ArbitragePlan } from '@/types/auth';
 import { FullAuthContextType as BaseAuthContextType } from './types';
 
 // Extend the base AuthContextType with our admin functions

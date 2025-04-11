@@ -44,8 +44,8 @@ export const mapPlanToDb = (plan: ArbitragePlan): ArbitragePlanDB => {
 
 // Helper function to simulate async operations
 const simulateAsyncOperation = async <T>(data: T): Promise<T> => {
-  // Simulate network delay
-  await new Promise(resolve => setTimeout(resolve, 300));
+  // Simulate network delay - reduced delay for faster loading
+  await new Promise(resolve => setTimeout(resolve, 100));
   return data;
 };
 
@@ -61,7 +61,7 @@ export const fetchArbitragePlans = async (forceFresh = false): Promise<Arbitrage
     
     console.log(forceFresh ? 'Forced refresh of plans data' : 'Cache expired, fetching fresh plans data');
     
-    // Use mock data since we can't access the actual table
+    // Use mock data directly instead of database
     const plans = await simulateAsyncOperation(mockArbitragePlans);
     
     console.log('Received fresh plans data:', plans);
