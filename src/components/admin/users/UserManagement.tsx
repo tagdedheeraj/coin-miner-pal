@@ -31,30 +31,42 @@ const UserManagement: React.FC<UserManagementProps> = ({ deleteUser }) => {
   const fetchAllUsers = async () => {
     try {
       setLoadingUsers(true);
+      // Explicitly fetch all users from Supabase
       const { data, error } = await supabase
         .from('users')
         .select('*');
       
       if (error) {
+        console.error('Error fetching users:', error);
         throw error;
       }
       
-      const mappedUsers = data?.map(dbUser => mapDbToUser(dbUser)) || [];
-      setAllUsers(mappedUsers);
-      toast.success('User list refreshed');
+      console.log('Fetched users data:', data);
+      
+      if (!data || data.length === 0) {
+        console.log('No users found in the database');
+        setAllUsers([]);
+        toast.error('कोई उपयोगकर्ता नहीं मिला');
+      } else {
+        const mappedUsers = data.map(dbUser => mapDbToUser(dbUser)) || [];
+        console.log('Mapped users:', mappedUsers);
+        setAllUsers(mappedUsers);
+        toast.success('उपयोगकर्ता सूची अपडेट की गई');
+      }
     } catch (error) {
       console.error('Error fetching users:', error);
-      toast.error('Failed to fetch users');
+      toast.error('उपयोगकर्ताओं को लोड करने में त्रुटि हुई');
     } finally {
       setLoadingUsers(false);
     }
   };
   
   const handleDeleteUser = (userId: string) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
+    if (window.confirm('क्या आप वाकई इस उपयोगकर्ता को हटाना चाहते हैं?')) {
       deleteUser(userId);
       // Remove user from local state
       setAllUsers(prev => prev.filter(u => u.id !== userId));
+      toast.success('उपयोगकर्ता सफलतापूर्वक हटा दिया गया');
     }
   };
   

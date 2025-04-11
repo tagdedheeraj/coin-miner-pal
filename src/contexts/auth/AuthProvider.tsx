@@ -8,8 +8,9 @@ import { mockArbitragePlans } from '@/data/mockArbitragePlans';
 import { mockDepositRequests } from '@/data/mockDepositRequests';
 import { mockUsers } from '@/data/mockUsers';
 import { useToast } from "@/hooks/use-toast";
-import { FullAuthContextType } from './types';
+import { FullAuthContextType } from './customTypes';
 import { authFunctions } from '@/services/authService';
+import { adminServiceFunctions } from '@/services/auth/adminService';
 
 export const AuthContext = createContext<FullAuthContextType | null>(null);
 
@@ -24,6 +25,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Get all auth functions from the service
   const auth = authFunctions(user, setUser, setIsLoading);
+  
+  // Get admin functions
+  const adminFunctions = adminServiceFunctions(user);
 
   // Custom implementations for functions that need the local state
   const updateArbitragePlan = async (planId: string, updates: Partial<ArbitragePlan>): Promise<void> => {
@@ -46,9 +50,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setArbitragePlans(prevPlans => [...prevPlans, newPlan]);
   };
 
-  // Combine auth service functions with local state functions
+  // Combine auth service functions with local state functions and admin functions
   const contextValue: FullAuthContextType = {
     ...auth,
+    ...adminFunctions,
     user,
     isAuthenticated: !!user,
     isLoading,

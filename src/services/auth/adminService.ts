@@ -18,15 +18,23 @@ export const adminServiceFunctions = (user: User | null) => {
     }
 
     try {
-      // Get users from both Firebase and Supabase
+      console.log('Fetching all users from Supabase...');
+      
+      // Get users from Supabase
       const { data: supabaseUsers, error: supabaseError } = await supabase
         .from('users')
         .select('*');
       
-      if (supabaseError) throw supabaseError;
+      if (supabaseError) {
+        console.error('Supabase error fetching users:', supabaseError);
+        throw supabaseError;
+      }
+      
+      console.log('Received users from Supabase:', supabaseUsers);
       
       // Map all users from Supabase format to our User format
-      const mappedUsers = supabaseUsers.map(dbUser => mapDbToUser(dbUser));
+      const mappedUsers = supabaseUsers?.map(dbUser => mapDbToUser(dbUser)) || [];
+      console.log('Mapped users:', mappedUsers);
       
       return mappedUsers;
     } catch (error) {
