@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, ReactNode, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthStateProvider } from './AuthStateContext';
@@ -20,6 +19,7 @@ import {
   deleteArbitragePlan as deleteArbPlan,
   createArbitragePlan as createArbPlan
 } from '@/services/arbitragePlans';
+import { updateUserDailyEarnings } from '@/services/auth/earnings/updateDailyEarnings';
 
 export const AuthContext = createContext<FullAuthContextType | null>(null);
 
@@ -32,13 +32,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [arbitragePlans, setArbitragePlans] = useState<ArbitragePlan[]>([]);
   const { toast: uiToast } = useToast();
 
-  // Get all auth functions from the service
   const authFns = authFunctions(user, setUser, setIsLoading);
   
-  // Get admin functions
   const adminFunctions = adminServiceFunctions(user);
 
-  // Fetch arbitrage plans
   useEffect(() => {
     const loadPlans = async () => {
       try {
@@ -52,11 +49,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     loadPlans();
   }, []);
 
-  // Listen to auth state changes in Firebase
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       console.log('Firebase auth state changed:', firebaseUser?.uid);
-      // You can handle auth state changes here if needed
     });
 
     return () => {
@@ -64,28 +59,41 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   }, []);
 
-  // Custom implementations for functions that need the local state
+  useEffect(() => {
+    if (user?.id) {
+      const updateUserEarnings = async () => {
+        try {
+          await updateUserDailyEarnings(user.id);
+        } catch (error) {
+          console.error('Error updating user earnings:', error);
+        }
+      };
+      
+      updateUserEarnings();
+      
+      const intervalId = setInterval(updateUserEarnings, 24 * 60 * 60 * 1000);
+      
+      return () => clearInterval(intervalId);
+    }
+  }, [user?.id]);
+
   const updateArbitragePlan = async (planId: string, updates: Partial<ArbitragePlan>): Promise<void> => {
     try {
       console.log("Updating plan with ID:", planId, "Updates:", updates);
       
-      // Find current plan
       const currentPlan = arbitragePlans.find(p => p.id === planId);
       if (!currentPlan) {
         throw new Error("Plan not found");
       }
       
-      // Create updated plan
       const updatedPlan: ArbitragePlan = {
         ...currentPlan,
         ...updates
       };
       
-      // Update in service
       const success = await updateArbPlan(updatedPlan);
       
       if (success) {
-        // Update local state only if the service update was successful
         setArbitragePlans(prevPlans =>
           prevPlans.map(plan =>
             plan.id === planId ? updatedPlan : plan
@@ -104,11 +112,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       console.log("Deleting plan with ID:", planId);
       
-      // Call the service to delete the plan
       const success = await deleteArbPlan(planId);
       
       if (success) {
-        // Update local state only if the service deletion was successful
         setArbitragePlans(prevPlans => prevPlans.filter(plan => plan.id !== planId));
         toast.success('योजना सफलतापूर्वक हटा दी गई');
       }
@@ -122,11 +128,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       console.log("Adding new plan");
       
-      // Call the service to create the plan
       const success = await createArbPlan();
       
       if (success) {
-        // Refresh plans to get the new one
         const freshPlans = await fetchArbitragePlans(true);
         setArbitragePlans(freshPlans);
         toast.success('नई योजना जोड़ी गई');
@@ -137,7 +141,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Combine auth service functions with local state functions and admin functions
   const contextValue: FullAuthContextType = {
     ...authFns,
     ...adminFunctions,
@@ -156,7 +159,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   );
 };
 
-// Wrap component with both context providers
 export const CombinedAuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   return (
     <AuthStateProvider>

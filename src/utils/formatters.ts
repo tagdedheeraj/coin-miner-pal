@@ -67,3 +67,17 @@ export const formatWalletAddress = (address: string | null): string => {
   if (address.length <= 12) return address;
   return `${address.substring(0, 6)}...${address.substring(address.length - 6)}`;
 };
+
+// Format date to Indian Time (IST)
+export const formatToIndianTime = (dateString: string): string => {
+  const date = new Date(dateString);
+  return date.toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
+};
