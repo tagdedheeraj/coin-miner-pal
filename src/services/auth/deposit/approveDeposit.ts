@@ -2,7 +2,7 @@
 import { User } from '@/types/auth';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
-import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 
 export const approveDepositFunctions = (user: User | null) => {
   const db = getFirestore();
@@ -95,7 +95,8 @@ export const approveDepositFunctions = (user: User | null) => {
       
       // Create plan history record
       const planHistoryRef = collection(db, 'plan_history');
-      await planHistoryRef.add({
+      // Fix: Use addDoc instead of .add() method
+      await addDoc(planHistoryRef, {
         userId: userDoc.id,
         userEmail: requestData.user_email,
         userName: requestData.user_name,
