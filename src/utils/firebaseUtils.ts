@@ -34,19 +34,19 @@ export const mapUserToDb = (user: Partial<User>) => {
   // Convert user properties to firebase format
   const dbUser: Record<string, any> = {};
   
-  if ('id' in user) dbUser.id = user.id;
-  if ('name' in user) dbUser.name = user.name;
-  if ('email' in user) dbUser.email = user.email;
-  if ('coins' in user) dbUser.coins = user.coins;
-  if ('referralCode' in user) dbUser.referral_code = user.referralCode;
-  if ('hasSetupPin' in user) dbUser.has_setup_pin = user.hasSetupPin;
-  if ('hasBiometrics' in user) dbUser.has_biometrics = user.hasBiometrics;
-  if ('withdrawalAddress' in user) dbUser.withdrawal_address = user.withdrawalAddress;
-  if ('appliedReferralCode' in user) dbUser.applied_referral_code = user.appliedReferralCode;
-  if ('usdtEarnings' in user) dbUser.usdt_earnings = user.usdtEarnings;
-  if ('notifications' in user) dbUser.notifications = user.notifications;
-  if ('isAdmin' in user) dbUser.is_admin = user.isAdmin;
-  if ('activePlans' in user) dbUser.active_plans = user.activePlans;
+  if ('id' in user && user.id !== undefined) dbUser.id = user.id;
+  if ('name' in user && user.name !== undefined) dbUser.name = user.name;
+  if ('email' in user && user.email !== undefined) dbUser.email = user.email;
+  if ('coins' in user && user.coins !== undefined) dbUser.coins = user.coins;
+  if ('referralCode' in user && user.referralCode !== undefined) dbUser.referral_code = user.referralCode;
+  if ('hasSetupPin' in user && user.hasSetupPin !== undefined) dbUser.has_setup_pin = user.hasSetupPin;
+  if ('hasBiometrics' in user && user.hasBiometrics !== undefined) dbUser.has_biometrics = user.hasBiometrics;
+  if ('withdrawalAddress' in user && user.withdrawalAddress !== undefined) dbUser.withdrawal_address = user.withdrawalAddress;
+  if ('appliedReferralCode' in user && user.appliedReferralCode !== undefined) dbUser.applied_referral_code = user.appliedReferralCode;
+  if ('usdtEarnings' in user && user.usdtEarnings !== undefined) dbUser.usdt_earnings = user.usdtEarnings;
+  if ('notifications' in user && user.notifications !== undefined) dbUser.notifications = user.notifications;
+  if ('isAdmin' in user && user.isAdmin !== undefined) dbUser.is_admin = user.isAdmin;
+  if ('activePlans' in user && user.activePlans !== undefined) dbUser.active_plans = user.activePlans;
   
   return dbUser;
 };

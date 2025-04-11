@@ -1,8 +1,8 @@
-
 import { Dispatch, SetStateAction } from 'react';
 import { User } from '@/types/auth';
 import { toast } from 'sonner';
 import { getFirestore, doc, updateDoc, getDoc, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
+import { mapUserToDb } from '@/utils/firebaseUtils';
 
 export const userServiceFunctions = (
   user: User | null, 
@@ -19,20 +19,10 @@ export const userServiceFunctions = (
       // Update in Firestore
       const userRef = doc(db, 'users', user.id);
       
-      // Convert camelCase to snake_case for Firestore
-      const firestoreUpdates: Record<string, any> = {};
+      // Convert to Firestore format using our utility function
+      const firestoreUpdates = mapUserToDb(updates);
       
-      if ('name' in updates) firestoreUpdates.name = updates.name;
-      if ('email' in updates) firestoreUpdates.email = updates.email;
-      if ('coins' in updates) firestoreUpdates.coins = updates.coins;
-      if ('referralCode' in updates) firestoreUpdates.referral_code = updates.referralCode;
-      if ('hasSetupPin' in updates) firestoreUpdates.has_setup_pin = updates.hasSetupPin;
-      if ('hasBiometrics' in updates) firestoreUpdates.has_biometrics = updates.hasBiometrics;
-      if ('withdrawalAddress' in updates) firestoreUpdates.withdrawal_address = updates.withdrawalAddress;
-      if ('appliedReferralCode' in updates) firestoreUpdates.applied_referral_code = updates.appliedReferralCode;
-      if ('usdtEarnings' in updates) firestoreUpdates.usdt_earnings = updates.usdtEarnings;
-      if ('notifications' in updates) firestoreUpdates.notifications = updates.notifications;
-      if ('isAdmin' in updates) firestoreUpdates.is_admin = updates.isAdmin;
+      console.log('Updating user with data:', firestoreUpdates);
       
       await updateDoc(userRef, firestoreUpdates);
       

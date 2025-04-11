@@ -46,7 +46,7 @@ export const updateUsdtEarningsFunctions = (user: User | null) => {
       const notificationMessage = `Your USDT earnings have been updated from ${oldEarnings} to ${amount} by admin.`;
       const notification = createNotification(notificationMessage);
       
-      // Update user in Firestore - use the correct field name 'usdt_earnings'
+      // Update only the specific fields we need
       await updateDoc(userRef, {
         usdt_earnings: amount,
         notifications: [
