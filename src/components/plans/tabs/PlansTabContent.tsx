@@ -1,22 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
 import PlanItem from '../cards/PlanItem';
 import { Skeleton } from '@/components/ui/skeleton';
-
-interface ArbitragePlan {
-  id: string;
-  name: string;
-  price: number;
-  duration: number;
-  dailyEarnings: number;
-  miningSpeed: string;
-  totalEarnings: number;
-  withdrawal: string;
-  color: string;
-  limited?: boolean;
-  limitedTo?: number;
-}
+import { ArbitragePlan } from '@/types/arbitragePlans';
+import { fetchArbitragePlans, subscribeToPlanChanges } from '@/services/arbitragePlanService';
 
 interface PlansTabContentProps {
   onOpenPaymentModal: (plan: {id: string; name: string; price: number}) => void;
@@ -31,57 +18,22 @@ const PlansTabContent: React.FC<PlansTabContentProps> = ({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchPlans = async () => {
+    const loadPlans = async () => {
+      setLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('arbitrage_plans')
-          .select('*')
-          .order('price', { ascending: true });
-        
-        if (error) {
-          console.error('Error fetching plans:', error);
-          return;
-        }
-        
-        if (data) {
-          // Map the database columns to our frontend model
-          const mappedPlans = data.map(plan => ({
-            id: plan.id,
-            name: plan.name,
-            price: plan.price,
-            duration: plan.duration,
-            dailyEarnings: plan.daily_earnings,
-            miningSpeed: plan.mining_speed,
-            totalEarnings: plan.total_earnings,
-            withdrawal: plan.withdrawal,
-            color: plan.color || 'blue',
-            limited: plan.limited || false,
-            limitedTo: plan.limited_to
-          }));
-          
-          setPlans(mappedPlans);
-        }
-      } catch (error) {
-        console.error('Error fetching plans:', error);
+        const data = await fetchArbitragePlans();
+        setPlans(data);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchPlans();
+    loadPlans();
     
     // Set up a subscription to listen for changes in the plans table
-    const planSubscription = supabase
-      .channel('arbitrage_plans_changes')
-      .on('postgres_changes', { 
-        event: '*', 
-        schema: 'public', 
-        table: 'arbitrage_plans' 
-      }, () => {
-        // Refetch plans when there's a change
-        fetchPlans();
-      })
-      .subscribe();
+    const planSubscription = subscribeToPlanChanges(() => {
+      loadPlans();
+    });
       
     return () => {
       // Clean up the subscription when component unmounts
