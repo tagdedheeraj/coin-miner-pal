@@ -19,6 +19,7 @@ interface PlansTableProps {
   editingPlan: ArbitragePlan | null;
   loading: boolean;
   onEditPlan: (plan: ArbitragePlan) => void;
+  onDeletePlan: (planId: string) => void;
   onInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onCheckboxChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSavePlan: () => void;
@@ -31,6 +32,7 @@ const PlansTable: React.FC<PlansTableProps> = ({
   editingPlan,
   loading,
   onEditPlan,
+  onDeletePlan,
   onInputChange,
   onCheckboxChange,
   onSavePlan,
@@ -78,6 +80,7 @@ const PlansTable: React.FC<PlansTableProps> = ({
                   <PlanRow 
                     plan={plan} 
                     onEdit={onEditPlan}
+                    onDelete={onDeletePlan}
                   />
                 )}
               </TableRow>

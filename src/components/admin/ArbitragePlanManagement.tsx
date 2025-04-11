@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { 
   Card, 
@@ -8,22 +9,25 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Plus, RefreshCw } from 'lucide-react';
+import { Search, Plus, RefreshCw, AlertTriangle } from 'lucide-react';
 import { ArbitragePlan } from '@/types/arbitragePlans';
 import PlansTable from './plans/PlansTable';
 import { 
   fetchArbitragePlans,
   updateArbitragePlan,
   createArbitragePlan,
+  deleteArbitragePlan,
   subscribeToPlanChanges
 } from '@/services/arbitragePlans';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 const ArbitragePlanManagement: React.FC = () => {
   const [plans, setPlans] = useState<ArbitragePlan[]>([]);
   const [editingPlan, setEditingPlan] = useState<ArbitragePlan | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   const filteredPlans = plans.filter(plan => 
     plan.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -32,12 +36,15 @@ const ArbitragePlanManagement: React.FC = () => {
   useEffect(() => {
     const loadPlans = async () => {
       setLoading(true);
+      setError(null);
+      
       try {
         const data = await fetchArbitragePlans(true); // Force fresh data
         console.log("Fetched plans:", data);
         setPlans(data);
       } catch (error) {
         console.error("Error loading plans:", error);
+        setError("योजनाओं को लोड करने में त्रुटि हुई");
         toast.error("योजनाओं को लोड करने में त्रुटि हुई");
       } finally {
         setLoading(false);
@@ -87,6 +94,23 @@ const ArbitragePlanManagement: React.FC = () => {
     setLoading(false);
   };
   
+  const handleDeletePlan = async (planId: string) => {
+    if (window.confirm("क्या आप वाकई इस योजना को हटाना चाहते हैं?")) {
+      setLoading(true);
+      console.log("Deleting plan:", planId);
+      
+      const success = await deleteArbitragePlan(planId);
+      
+      if (success) {
+        // Remove from local state
+        setPlans(plans.filter(plan => plan.id !== planId));
+        toast.success("योजना सफलतापूर्वक हटा दी गई");
+      }
+      
+      setLoading(false);
+    }
+  };
+  
   const handleCancelEdit = () => {
     console.log("Cancelling edit");
     setEditingPlan(null);
@@ -95,8 +119,8 @@ const ArbitragePlanManagement: React.FC = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!editingPlan) return;
     
-    const { name, value } = e.target;
-    console.log(`Changing ${name} to ${value}`);
+    const { name, value, type } = e.target;
+    console.log(`Changing ${name} to ${value} (${type})`);
     
     setEditingPlan({
       ...editingPlan,
@@ -135,6 +159,7 @@ const ArbitragePlanManagement: React.FC = () => {
   
   const handleRefreshPlans = async () => {
     setLoading(true);
+    setError(null);
     console.log("Manually refreshing plans");
     
     try {
@@ -144,6 +169,7 @@ const ArbitragePlanManagement: React.FC = () => {
       toast.success("योजनाएं रिफ्रेश की गईं");
     } catch (error) {
       console.error("Error refreshing plans:", error);
+      setError("योजनाओं को रिफ्रेश करने में त्रुटि हुई");
       toast.error("योजनाओं को रिफ्रेश करने में त्रुटि हुई");
     } finally {
       setLoading(false);
@@ -184,12 +210,20 @@ const ArbitragePlanManagement: React.FC = () => {
           </Button>
         </div>
         
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4 flex items-center text-red-800">
+            <AlertTriangle className="h-5 w-5 mr-2 flex-shrink-0" />
+            <p>{error}</p>
+          </div>
+        )}
+        
         <PlansTable
           plans={plans}
           filteredPlans={filteredPlans}
           editingPlan={editingPlan}
           loading={loading}
           onEditPlan={handleEditPlan}
+          onDeletePlan={handleDeletePlan}
           onInputChange={handleInputChange}
           onCheckboxChange={handleCheckboxChange}
           onSavePlan={handleSavePlan}

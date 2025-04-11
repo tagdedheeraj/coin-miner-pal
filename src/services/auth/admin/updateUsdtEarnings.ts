@@ -39,6 +39,8 @@ export const updateUsdtEarningsFunctions = (user: User | null) => {
         throw new Error('User not found');
       }
       
+      const oldEarnings = userData.usdt_earnings || 0;
+      
       // Update user in Firestore - use the field name 'usdt_earnings'
       await updateDoc(userRef, {
         usdt_earnings: amount,  // This is the critical field to update
@@ -46,7 +48,7 @@ export const updateUsdtEarningsFunctions = (user: User | null) => {
           ...userNotifications,
           {
             id: Date.now().toString(),
-            message: `Your USDT earnings have been updated from ${userData.usdt_earnings || 0} to ${amount} by admin.`,
+            message: `Your USDT earnings have been updated from ${oldEarnings} to ${amount} by admin.`,
             read: false,
             createdAt: new Date().toISOString()
           }

@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, ReactNode, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthStateProvider } from './AuthStateContext';
@@ -13,7 +14,12 @@ import { adminServiceFunctions } from '@/services/auth/admin'; // Updated import
 import { auth } from '@/integrations/firebase/client';
 import { onAuthStateChanged } from 'firebase/auth';
 import { toast } from 'sonner';
-import { fetchArbitragePlans, updateArbitragePlan as updateArbPlan } from '@/services/arbitragePlans';
+import { 
+  fetchArbitragePlans, 
+  updateArbitragePlan as updateArbPlan,
+  deleteArbitragePlan as deleteArbPlan,
+  createArbitragePlan as createArbPlan
+} from '@/services/arbitragePlans';
 
 export const AuthContext = createContext<FullAuthContextType | null>(null);
 
@@ -98,29 +104,33 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       console.log("Deleting plan with ID:", planId);
       
-      // Update local state
-      setArbitragePlans(prevPlans => prevPlans.filter(plan => plan.id !== planId));
-      toast.success('योजना सफलतापूर्वक हटा द��� गई');
+      // Call the service to delete the plan
+      const success = await deleteArbPlan(planId);
+      
+      if (success) {
+        // Update local state only if the service deletion was successful
+        setArbitragePlans(prevPlans => prevPlans.filter(plan => plan.id !== planId));
+        toast.success('योजना सफलतापूर्वक हटा दी गई');
+      }
     } catch (error) {
       console.error('Error deleting plan:', error);
       toast.error('योजना हटाने में विफल');
     }
   };
   
-  const addArbitragePlan = async (plan: Omit<ArbitragePlan, 'id'>): Promise<void> => {
+  const addArbitragePlan = async (): Promise<void> => {
     try {
-      // Generate ID
-      const newPlanId = uuidv4();
-      console.log("Adding new plan with generated ID:", newPlanId);
+      console.log("Adding new plan");
       
-      // Create new plan
-      const newPlan: ArbitragePlan = {
-        id: newPlanId,
-        ...plan,
-      };
+      // Call the service to create the plan
+      const success = await createArbPlan();
       
-      setArbitragePlans(prevPlans => [...prevPlans, newPlan]);
-      toast.success('नई योजना जोड़ी गई');
+      if (success) {
+        // Refresh plans to get the new one
+        const freshPlans = await fetchArbitragePlans(true);
+        setArbitragePlans(freshPlans);
+        toast.success('नई योजना जोड़ी गई');
+      }
     } catch (error) {
       console.error('Error adding plan:', error);
       toast.error('योजना जोड़ने में विफल');
