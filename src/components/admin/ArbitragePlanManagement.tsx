@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Plus, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Search, Plus, RefreshCw, AlertTriangle, Filter } from 'lucide-react';
 import { ArbitragePlan } from '@/types/arbitragePlans';
 import PlansTable from './plans/PlansTable';
 import { 
@@ -21,6 +21,17 @@ import {
 } from '@/services/arbitragePlans';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Switch } from "@/components/ui/switch";
 
 const ArbitragePlanManagement: React.FC = () => {
   const [plans, setPlans] = useState<ArbitragePlan[]>([]);
@@ -28,10 +39,15 @@ const ArbitragePlanManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showOnlyActive, setShowOnlyActive] = useState(false);
+  const [planToDelete, setPlanToDelete] = useState<string | null>(null);
   
-  const filteredPlans = plans.filter(plan => 
-    plan.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter plans based on search term and active filter
+  const filteredPlans = plans.filter(plan => {
+    const matchesSearch = plan.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const isActive = !showOnlyActive || (plan.totalEarnings > 0);
+    return matchesSearch && isActive;
+  });
   
   useEffect(() => {
     const loadPlans = async () => {
@@ -94,21 +110,30 @@ const ArbitragePlanManagement: React.FC = () => {
     setLoading(false);
   };
   
-  const handleDeletePlan = async (planId: string) => {
-    if (window.confirm("क्या आप वाकई इस योजना को हटाना चाहते हैं?")) {
-      setLoading(true);
-      console.log("Deleting plan:", planId);
-      
-      const success = await deleteArbitragePlan(planId);
-      
-      if (success) {
-        // Remove from local state
-        setPlans(plans.filter(plan => plan.id !== planId));
-        toast.success("योजना सफलतापूर्वक हटा दी गई");
-      }
-      
-      setLoading(false);
+  // Initialize plan deletion confirmation
+  const handleConfirmDelete = (planId: string) => {
+    console.log("Opening delete confirmation for plan:", planId);
+    setPlanToDelete(planId);
+  };
+  
+  // Execute plan deletion after confirmation
+  const handleDeletePlan = async () => {
+    if (!planToDelete) return;
+    
+    setLoading(true);
+    console.log("Deleting plan:", planToDelete);
+    
+    const success = await deleteArbitragePlan(planToDelete);
+    
+    if (success) {
+      // Remove from local state
+      setPlans(plans.filter(plan => plan.id !== planToDelete));
+      toast.success("योजना सफलतापूर्वक हटा दी गई");
     }
+    
+    // Reset planToDelete
+    setPlanToDelete(null);
+    setLoading(false);
   };
   
   const handleCancelEdit = () => {
@@ -175,6 +200,11 @@ const ArbitragePlanManagement: React.FC = () => {
       setLoading(false);
     }
   };
+
+  const handleActiveFilterChange = (checked: boolean) => {
+    console.log("Changing active filter to:", checked);
+    setShowOnlyActive(checked);
+  };
   
   return (
     <Card className="mb-6">
@@ -192,6 +222,19 @@ const ArbitragePlanManagement: React.FC = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
             />
+          </div>
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-gray-400" />
+            <div className="flex items-center gap-2">
+              <Switch 
+                checked={showOnlyActive} 
+                onCheckedChange={handleActiveFilterChange} 
+                id="active-filter"
+              />
+              <label htmlFor="active-filter" className="text-sm">
+                Show active plans only
+              </label>
+            </div>
           </div>
           <Button 
             className="flex items-center gap-1"
@@ -223,12 +266,30 @@ const ArbitragePlanManagement: React.FC = () => {
           editingPlan={editingPlan}
           loading={loading}
           onEditPlan={handleEditPlan}
-          onDeletePlan={handleDeletePlan}
+          onDeletePlan={handleConfirmDelete}
           onInputChange={handleInputChange}
           onCheckboxChange={handleCheckboxChange}
           onSavePlan={handleSavePlan}
           onCancelEdit={handleCancelEdit}
         />
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={!!planToDelete} onOpenChange={(open) => !open && setPlanToDelete(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>क्या आप वाकई इस योजना को हटाना चाहते हैं?</AlertDialogTitle>
+              <AlertDialogDescription>
+                यह क्रिया अपरिवर्तनीय है। योजना के सभी डेटा स्थायी रूप से हटा दिए जाएंगे।
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>रद्द करें</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeletePlan} className="bg-destructive text-destructive-foreground">
+                हां, हटाएं
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );
