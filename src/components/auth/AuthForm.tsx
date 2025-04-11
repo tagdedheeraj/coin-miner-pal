@@ -25,9 +25,11 @@ const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess, referralCode }) =>
   
   const handleSignUp = async (name: string, email: string, password: string, refCode?: string) => {
     try {
-      const result = await signUp(name, email, password, refCode);
+      // Update to match the signUp function signature in AuthContext
+      await signUp(name, email, password, refCode);
       onSuccess?.();
-      return result;
+      // Return undefined to match the Promise<void> return type
+      return;
     } catch (error) {
       // Error is handled by the SignUpForm component
       throw error;
