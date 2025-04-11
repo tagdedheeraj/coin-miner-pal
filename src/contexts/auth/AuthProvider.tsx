@@ -14,6 +14,7 @@ import { adminServiceFunctions } from '@/services/auth/admin'; // Updated import
 import { auth } from '@/integrations/firebase/client';
 import { onAuthStateChanged } from 'firebase/auth';
 import { toast } from 'sonner';
+import { fetchArbitragePlans, updateArbitragePlan as updateArbPlan } from '@/services/arbitragePlanService';
 
 export const AuthContext = createContext<FullAuthContextType | null>(null);
 
@@ -23,7 +24,7 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const { user, setUser, isLoading, setIsLoading } = useAuthData();
-  const [arbitragePlans, setArbitragePlans] = useState<ArbitragePlan[]>(mockArbitragePlans);
+  const [arbitragePlans, setArbitragePlans] = useState<ArbitragePlan[]>([]);
   const { toast: uiToast } = useToast();
 
   // Get all auth functions from the service
@@ -31,6 +32,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   
   // Get admin functions
   const adminFunctions = adminServiceFunctions(user);
+
+  // Fetch arbitrage plans
+  useEffect(() => {
+    const loadPlans = async () => {
+      try {
+        const plans = await fetchArbitragePlans(true);
+        setArbitragePlans(plans);
+      } catch (error) {
+        console.error("Error loading arbitrage plans:", error);
+      }
+    };
+    
+    loadPlans();
+  }, []);
 
   // Listen to auth state changes in Firebase
   useEffect(() => {
@@ -49,14 +64,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       console.log("Updating plan with ID:", planId, "Updates:", updates);
       
-      // Update local state
-      setArbitragePlans(prevPlans =>
-        prevPlans.map(plan =>
-          plan.id === planId ? { ...plan, ...updates } : plan
-        )
-      );
+      // Find current plan
+      const currentPlan = arbitragePlans.find(p => p.id === planId);
+      if (!currentPlan) {
+        throw new Error("Plan not found");
+      }
       
-      toast.success('योजना सफलतापूर्वक अपडेट की गई');
+      // Create updated plan
+      const updatedPlan: ArbitragePlan = {
+        ...currentPlan,
+        ...updates
+      };
+      
+      // Update in service
+      const success = await updateArbPlan(updatedPlan);
+      
+      if (success) {
+        // Update local state only if the service update was successful
+        setArbitragePlans(prevPlans =>
+          prevPlans.map(plan =>
+            plan.id === planId ? updatedPlan : plan
+          )
+        );
+        
+        toast.success('योजना सफलतापूर्वक अपडेट की गई');
+      }
     } catch (error) {
       console.error('Error updating plan:', error);
       toast.error('योजना अपडेट करने में विफल');

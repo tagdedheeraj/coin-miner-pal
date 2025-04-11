@@ -1,34 +1,32 @@
+
 import { ArbitragePlan, ArbitragePlanDB } from '@/types/arbitragePlans';
 import { toast } from 'sonner';
-import { mockArbitragePlans } from '@/data/mockArbitragePlans';
-import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, addDoc, onSnapshot, getFirestore, getDoc } from 'firebase/firestore';
 
-// Performance optimization: Add caching for plans
-let plansCache: ArbitragePlan[] | null = null;
-let lastFetchTime = 0;
-const CACHE_DURATION = 30000; // 30 seconds cache (reduced from 60 seconds)
+// Initialize Firestore
+const db = getFirestore();
+const plansCollection = collection(db, 'arbitrage_plans');
 
-// Map the database columns to our frontend model
-export const mapDbToPlan = (dbPlan: Record<string, any>): ArbitragePlan => {
+// Map DB fields to UI model
+const mapDbToPlan = (id: string, data: any): ArbitragePlan => {
   return {
-    id: dbPlan.id,
-    name: dbPlan.name,
-    price: dbPlan.price,
-    duration: dbPlan.duration,
-    dailyEarnings: dbPlan.daily_earnings,
-    miningSpeed: dbPlan.mining_speed,
-    totalEarnings: dbPlan.total_earnings,
-    withdrawal: dbPlan.withdrawal,
-    color: dbPlan.color || 'blue',
-    limited: dbPlan.limited || false,
-    limitedTo: dbPlan.limited_to
+    id,
+    name: data.name || '',
+    price: data.price || 0,
+    duration: data.duration || 0,
+    dailyEarnings: data.daily_earnings || 0,
+    miningSpeed: data.mining_speed || '',
+    totalEarnings: data.total_earnings || 0,
+    withdrawal: data.withdrawal || '',
+    color: data.color || 'blue',
+    limited: data.limited || false,
+    limitedTo: data.limited_to
   };
 };
 
-// Map the frontend model to database columns
-export const mapPlanToDb = (plan: ArbitragePlan): ArbitragePlanDB => {
+// Map UI model to DB fields
+const mapPlanToDb = (plan: ArbitragePlan): Partial<ArbitragePlanDB> => {
   return {
-    id: plan.id,
     name: plan.name,
     price: plan.price,
     duration: plan.duration,
@@ -42,179 +40,162 @@ export const mapPlanToDb = (plan: ArbitragePlan): ArbitragePlanDB => {
   };
 };
 
-// Helper function to simulate async operations
-const simulateAsyncOperation = async <T>(data: T): Promise<T> => {
-  // Simulate network delay - reduced delay for faster loading
-  await new Promise(resolve => setTimeout(resolve, 100));
-  return data;
-};
+let cachedPlans: ArbitragePlan[] = [];
+let lastFetchTime = 0;
 
+// Function to fetch all arbitrage plans
 export const fetchArbitragePlans = async (forceFresh = false): Promise<ArbitragePlan[]> => {
+  const currentTime = Date.now();
+  const cacheExpired = (currentTime - lastFetchTime) > (5 * 60 * 1000); // 5 minutes cache
+  
+  if (!forceFresh && !cacheExpired && cachedPlans.length > 0) {
+    console.log("Returning cached plans", cachedPlans);
+    return cachedPlans;
+  }
+  
   try {
-    const now = Date.now();
+    console.log("Fetching fresh arbitrage plans from Firestore");
+    const snapshot = await getDocs(plansCollection);
     
-    // Return cached data if available and not expired, unless forceFresh is true
-    if (!forceFresh && plansCache && (now - lastFetchTime < CACHE_DURATION)) {
-      console.log('Using cached plans data');
-      return plansCache;
+    if (snapshot.empty) {
+      console.log("No plans found in Firestore");
+      return [];
     }
     
-    console.log(forceFresh ? 'Forced refresh of plans data' : 'Cache expired, fetching fresh plans data');
+    const plans: ArbitragePlan[] = [];
+    snapshot.forEach(doc => {
+      const plan = mapDbToPlan(doc.id, doc.data());
+      plans.push(plan);
+    });
     
-    try {
-      const db = getFirestore();
-      const plansCollection = collection(db, 'arbitrage_plans');
-      const snapshot = await getDocs(plansCollection);
-      
-      if (snapshot.empty) {
-        console.log('No plans found in Firebase, using mock data');
-        plansCache = mockArbitragePlans;
-        lastFetchTime = now;
-        return mockArbitragePlans;
-      }
-      
-      const plans: ArbitragePlan[] = [];
-      snapshot.forEach(doc => {
-        const data = doc.data();
-        plans.push({
-          id: doc.id,
-          name: data.name,
-          price: data.price,
-          duration: data.duration,
-          dailyEarnings: data.daily_earnings,
-          miningSpeed: data.mining_speed,
-          totalEarnings: data.total_earnings,
-          withdrawal: data.withdrawal,
-          color: data.color || 'blue',
-          limited: data.limited || false,
-          limitedTo: data.limited_to
-        });
-      });
-      
-      console.log('Retrieved plans from Firebase:', plans);
-      plansCache = plans;
-      lastFetchTime = now;
-      return plans;
-    } catch (error) {
-      console.error('Error getting plans from Firebase:', error);
-      // Fallback to mock data
-      console.log('Falling back to mock data');
-      plansCache = mockArbitragePlans;
-      lastFetchTime = now;
-      return mockArbitragePlans;
-    }
+    // Update cache
+    cachedPlans = plans;
+    lastFetchTime = currentTime;
+    
+    console.log("Fetched plans:", plans);
+    return plans;
   } catch (error) {
-    console.error('Error fetching plans:', error);
-    toast.error('योजनाओं को लोड करने में विफल');
-    return plansCache || []; // Return cached data if available, even if expired
+    console.error("Error fetching arbitrage plans:", error);
+    toast.error("योजनाओं को लोड करने में त्रुटि हुई");
+    return [];
   }
 };
 
+// Function to update an arbitrage plan
 export const updateArbitragePlan = async (plan: ArbitragePlan): Promise<boolean> => {
+  if (!plan.id) {
+    console.error("Cannot update plan without ID");
+    toast.error("योजना अपडेट करने में त्रुटि हुई");
+    return false;
+  }
+  
   try {
-    console.log('Updating arbitrage plan:', plan);
+    console.log("Updating plan:", plan);
+    const planRef = doc(db, 'arbitrage_plans', plan.id);
     
-    // Update in the local cache
-    if (plansCache) {
-      plansCache = plansCache.map(p => p.id === plan.id ? plan : p);
+    // Get the current plan to validate it exists
+    const planDoc = await getDoc(planRef);
+    if (!planDoc.exists()) {
+      console.error("Plan not found:", plan.id);
+      toast.error("योजना नहीं मिली");
+      return false;
     }
     
-    try {
-      const db = getFirestore();
-      const planRef = doc(db, 'arbitrage_plans', plan.id);
-      
-      await updateDoc(planRef, {
-        name: plan.name,
-        price: plan.price,
-        duration: plan.duration,
-        daily_earnings: plan.dailyEarnings,
-        mining_speed: plan.miningSpeed,
-        total_earnings: plan.totalEarnings,
-        withdrawal: plan.withdrawal,
-        color: plan.color,
-        limited: plan.limited,
-        limited_to: plan.limitedTo
-      });
-      
-      console.log('Plan updated successfully in Firebase');
-    } catch (error) {
-      console.error('Error updating plan in Firebase:', error);
-      // Continue even if Firebase update fails - we'll keep using the in-memory cache
-    }
+    // Map UI model to DB fields
+    const planData = mapPlanToDb(plan);
     
-    console.log('Plan updated successfully');
-    toast.success('योजना सफलतापूर्वक अपडेट की गई');
+    // Update in Firestore
+    await updateDoc(planRef, planData);
+    
+    // Also update our cache
+    cachedPlans = cachedPlans.map(p => 
+      p.id === plan.id ? plan : p
+    );
+    
+    toast.success("योजना सफलतापूर्वक अपडेट की गई");
     return true;
   } catch (error) {
-    console.error('Error saving plan:', error);
-    toast.error('योजना परिवर्तन सहेजने में विफल');
+    console.error("Error updating arbitrage plan:", error);
+    toast.error("योजना अपडेट करने में त्रुटि हुई");
     return false;
   }
 };
 
+// Function to create a new arbitrage plan
 export const createArbitragePlan = async (): Promise<boolean> => {
-  // Create a new plan with default values
-  const newPlan = {
-    id: `plan-${Date.now()}`,
-    name: 'New Plan',
-    price: 50,
-    duration: 30,
-    dailyEarnings: 2,
-    miningSpeed: '1.5x',
-    totalEarnings: 60,
-    withdrawal: 'Daily',
-    color: 'blue',
-    limited: false
-  };
-  
   try {
-    console.log('Creating new arbitrage plan');
+    // Create a basic plan template
+    const newPlan: Omit<ArbitragePlan, 'id'> = {
+      name: "New Plan",
+      price: 100,
+      duration: 30,
+      dailyEarnings: 5,
+      miningSpeed: "1x",
+      totalEarnings: 150,
+      withdrawal: "daily",
+      color: "blue",
+      limited: false
+    };
     
-    // Add to the local cache
-    if (plansCache) {
-      plansCache = [...plansCache, newPlan];
-    }
+    // Map to DB format
+    const planData = mapPlanToDb(newPlan as ArbitragePlan);
     
-    try {
-      const db = getFirestore();
-      const plansCollection = collection(db, 'arbitrage_plans');
-      
-      await addDoc(plansCollection, {
-        name: newPlan.name,
-        price: newPlan.price,
-        duration: newPlan.duration,
-        daily_earnings: newPlan.dailyEarnings,
-        mining_speed: newPlan.miningSpeed,
-        total_earnings: newPlan.totalEarnings,
-        withdrawal: newPlan.withdrawal,
-        color: newPlan.color,
-        limited: newPlan.limited
-      });
-      
-      console.log('Plan added successfully to Firebase');
-    } catch (error) {
-      console.error('Error adding plan to Firebase:', error);
-      // Continue even if Firebase add fails - we'll keep using the in-memory cache
-    }
+    // Add to Firestore
+    const docRef = await addDoc(plansCollection, planData);
+    console.log("Created new plan with ID:", docRef.id);
     
-    console.log('New plan created successfully');
-    toast.success('नई योजना बनाई गई');
+    // Invalidate cache
+    lastFetchTime = 0;
+    
+    toast.success("नई योजना बनाई गई");
     return true;
   } catch (error) {
-    console.error('Error creating plan:', error);
-    toast.error('नई योजना बनाने में विफल');
+    console.error("Error creating new arbitrage plan:", error);
+    toast.error("नई योजना बनाने में त्रुटि हुई");
     return false;
   }
 };
 
+// Function to subscribe to plan changes
 export const subscribeToPlanChanges = (callback: () => void) => {
-  console.log('Setting up mock subscription to plan changes');
+  const unsubscribe = onSnapshot(plansCollection, (snapshot) => {
+    console.log("Plan changes detected");
+    
+    // Clear cache to force a refresh
+    lastFetchTime = 0;
+    
+    // Call the callback
+    callback();
+  }, (error) => {
+    console.error("Error in plan subscription:", error);
+  });
   
-  // No real subscription needed when using mock data
-  // Return a dummy object with an unsubscribe method
   return {
-    unsubscribe: () => {
-      console.log('Unsubscribing from mock plan changes');
-    }
+    unsubscribe
   };
+};
+
+// Function to get a specific plan by ID
+export const getArbitragePlanById = async (planId: string): Promise<ArbitragePlan | null> => {
+  try {
+    // Check cache first
+    const cachedPlan = cachedPlans.find(p => p.id === planId);
+    if (cachedPlan) {
+      return cachedPlan;
+    }
+    
+    // Fetch from Firestore
+    const planRef = doc(db, 'arbitrage_plans', planId);
+    const planDoc = await getDoc(planRef);
+    
+    if (!planDoc.exists()) {
+      console.error("Plan not found:", planId);
+      return null;
+    }
+    
+    return mapDbToPlan(planDoc.id, planDoc.data());
+  } catch (error) {
+    console.error("Error fetching plan by ID:", error);
+    return null;
+  }
 };

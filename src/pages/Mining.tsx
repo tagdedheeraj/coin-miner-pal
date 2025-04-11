@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import Header from '@/components/layout/Header';
@@ -7,7 +7,17 @@ import BottomNav from '@/components/layout/BottomNav';
 import MiningCard from '@/components/mining/MiningCard';
 
 const Mining: React.FC = () => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    // Simple timeout to ensure the UI has time to load user data
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, []);
   
   if (!isAuthenticated) {
     return <Navigate to="/sign-in" replace />;
@@ -23,7 +33,13 @@ const Mining: React.FC = () => {
           <p className="text-gray-500">प्रति घंटे 2 सिक्के माइन करें, दैनिक 48 सिक्कों तक</p>
         </div>
         
-        <MiningCard />
+        {isLoading ? (
+          <div className="flex items-center justify-center p-8">
+            <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+          </div>
+        ) : (
+          <MiningCard />
+        )}
       </main>
       
       <BottomNav />

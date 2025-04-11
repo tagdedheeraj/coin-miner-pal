@@ -1,85 +1,100 @@
 
 import { User } from '@/types/auth';
 import { toast } from 'sonner';
-import { collection, getDocs, query, where, getFirestore } from 'firebase/firestore';
+import { collection, getDocs, getFirestore, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { mapDbToUser } from '@/utils/firebaseUtils';
 import { mockUsers } from '@/data/mockUsers';
 
+// Cache for users
+let cachedUsers: User[] = [];
+let lastFetchTime = 0;
+
 export const getAllUsersFunctions = (user: User | null) => {
-  // Initialize Firestore
   const db = getFirestore();
-  const usersCollectionRef = collection(db, 'users');
   
-  const getAllUsers = async (): Promise<User[]> => {
+  const getAllUsers = async (forceFresh = true): Promise<User[]> => {
     if (!user?.isAdmin) {
-      toast.error('Only admins can access user list');
+      toast.error('Only admins can view all users');
       return [];
+    }
+    
+    const currentTime = Date.now();
+    const cacheExpired = (currentTime - lastFetchTime) > (2 * 60 * 1000); // 2 minutes cache
+    
+    if (!forceFresh && !cacheExpired && cachedUsers.length > 0) {
+      console.log("Returning cached users", cachedUsers);
+      return cachedUsers;
     }
 
     try {
-      console.log('Fetching all users from Firebase...');
+      console.log('Fetching all users from Firestore');
       
-      // Get users from Firebase
-      const usersSnapshot = await getDocs(usersCollectionRef);
-      const users: User[] = usersSnapshot.docs.map(doc => {
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, orderBy('name'));
+      const querySnapshot = await getDocs(q);
+      
+      const users: User[] = [];
+      querySnapshot.forEach((doc) => {
         const data = doc.data();
-        return {
+        users.push(mapDbToUser({
           id: doc.id,
-          name: data.name || '',
-          email: data.email || '',
-          coins: data.coins || 0,
-          referralCode: data.referralCode || '',
-          hasSetupPin: data.hasSetupPin || false,
-          hasBiometrics: data.hasBiometrics || false,
-          withdrawalAddress: data.withdrawalAddress || null,
-          appliedReferralCode: data.appliedReferralCode || undefined,
-          usdtEarnings: data.usdtEarnings || 0,
-          notifications: data.notifications || [],
-          isAdmin: data.isAdmin || false
-        };
+          ...data
+        }));
       });
       
-      // If no users found in Firebase, use mock data (for development)
+      // Update cache
+      cachedUsers = users;
+      lastFetchTime = currentTime;
+      
+      console.log('Fetched users:', users);
+      
       if (users.length === 0) {
-        console.log('No users found in Firebase, using mock data');
-        return mockUsers.map(mockUser => ({
-          id: mockUser.id,
-          name: mockUser.name,
-          email: mockUser.email,
-          coins: mockUser.coins,
-          referralCode: mockUser.referralCode,
-          hasSetupPin: mockUser.hasSetupPin,
-          hasBiometrics: mockUser.hasBiometrics,
-          withdrawalAddress: mockUser.withdrawalAddress,
-          appliedReferralCode: mockUser.appliedReferralCode,
-          usdtEarnings: mockUser.usdtEarnings || 0,
-          notifications: mockUser.notifications || [],
-          isAdmin: mockUser.isAdmin || false
-        }));
+        console.log('No users found, returning mock data');
+        return mockUsers;
       }
       
-      console.log('Found users:', users.length);
       return users;
     } catch (error) {
       console.error('Error fetching users:', error);
       toast.error('Failed to fetch users');
-      
-      // Return mock users as fallback
-      return mockUsers.map(mockUser => ({
-        id: mockUser.id,
-        name: mockUser.name,
-        email: mockUser.email,
-        coins: mockUser.coins,
-        referralCode: mockUser.referralCode,
-        hasSetupPin: mockUser.hasSetupPin,
-        hasBiometrics: mockUser.hasBiometrics,
-        withdrawalAddress: mockUser.withdrawalAddress,
-        appliedReferralCode: mockUser.appliedReferralCode,
-        usdtEarnings: mockUser.usdtEarnings || 0,
-        notifications: mockUser.notifications || [],
-        isAdmin: mockUser.isAdmin || false
-      }));
+      return mockUsers;
     }
   };
+  
+  // Function to set up real-time listener for users
+  const subscribeToUsers = (callback: (users: User[]) => void) => {
+    if (!user?.isAdmin) {
+      return { unsubscribe: () => {} };
+    }
+    
+    const usersRef = collection(db, 'users');
+    const q = query(usersRef, orderBy('name'));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const users: User[] = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        users.push(mapDbToUser({
+          id: doc.id,
+          ...data
+        }));
+      });
+      
+      // Update cache
+      cachedUsers = users;
+      lastFetchTime = Date.now();
+      
+      callback(users);
+    }, (error) => {
+      console.error('Error in users subscription:', error);
+      toast.error('Failed to subscribe to user updates');
+    });
+    
+    return { unsubscribe };
+  };
 
-  return { getAllUsers };
+  return { 
+    getAllUsers,
+    subscribeToUsers
+  };
 };

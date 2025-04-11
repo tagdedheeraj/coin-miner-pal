@@ -1,7 +1,7 @@
 
 import { User } from '@/types/auth';
 import { toast } from 'sonner';
-import { collection, getDocs, query, where, getFirestore, doc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, getFirestore, doc, updateDoc, getDoc } from 'firebase/firestore';
 
 export const updateUsdtEarningsFunctions = (user: User | null) => {
   // Initialize Firestore
@@ -30,14 +30,23 @@ export const updateUsdtEarningsFunctions = (user: User | null) => {
       const userData = userDoc.data();
       const userNotifications = userData.notifications || [];
       
+      // Verify the user exists by getting their document
+      const userRef = doc(db, 'users', userDoc.id);
+      const userSnapshot = await getDoc(userRef);
+      
+      if (!userSnapshot.exists()) {
+        toast.error('User not found');
+        throw new Error('User not found');
+      }
+      
       // Update user in Firestore
-      await updateDoc(doc(db, 'users', userDoc.id), {
-        usdtEarnings: amount,
+      await updateDoc(userRef, {
+        usdt_earnings: amount,
         notifications: [
           ...userNotifications,
           {
             id: Date.now().toString(),
-            message: `Your USDT earnings have been updated from ${userData.usdtEarnings || 0} to ${amount} by admin.`,
+            message: `Your USDT earnings have been updated from ${userData.usdt_earnings || 0} to ${amount} by admin.`,
             read: false,
             createdAt: new Date().toISOString()
           }

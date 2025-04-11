@@ -1,7 +1,7 @@
 
 import { User } from '@/types/auth';
 import { toast } from 'sonner';
-import { collection, getDocs, query, where, getFirestore, doc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, getFirestore, doc, updateDoc, getDoc } from 'firebase/firestore';
 
 export const updateCoinsFunctions = (user: User | null) => {
   // Initialize Firestore
@@ -30,8 +30,17 @@ export const updateCoinsFunctions = (user: User | null) => {
       const userData = userDoc.data();
       const userNotifications = userData.notifications || [];
       
+      // Verify the user exists by getting their document
+      const userRef = doc(db, 'users', userDoc.id);
+      const userSnapshot = await getDoc(userRef);
+      
+      if (!userSnapshot.exists()) {
+        toast.error('User not found');
+        throw new Error('User not found');
+      }
+      
       // Update user in Firestore
-      await updateDoc(doc(db, 'users', userDoc.id), {
+      await updateDoc(userRef, {
         coins: amount,
         notifications: [
           ...userNotifications,
