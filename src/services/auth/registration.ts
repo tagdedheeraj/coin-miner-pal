@@ -55,12 +55,6 @@ export const createRegistrationService = (
       
       console.log('Supabase user data:', supabaseUserData);
       
-      // Ensure we have all required fields for the users table
-      if (!supabaseUserData.id || !supabaseUserData.email || 
-          !supabaseUserData.name || !supabaseUserData.referral_code) {
-        throw new Error('Missing required user fields for Supabase');
-      }
-      
       // Also save to Supabase for admin panel visibility
       const { error: supabaseError } = await supabase
         .from('users')

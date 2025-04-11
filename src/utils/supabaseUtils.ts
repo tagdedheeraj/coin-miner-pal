@@ -6,11 +6,11 @@ import { Json } from '@/integrations/supabase/types';
 export const mapUserToDb = (user: Partial<User>) => {
   // Create an object with the required fields to satisfy TypeScript
   const dbUser: {
-    id?: string;
-    name?: string;
-    email?: string;
+    id: string;
+    name: string;
+    email: string;
     coins?: number;
-    referral_code?: string;
+    referral_code: string;
     has_setup_pin?: boolean;
     has_biometrics?: boolean;
     withdrawal_address?: string | null;
@@ -18,13 +18,14 @@ export const mapUserToDb = (user: Partial<User>) => {
     usdt_earnings?: number | null;
     notifications?: Json | null;
     is_admin?: boolean | null;
-  } = {};
+  } = {
+    id: user.id || '', // Required field with default
+    name: user.name || '', // Required field with default
+    email: user.email || '', // Required field with default
+    referral_code: user.referralCode || '', // Required field with default
+  };
   
-  if (user.id !== undefined) dbUser.id = user.id;
-  if (user.name !== undefined) dbUser.name = user.name;
-  if (user.email !== undefined) dbUser.email = user.email;
   if (user.coins !== undefined) dbUser.coins = user.coins;
-  if (user.referralCode !== undefined) dbUser.referral_code = user.referralCode;
   if (user.hasSetupPin !== undefined) dbUser.has_setup_pin = user.hasSetupPin;
   if (user.hasBiometrics !== undefined) dbUser.has_biometrics = user.hasBiometrics;
   if (user.withdrawalAddress !== undefined) dbUser.withdrawal_address = user.withdrawalAddress;

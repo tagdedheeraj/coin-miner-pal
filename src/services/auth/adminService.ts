@@ -4,9 +4,38 @@ import { supabase } from '@/integrations/supabase/client';
 import { auth } from '@/integrations/firebase/client';
 import { toast } from 'sonner';
 import { mapUserToDb, mapDbToUser } from '@/utils/supabaseUtils';
-import { deleteUser as deleteFirebaseUser } from 'firebase/auth';
+import { deleteUser as deleteFirebaseUser, getAuth } from 'firebase/auth';
+import { collection, getDocs, query, where, getFirestore, deleteDoc, doc } from 'firebase/firestore';
 
 export const adminServiceFunctions = (user: User | null) => {
+  // Initialize Firestore
+  const db = getFirestore();
+  
+  const getAllUsers = async (): Promise<User[]> => {
+    if (!user?.isAdmin) {
+      toast.error('Only admins can access user list');
+      return [];
+    }
+
+    try {
+      // Get users from both Firebase and Supabase
+      const { data: supabaseUsers, error: supabaseError } = await supabase
+        .from('users')
+        .select('*');
+      
+      if (supabaseError) throw supabaseError;
+      
+      // Map all users from Supabase format to our User format
+      const mappedUsers = supabaseUsers.map(dbUser => mapDbToUser(dbUser));
+      
+      return mappedUsers;
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      toast.error('Failed to fetch users');
+      return [];
+    }
+  };
+
   const updateUserUsdtEarnings = async (email: string, amount: number): Promise<void> => {
     if (!user?.isAdmin) {
       toast.error('Only admins can update USDT earnings');
@@ -30,6 +59,10 @@ export const adminServiceFunctions = (user: User | null) => {
       const { error } = await supabase
         .from('users')
         .update(mapUserToDb({
+          id: targetUser.id,
+          email: targetUser.email,
+          name: targetUser.name,
+          referralCode: targetUser.referralCode,
           usdtEarnings: amount,
           notifications: [
             ...userNotifications,
@@ -76,6 +109,10 @@ export const adminServiceFunctions = (user: User | null) => {
       const { error } = await supabase
         .from('users')
         .update(mapUserToDb({
+          id: targetUser.id,
+          email: targetUser.email,
+          name: targetUser.name,
+          referralCode: targetUser.referralCode,
           coins: amount,
           notifications: [
             ...userNotifications,
@@ -141,6 +178,7 @@ export const adminServiceFunctions = (user: User | null) => {
   };
   
   return {
+    getAllUsers,
     updateUserUsdtEarnings,
     updateUserCoins,
     deleteUserAccount
