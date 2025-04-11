@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import AuthForm from '@/components/auth/AuthForm';
 import { ArrowLeft } from 'lucide-react';
@@ -8,6 +8,11 @@ import { ArrowLeft } from 'lucide-react';
 const SignUp: React.FC = () => {
   const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Extract referral code from URL if present
+  const queryParams = new URLSearchParams(location.search);
+  const referralCode = queryParams.get('ref');
   
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
@@ -34,6 +39,7 @@ const SignUp: React.FC = () => {
           <AuthForm 
             type="sign-up" 
             onSuccess={() => navigate('/dashboard')}
+            referralCode={referralCode}
           />
           
           <div className="mt-8 text-center animate-fade-in">

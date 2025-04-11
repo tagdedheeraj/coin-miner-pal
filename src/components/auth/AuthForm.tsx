@@ -1,80 +1,54 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import SignInForm from './SignInForm';
 import SignUpForm from './SignUpForm';
 
 interface AuthFormProps {
   type: 'sign-in' | 'sign-up';
-  onSuccess: () => void;
+  onSuccess?: () => void;
+  referralCode?: string | null;
 }
 
-const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess }) => {
-  const { signIn, signUp } = useAuth();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const isSignUp = type === 'sign-up';
+const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess, referralCode }) => {
+  const { signIn, signUp, isLoading } = useAuth();
   
   const handleSignIn = async (email: string, password: string) => {
-    setIsSubmitting(true);
-    
     try {
       await signIn(email, password);
-      
-      // Give a slight delay before redirect for better UX
-      setTimeout(() => {
-        onSuccess();
-      }, 500);
+      onSuccess?.();
     } catch (error) {
-      // Let the form component handle errors
+      // Error is handled by the SignInForm component
       throw error;
-    } finally {
-      setIsSubmitting(false);
     }
   };
   
-  const handleSignUp = async (name: string, email: string, password: string) => {
-    setIsSubmitting(true);
-    
+  const handleSignUp = async (name: string, email: string, password: string, refCode?: string) => {
     try {
-      await signUp(name, email, password);
-      
-      // Give a slight delay before redirect for better UX
-      setTimeout(() => {
-        onSuccess();
-      }, 500);
+      const result = await signUp(name, email, password, refCode);
+      onSuccess?.();
+      return result;
     } catch (error) {
-      // Let the form component handle errors
+      // Error is handled by the SignUpForm component
       throw error;
-    } finally {
-      setIsSubmitting(false);
     }
   };
-
+  
   return (
-    <Card className="w-full">
-      <CardHeader className="space-y-1">
-        <CardTitle>{isSignUp ? 'Sign Up' : 'Sign In'}</CardTitle>
-        <CardDescription>
-          {isSignUp 
-            ? 'Create an account to start mining.' 
-            : 'Enter your credentials to access your account.'}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-4">
-        {isSignUp ? (
-          <SignUpForm 
-            onSignUp={handleSignUp} 
-            isSubmitting={isSubmitting} 
-          />
-        ) : (
-          <SignInForm 
-            onSignIn={handleSignIn} 
-            isSubmitting={isSubmitting} 
-          />
-        )}
-      </CardContent>
-    </Card>
+    <div className="bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 animate-fade-in">
+      {type === 'sign-in' ? (
+        <SignInForm 
+          onSignIn={handleSignIn} 
+          isSubmitting={isLoading} 
+        />
+      ) : (
+        <SignUpForm 
+          onSignUp={handleSignUp} 
+          isSubmitting={isLoading}
+          referralCode={referralCode} 
+        />
+      )}
+    </div>
   );
 };
 

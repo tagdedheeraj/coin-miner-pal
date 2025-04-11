@@ -5,7 +5,8 @@ import { auth } from '@/integrations/firebase/client';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { toast } from 'sonner';
 import { generateReferralCode } from '@/utils/referral';
-import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, collection, query, where, getDocs, updateDoc } from 'firebase/firestore';
+import { v4 as uuidv4 } from 'uuid';
 
 export const createRegistrationService = (
   user: User | null, 
@@ -14,7 +15,7 @@ export const createRegistrationService = (
 ) => {
   const db = getFirestore();
   
-  const signUp = async (name: string, email: string, password: string) => {
+  const signUp = async (name: string, email: string, password: string, referralCode?: string) => {
     setIsLoading(true);
     console.log('Attempting to sign up with Firebase');
     
@@ -31,7 +32,7 @@ export const createRegistrationService = (
       console.log('Firebase signup successful, creating user profile...');
       
       // Generate referral code
-      const referralCode = generateReferralCode();
+      const newReferralCode = generateReferralCode();
       
       // Create user profile
       const newUser: User = {
@@ -39,13 +40,49 @@ export const createRegistrationService = (
         name,
         email,
         coins: 200, // Sign-up bonus
-        referralCode,
+        referralCode: newReferralCode,
         hasSetupPin: false,
         hasBiometrics: false,
         withdrawalAddress: null,
         usdtEarnings: 0,
-        notifications: []
+        notifications: [],
+        appliedReferralCode: referralCode || undefined
       };
+      
+      // If referral code is provided, validate and apply it
+      if (referralCode) {
+        // Find the user with the given referral code
+        const usersRef = collection(db, 'users');
+        const referrerQuery = query(usersRef, where('referral_code', '==', referralCode));
+        const referrerSnapshot = await getDocs(referrerQuery);
+        
+        if (!referrerSnapshot.empty) {
+          const referrerDoc = referrerSnapshot.docs[0];
+          const referrerData = referrerDoc.data();
+          const referrerNotifications = referrerData.notifications || [];
+          const currentCoins = referrerData.coins || 0;
+          
+          // Update referrer's coins and add notification
+          await updateDoc(doc(db, 'users', referrerDoc.id), {
+            coins: currentCoins + 250,
+            notifications: [
+              ...referrerNotifications,
+              {
+                id: uuidv4(),
+                message: `${name} used your referral code! You received 250 bonus coins.`,
+                read: false,
+                createdAt: new Date().toISOString()
+              }
+            ]
+          });
+          
+          console.log(`Referral bonus applied for code: ${referralCode}`);
+          newUser.appliedReferralCode = referralCode;
+        } else {
+          console.log(`Invalid referral code: ${referralCode}, ignoring...`);
+          newUser.appliedReferralCode = undefined;
+        }
+      }
       
       // Save to Firestore with snake_case field names
       await setDoc(doc(db, 'users', firebaseUser.uid), {
@@ -53,13 +90,14 @@ export const createRegistrationService = (
         name,
         email,
         coins: 200,
-        referral_code: referralCode,
+        referral_code: newReferralCode,
         has_setup_pin: false,
         has_biometrics: false,
         withdrawal_address: null,
         usdt_earnings: 0,
         notifications: [],
         is_admin: false,
+        applied_referral_code: newUser.appliedReferralCode,
         created_at: new Date().toISOString()
       });
       
