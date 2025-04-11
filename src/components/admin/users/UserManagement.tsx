@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
@@ -12,9 +11,10 @@ import { toast } from 'sonner';
 
 interface UserManagementProps {
   deleteUser: (userId: string) => void;
+  users?: User[]; // Make this prop optional
 }
 
-const UserManagement: React.FC<UserManagementProps> = ({ deleteUser }) => {
+const UserManagement: React.FC<UserManagementProps> = ({ deleteUser, users: providedUsers }) => {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -25,8 +25,16 @@ const UserManagement: React.FC<UserManagementProps> = ({ deleteUser }) => {
   );
   
   useEffect(() => {
-    fetchAllUsers();
-  }, []);
+    if (providedUsers && providedUsers.length > 0) {
+      // If users are provided as props, use them
+      console.log('Using provided users:', providedUsers);
+      setAllUsers(providedUsers);
+      setLoadingUsers(false);
+    } else {
+      // Otherwise fetch them
+      fetchAllUsers();
+    }
+  }, [providedUsers]);
   
   const fetchAllUsers = async () => {
     try {

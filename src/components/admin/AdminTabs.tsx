@@ -9,7 +9,7 @@ import NotificationManager from './notifications/NotificationManager';
 import WithdrawalRequestManager from './withdrawals/WithdrawalRequestManager';
 import DepositRequestManager from './deposits/DepositRequestManager';
 import ArbitragePlanManagement from './ArbitragePlanManagement';
-import { WithdrawalRequest, DepositRequest } from '@/types/auth';
+import { WithdrawalRequest, DepositRequest, User as UserType } from '@/types/auth';
 
 interface AdminTabsProps {
   pendingWithdrawalsCount: number;
@@ -24,6 +24,7 @@ interface AdminTabsProps {
   getDepositRequests: () => Promise<DepositRequest[]>;
   approveDepositRequest: (requestId: string) => Promise<void>;
   rejectDepositRequest: (requestId: string) => Promise<void>;
+  users: UserType[]; // Add this prop to the interface
 }
 
 const AdminTabs: React.FC<AdminTabsProps> = ({
@@ -38,7 +39,8 @@ const AdminTabs: React.FC<AdminTabsProps> = ({
   rejectWithdrawalRequest,
   getDepositRequests,
   approveDepositRequest,
-  rejectDepositRequest
+  rejectDepositRequest,
+  users // Add the users prop here
 }) => {
   return (
     <Tabs defaultValue="users" className="w-full">
@@ -77,7 +79,7 @@ const AdminTabs: React.FC<AdminTabsProps> = ({
       </TabsList>
       
       <TabsContent value="users">
-        <UserManagement deleteUser={deleteUser} />
+        <UserManagement deleteUser={deleteUser} users={users} />
       </TabsContent>
       
       <TabsContent value="plans">
