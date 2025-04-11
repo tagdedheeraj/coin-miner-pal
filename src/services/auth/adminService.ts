@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { auth } from '@/integrations/firebase/client';
 import { toast } from 'sonner';
 import { mapUserToDb, mapDbToUser } from '@/utils/supabaseUtils';
-import { deleteUser as deleteFirebaseUser, getAuth } from 'firebase/auth';
+import { deleteUser as deleteFirebaseUser } from 'firebase/auth';
 import { collection, getDocs, query, where, getFirestore, deleteDoc, doc } from 'firebase/firestore';
 
 export const adminServiceFunctions = (user: User | null) => {
@@ -51,6 +51,8 @@ export const adminServiceFunctions = (user: User | null) => {
     }
 
     try {
+      console.log(`Updating USDT earnings for ${email} to ${amount}`);
+      
       // Find the user by email
       const { data: userData, error: userError } = await supabase
         .from('users')
@@ -58,12 +60,18 @@ export const adminServiceFunctions = (user: User | null) => {
         .eq('email', email)
         .single();
       
-      if (userError) throw new Error('User not found');
+      if (userError) {
+        console.error('User not found:', userError);
+        toast.error('उपयोगकर्ता नहीं मिला');
+        throw new Error('User not found');
+      }
       
       const targetUser = mapDbToUser(userData);
+      console.log('Found user to update:', targetUser);
+      
       const userNotifications = targetUser.notifications || [];
       
-      // Update USDT earnings and add notification in both Supabase and Firebase
+      // Update USDT earnings and add notification
       const { error } = await supabase
         .from('users')
         .update(mapUserToDb({
@@ -84,12 +92,16 @@ export const adminServiceFunctions = (user: User | null) => {
         }))
         .eq('id', targetUser.id);
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating USDT earnings:', error);
+        throw error;
+      }
       
-      toast.success(`USDT earnings updated for ${email}`);
+      console.log('USDT earnings updated successfully');
+      toast.success(`${email} के लिए USDT अर्निंग अपडेट की गई`);
     } catch (error) {
-      console.error(error);
-      toast.error(error instanceof Error ? error.message : 'Failed to update USDT earnings');
+      console.error('Error updating USDT earnings:', error);
+      toast.error(error instanceof Error ? error.message : 'USDT अर्निंग अपडेट करने में विफल');
       throw error;
     }
   };
@@ -101,6 +113,8 @@ export const adminServiceFunctions = (user: User | null) => {
     }
 
     try {
+      console.log(`Updating coins for ${email} to ${amount}`);
+      
       // Find the user by email
       const { data: userData, error: userError } = await supabase
         .from('users')
@@ -108,9 +122,15 @@ export const adminServiceFunctions = (user: User | null) => {
         .eq('email', email)
         .single();
       
-      if (userError) throw new Error('User not found');
+      if (userError) {
+        console.error('User not found:', userError);
+        toast.error('उपयोगकर्ता नहीं मिला');
+        throw new Error('User not found');
+      }
       
       const targetUser = mapDbToUser(userData);
+      console.log('Found user to update coins:', targetUser);
+      
       const userNotifications = targetUser.notifications || [];
       
       // Update coins and add notification
@@ -134,12 +154,16 @@ export const adminServiceFunctions = (user: User | null) => {
         }))
         .eq('id', targetUser.id);
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating coins:', error);
+        throw error;
+      }
       
-      toast.success(`Coins updated for ${email}`);
+      console.log('Coins updated successfully');
+      toast.success(`${email} के लिए सिक्के अपडेट किए गए`);
     } catch (error) {
-      console.error(error);
-      toast.error(error instanceof Error ? error.message : 'Failed to update coins');
+      console.error('Error updating coins:', error);
+      toast.error(error instanceof Error ? error.message : 'सिक्के अपडेट करने में विफल');
       throw error;
     }
   };
@@ -151,36 +175,45 @@ export const adminServiceFunctions = (user: User | null) => {
     }
 
     try {
+      console.log(`Deleting user with ID: ${userId}`);
+      
       // Delete from Supabase first
       const { error: supabaseError } = await supabase
         .from('users')
         .delete()
         .eq('id', userId);
 
-      if (supabaseError) throw supabaseError;
+      if (supabaseError) {
+        console.error('Error deleting from Supabase:', supabaseError);
+        throw supabaseError;
+      }
 
       // Try to delete from Firebase - using the correct method from Firebase v9+
       try {
-        // We need to get the current auth user, not try to fetch by ID directly
-        // Firebase Admin SDK would have getUser(), but we're using client SDK
+        // Find the user in Firebase by UID if possible
+        console.log('Attempting to delete user from Firebase');
+        
+        // For direct deletion of other users, we need to use Admin SDK in a secure backend
+        // This is a client-side operation, so we can only delete the current user
         const currentUser = auth.currentUser;
         
-        // Only attempt deletion if we're trying to delete the current user
         if (currentUser && currentUser.uid === userId) {
           await deleteFirebaseUser(currentUser);
+          console.log('Firebase user deleted successfully');
         } else {
           console.log('Cannot delete Firebase user directly from client SDK for security reasons');
-          // Note: We would need Firebase Admin SDK or a server function to delete other users
+          // For deleting other users, we would need a server-side function
         }
       } catch (firebaseError) {
         console.error('Firebase deletion error:', firebaseError);
         // Continue even if Firebase deletion fails
       }
 
-      toast.success('User deleted successfully');
+      console.log('User deleted successfully');
+      toast.success('उपयोगकर्ता सफलतापूर्वक हटा दिया गया');
     } catch (error) {
-      console.error(error);
-      toast.error('Failed to delete user');
+      console.error('Error deleting user:', error);
+      toast.error('उपयोगकर्ता हटाने में विफल');
       throw error;
     }
   };
@@ -189,6 +222,6 @@ export const adminServiceFunctions = (user: User | null) => {
     getAllUsers,
     updateUserUsdtEarnings,
     updateUserCoins,
-    deleteUserAccount
+    deleteUser: deleteUserAccount
   };
 };

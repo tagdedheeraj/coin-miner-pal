@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 // Performance optimization: Add caching for plans
 let plansCache: ArbitragePlan[] | null = null;
 let lastFetchTime = 0;
-const CACHE_DURATION = 60000; // 1 minute cache
+const CACHE_DURATION = 30000; // 30 seconds cache (reduced from 60 seconds)
 
 // Map the database columns to our frontend model
 export const mapDbToPlan = (dbPlan: Record<string, any>): ArbitragePlan => {
@@ -53,31 +53,34 @@ const retryOperation = async (operation: () => Promise<any>, retries = 3, delay 
   }
 };
 
-export const fetchArbitragePlans = async (): Promise<ArbitragePlan[]> => {
+export const fetchArbitragePlans = async (forceFresh = false): Promise<ArbitragePlan[]> => {
   try {
     const now = Date.now();
     
-    // Return cached data if available and not expired
-    if (plansCache && (now - lastFetchTime < CACHE_DURATION)) {
+    // Return cached data if available and not expired, unless forceFresh is true
+    if (!forceFresh && plansCache && (now - lastFetchTime < CACHE_DURATION)) {
       console.log('Using cached plans data');
       return plansCache;
     }
     
+    console.log(forceFresh ? 'Forced refresh of plans data' : 'Cache expired, fetching fresh plans data');
+    
     // Retry mechanism with a timeout
     const { data, error } = await retryOperation(async () => {
-      return await (supabase as any)
+      return await supabase
         .from('arbitrage_plans')
         .select('*')
         .order('price', { ascending: true });
     });
     
     if (error) {
-      toast.error('Failed to fetch plans');
       console.error('Error fetching plans:', error);
+      toast.error('योजनाओं को लोड करने में विफल');
       return plansCache || []; // Return cached data if available, even if expired
     }
     
     if (data) {
+      console.log('Received fresh plans data:', data);
       const plans = data.map((plan: any) => mapDbToPlan(plan));
       // Update the cache
       plansCache = plans;
@@ -94,31 +97,36 @@ export const fetchArbitragePlans = async (): Promise<ArbitragePlan[]> => {
 
 export const updateArbitragePlan = async (plan: ArbitragePlan): Promise<boolean> => {
   try {
+    console.log('Updating arbitrage plan:', plan);
     const dbPlan = mapPlanToDb(plan);
     
     // Retry mechanism
     const { error } = await retryOperation(async () => {
-      return await (supabase as any)
+      return await supabase
         .from('arbitrage_plans')
         .update(dbPlan)
         .eq('id', plan.id);
     });
     
     if (error) {
-      toast.error('Failed to update plan');
       console.error('Error updating plan:', error);
+      toast.error('योजना अपडेट करने में विफल');
       return false;
     }
     
-    // Invalidate cache
+    // Invalidate cache immediately
     plansCache = null;
     lastFetchTime = 0;
     
-    toast.success('Plan updated successfully');
+    // Fetch the updated plans immediately
+    await fetchArbitragePlans(true);
+    
+    console.log('Plan updated successfully');
+    toast.success('योजना सफलतापूर्वक अपडेट की गई');
     return true;
   } catch (error) {
     console.error('Error saving plan:', error);
-    toast.error('Failed to save plan changes');
+    toast.error('योजना परिवर्तन सहेजने में विफल');
     return false;
   }
 };
@@ -138,17 +146,19 @@ export const createArbitragePlan = async (): Promise<boolean> => {
   };
   
   try {
+    console.log('Creating new arbitrage plan');
+    
     // Retry mechanism
     const { data, error } = await retryOperation(async () => {
-      return await (supabase as any)
+      return await supabase
         .from('arbitrage_plans')
         .insert(newPlan)
         .select();
     });
     
     if (error) {
-      toast.error('Failed to create new plan');
       console.error('Error creating plan:', error);
+      toast.error('नई योजना बनाने में विफल');
       return false;
     }
     
@@ -157,19 +167,25 @@ export const createArbitragePlan = async (): Promise<boolean> => {
       plansCache = null;
       lastFetchTime = 0;
       
-      toast.success('New plan created');
+      // Fetch the updated plans
+      await fetchArbitragePlans(true);
+      
+      console.log('New plan created successfully');
+      toast.success('नई योजना बनाई गई');
       return true;
     }
     
     return false;
   } catch (error) {
     console.error('Error creating plan:', error);
-    toast.error('Failed to create new plan');
+    toast.error('नई योजना बनाने में विफल');
     return false;
   }
 };
 
 export const subscribeToPlanChanges = (callback: () => void) => {
+  console.log('Setting up subscription to plan changes');
+  
   // Subscribe to changes
   const subscription = supabase
     .channel('arbitrage_plans_changes')
@@ -177,7 +193,8 @@ export const subscribeToPlanChanges = (callback: () => void) => {
       event: '*', 
       schema: 'public', 
       table: 'arbitrage_plans' 
-    }, () => {
+    }, (payload) => {
+      console.log('Plan change detected:', payload);
       // Invalidate cache when changes are detected
       plansCache = null;
       lastFetchTime = 0;

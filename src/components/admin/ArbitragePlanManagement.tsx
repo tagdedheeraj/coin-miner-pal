@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, RefreshCw } from 'lucide-react';
 import { ArbitragePlan } from '@/types/arbitragePlans';
 import PlansTable from './plans/PlansTable';
 import { 
@@ -18,6 +18,7 @@ import {
   createArbitragePlan,
   subscribeToPlanChanges
 } from '@/services/arbitragePlanService';
+import { toast } from 'sonner';
 
 const ArbitragePlanManagement: React.FC = () => {
   const [plans, setPlans] = useState<ArbitragePlan[]>([]);
@@ -32,29 +33,42 @@ const ArbitragePlanManagement: React.FC = () => {
   useEffect(() => {
     const loadPlans = async () => {
       setLoading(true);
-      const data = await fetchArbitragePlans();
-      setPlans(data);
-      setLoading(false);
+      try {
+        const data = await fetchArbitragePlans(true); // Force fresh data
+        console.log("Fetched plans:", data);
+        setPlans(data);
+      } catch (error) {
+        console.error("Error loading plans:", error);
+        toast.error("योजनाओं को लोड करने में त्रुटि हुई");
+      } finally {
+        setLoading(false);
+      }
     };
     
     loadPlans();
     
     // Set up a subscription to listen for changes
     const planSubscription = subscribeToPlanChanges(() => {
+      console.log("Plan changes detected, refreshing...");
       loadPlans();
     });
       
     return () => {
+      console.log("Unsubscribing from plan changes");
       planSubscription.unsubscribe();
     };
   }, []);
   
   const handleEditPlan = (plan: ArbitragePlan) => {
+    console.log("Editing plan:", plan);
     setEditingPlan({...plan});
   };
   
   const handleSavePlan = async () => {
     if (!editingPlan) return;
+    
+    setLoading(true);
+    console.log("Saving plan changes:", editingPlan);
     
     const success = await updateArbitragePlan(editingPlan);
     
@@ -65,10 +79,17 @@ const ArbitragePlanManagement: React.FC = () => {
       ));
       
       setEditingPlan(null);
+      
+      // Refresh plans from server to ensure we have the latest data
+      const updatedPlans = await fetchArbitragePlans(true);
+      setPlans(updatedPlans);
     }
+    
+    setLoading(false);
   };
   
   const handleCancelEdit = () => {
+    console.log("Cancelling edit");
     setEditingPlan(null);
   };
   
@@ -76,6 +97,7 @@ const ArbitragePlanManagement: React.FC = () => {
     if (!editingPlan) return;
     
     const { name, value } = e.target;
+    console.log(`Changing ${name} to ${value}`);
     
     setEditingPlan({
       ...editingPlan,
@@ -89,6 +111,7 @@ const ArbitragePlanManagement: React.FC = () => {
   const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!editingPlan) return;
     
+    console.log(`Changing limited to ${e.target.checked}`);
     setEditingPlan({
       ...editingPlan,
       limited: e.target.checked
@@ -96,12 +119,35 @@ const ArbitragePlanManagement: React.FC = () => {
   };
 
   const handleCreateNewPlan = async () => {
+    setLoading(true);
+    console.log("Creating new plan");
+    
     const success = await createArbitragePlan();
     
     if (success) {
       // Refresh the plans list
-      const data = await fetchArbitragePlans();
+      const data = await fetchArbitragePlans(true);
+      console.log("Plans after creating new one:", data);
       setPlans(data);
+    }
+    
+    setLoading(false);
+  };
+  
+  const handleRefreshPlans = async () => {
+    setLoading(true);
+    console.log("Manually refreshing plans");
+    
+    try {
+      const freshPlans = await fetchArbitragePlans(true);
+      console.log("Refreshed plans:", freshPlans);
+      setPlans(freshPlans);
+      toast.success("योजनाएं रिफ्रेश की गईं");
+    } catch (error) {
+      console.error("Error refreshing plans:", error);
+      toast.error("योजनाओं को रिफ्रेश करने में त्रुटि हुई");
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -124,7 +170,16 @@ const ArbitragePlanManagement: React.FC = () => {
           </div>
           <Button 
             className="flex items-center gap-1"
+            onClick={handleRefreshPlans}
+            variant="outline"
+            disabled={loading}
+          >
+            <RefreshCw className="h-4 w-4" /> Refresh
+          </Button>
+          <Button 
+            className="flex items-center gap-1"
             onClick={handleCreateNewPlan}
+            disabled={loading}
           >
             <Plus className="h-4 w-4" /> Add New Plan
           </Button>

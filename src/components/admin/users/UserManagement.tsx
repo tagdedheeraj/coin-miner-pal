@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Search, Trash2 } from 'lucide-react';
+import { Search, Trash2, RefreshCw } from 'lucide-react';
 import { User } from '@/types/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { mapDbToUser } from '@/utils/supabaseUtils';
@@ -39,6 +40,8 @@ const UserManagement: React.FC<UserManagementProps> = ({ deleteUser, users: prov
   const fetchAllUsers = async () => {
     try {
       setLoadingUsers(true);
+      console.log('Fetching all users directly...');
+      
       // Explicitly fetch all users from Supabase
       const { data, error } = await supabase
         .from('users')
@@ -46,6 +49,7 @@ const UserManagement: React.FC<UserManagementProps> = ({ deleteUser, users: prov
       
       if (error) {
         console.error('Error fetching users:', error);
+        toast.error('उपयोगकर्ताओं को लोड करने में त्रुटि हुई');
         throw error;
       }
       
@@ -98,7 +102,9 @@ const UserManagement: React.FC<UserManagementProps> = ({ deleteUser, users: prov
           <Button 
             variant="outline" 
             onClick={fetchAllUsers}
+            className="flex items-center gap-2"
           >
+            <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
         </div>

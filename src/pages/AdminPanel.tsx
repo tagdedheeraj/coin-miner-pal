@@ -37,11 +37,33 @@ const AdminPanel: React.FC = () => {
           console.log("Fetching admin data...");
           
           // Fetch all data in parallel for better performance
+          const fetchWithdrawals = getWithdrawalRequests().catch(err => {
+            console.error("Error fetching withdrawals:", err);
+            return [];
+          });
+          
+          const fetchDeposits = getDepositRequests().catch(err => {
+            console.error("Error fetching deposits:", err);
+            return [];
+          });
+          
+          const fetchUsers = getAllUsers ? getAllUsers().catch(err => {
+            console.error("Error fetching users:", err);
+            return [];
+          }) : Promise.resolve([]);
+          
+          // Wait for all promises to resolve
           const [withdrawals, deposits, users] = await Promise.all([
-            getWithdrawalRequests(),
-            getDepositRequests(),
-            getAllUsers ? getAllUsers() : []
+            fetchWithdrawals,
+            fetchDeposits,
+            fetchUsers
           ]);
+          
+          console.log("Admin data fetched:", {
+            withdrawalsCount: withdrawals.length,
+            depositsCount: deposits.length,
+            usersCount: users.length
+          });
           
           setWithdrawalRequests(withdrawals);
           setDepositRequests(deposits);
@@ -64,6 +86,35 @@ const AdminPanel: React.FC = () => {
     fetchData();
   }, [user, getWithdrawalRequests, getDepositRequests, getAllUsers]);
   
+  // Add a refresh function
+  const refreshData = async () => {
+    if (!user?.isAdmin) return;
+    
+    setIsLoading(true);
+    toast.info('Refreshing admin data...');
+    
+    try {
+      if (getAllUsers) {
+        const users = await getAllUsers();
+        console.log("Refreshed users:", users);
+        setAllUsers(users);
+      }
+      
+      const withdrawals = await getWithdrawalRequests();
+      setWithdrawalRequests(withdrawals);
+      
+      const deposits = await getDepositRequests();
+      setDepositRequests(deposits);
+      
+      toast.success('Admin data refreshed');
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      toast.error('Failed to refresh admin data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   if (!isAuthenticated || !user?.isAdmin) {
     return <Navigate to="/sign-in" replace />;
   }
@@ -76,9 +127,18 @@ const AdminPanel: React.FC = () => {
       <Header />
       
       <main className="container px-4 py-6 mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold mb-1">Admin Panel</h1>
-          <p className="text-gray-500">Manage users and system settings</p>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold mb-1">Admin Panel</h1>
+            <p className="text-gray-500">Manage users and system settings</p>
+          </div>
+          <button 
+            onClick={refreshData}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            disabled={isLoading}
+          >
+            {isLoading ? 'Loading...' : 'Refresh Data'}
+          </button>
         </div>
         
         {isLoading ? (
