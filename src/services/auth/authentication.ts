@@ -16,10 +16,12 @@ export const createAuthenticationService = (
     setIsLoading(true);
     
     try {
+      console.log('Starting sign-in process for email:', email);
       // Check for admin/mock users first before trying Firebase
       const mockUser = mockUsers.find(u => u.email === email && u.password === password);
       
       if (mockUser) {
+        console.log('Mock user found, signing in with mock data');
         // Convert mock user to User type
         const userObj: User = {
           id: mockUser.id,
@@ -47,8 +49,10 @@ export const createAuthenticationService = (
       }
       
       // If not a mock user, proceed with Firebase authentication
+      console.log('Attempting Firebase sign in for:', email);
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
+      console.log('Firebase sign in successful, user ID:', firebaseUser.uid);
       
       // Check if we already have user data saved
       const storedUserData = localStorage.getItem('user');
@@ -82,6 +86,7 @@ export const createAuthenticationService = (
         notifications: []
       };
       
+      console.log('Created new user profile:', userObj);
       setUser(userObj);
       localStorage.setItem('user', JSON.stringify(userObj));
       toast.success('Signed in successfully');
@@ -90,8 +95,10 @@ export const createAuthenticationService = (
       
       let errorMessage = 'Failed to sign in';
       if (error instanceof Error) {
+        console.log('Error message:', error.message);
         if (error.message.includes('auth/user-not-found') || 
-            error.message.includes('auth/wrong-password')) {
+            error.message.includes('auth/wrong-password') || 
+            error.message.includes('auth/invalid-credential')) {
           errorMessage = 'Invalid email or password';
         } else if (error.message.includes('auth/network-request-failed')) {
           errorMessage = 'Network error. Please check your internet connection and try again.';
