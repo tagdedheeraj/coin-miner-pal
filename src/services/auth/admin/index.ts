@@ -2,7 +2,7 @@
 import { User } from '@/types/auth';
 import { getAllUsersFunctions } from './getAllUsers';
 import { updateUsdtEarningsFunctions } from './updateUsdtEarnings';
-import { updateCoinsFunctions } from './updateCoins';
+import { updateCoinsFunctions } from './coins';
 import { deleteUserFunctions } from './deleteUser';
 
 export const adminServiceFunctions = (user: User | null) => {
