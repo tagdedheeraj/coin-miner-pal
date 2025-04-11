@@ -64,8 +64,8 @@ const AdminDashboard: React.FC = () => {
       
       <main className="container px-4 py-6 mx-auto">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold mb-1">एडमिन पैनल</h1>
-          <p className="text-gray-500">अपनी वेबसाइट और ऐप को यहां से प्रबंधित करें</p>
+          <h1 className="text-2xl font-bold mb-1">Admin Panel</h1>
+          <p className="text-gray-500">Manage your website and app from here</p>
         </div>
         
         {/* Dashboard Overview */}
