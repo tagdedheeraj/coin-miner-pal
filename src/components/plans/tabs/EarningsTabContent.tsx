@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { useAuth } from '@/hooks/useAuth';
@@ -24,13 +23,21 @@ const EarningsTabContent: React.FC<EarningsTabContentProps> = ({ getIndianTime }
     // Get current date for proper display
     const today = new Date();
     
-    // Generate last 5 days of earnings
-    const earnings = [];
+    // Generate unique earnings records for the past 5 days, consolidated by date
+    const earningsByDate = new Map<string, { 
+      totalAmount: number, 
+      plans: Set<string>, 
+      status: string 
+    }>();
     
     // For each active plan, calculate daily earnings for the past 5 days
     for (let i = 0; i < 5; i++) {
       const date = new Date();
       date.setDate(today.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      // Set initial status based on the day
+      const status = i === 0 ? 'Processing' : i === 1 ? 'Pending' : 'Paid';
       
       // For each active plan
       user.activePlans.forEach(plan => {
@@ -39,22 +46,35 @@ const EarningsTabContent: React.FC<EarningsTabContentProps> = ({ getIndianTime }
         
         // Only add earnings if the date is between start and expiry
         if (date >= startDate && date <= expiryDate) {
-          const status = i === 0 ? 'Processing' : i === 1 ? 'Pending' : 'Paid';
-          
-          earnings.push({
-            date: date.toISOString().split('T')[0],
-            amount: plan.dailyEarnings,
-            status,
-            planName: plan.planName
-          });
+          // If this date already exists, update it
+          if (earningsByDate.has(dateStr)) {
+            const existing = earningsByDate.get(dateStr)!;
+            existing.totalAmount += plan.dailyEarnings;
+            existing.plans.add(plan.planName);
+          } else {
+            // Otherwise create a new entry
+            earningsByDate.set(dateStr, {
+              totalAmount: plan.dailyEarnings,
+              plans: new Set([plan.planName]),
+              status
+            });
+          }
         }
       });
     }
     
-    // Sort by date (newest first)
-    earnings.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    // Convert the Map to an array of earnings records
+    const consolidatedEarnings = Array.from(earningsByDate.entries()).map(([date, data]) => ({
+      date,
+      amount: data.totalAmount,
+      status: data.status,
+      planName: Array.from(data.plans).join(', ')
+    }));
     
-    setEarningsData(earnings);
+    // Sort by date (newest first)
+    consolidatedEarnings.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    setEarningsData(consolidatedEarnings);
   }, [user?.activePlans]);
 
   return (

@@ -13,6 +13,7 @@ export interface User {
   notifications?: Array<{id: string, message: string, read: boolean, createdAt: string}>;
   isAdmin?: boolean;
   activePlans?: UserPlan[];
+  lastEarningsUpdate?: string; // New field to track when earnings were last updated
 }
 
 export interface UserPlan {

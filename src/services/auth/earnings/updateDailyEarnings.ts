@@ -23,12 +23,29 @@ export const updateUserDailyEarnings = async (userId: string): Promise<boolean> 
     const currentUsdtEarnings = userData.usdt_earnings || 0;
     const notifications = userData.notifications || [];
     
+    // Get the last earnings update timestamp
+    const lastEarningsUpdate = userData.last_earnings_update ? new Date(userData.last_earnings_update) : null;
+    const currentDate = new Date();
+    
+    // Check if we already updated earnings today
+    if (lastEarningsUpdate) {
+      const lastUpdateDay = new Date(lastEarningsUpdate);
+      lastUpdateDay.setHours(0, 0, 0, 0);
+      
+      const today = new Date(currentDate);
+      today.setHours(0, 0, 0, 0);
+      
+      if (lastUpdateDay.getTime() === today.getTime()) {
+        console.log(`User ${userId} earnings already updated today`);
+        return false;
+      }
+    }
+    
     if (activePlans.length === 0) {
       // User has no active plans
       return false;
     }
     
-    const currentDate = new Date();
     let totalDailyEarnings = 0;
     const updatedActivePlans = [];
     
@@ -53,6 +70,7 @@ export const updateUserDailyEarnings = async (userId: string): Promise<boolean> 
       await updateDoc(userRef, {
         usdt_earnings: newUsdtEarnings,
         active_plans: updatedActivePlans,
+        last_earnings_update: currentDate.toISOString(),
         notifications: [
           ...notifications,
           {
@@ -71,7 +89,8 @@ export const updateUserDailyEarnings = async (userId: string): Promise<boolean> 
     // If plans were updated (some expired) but no earnings were added
     if (updatedActivePlans.length !== activePlans.length) {
       await updateDoc(userRef, {
-        active_plans: updatedActivePlans
+        active_plans: updatedActivePlans,
+        last_earnings_update: currentDate.toISOString()
       });
       return true;
     }

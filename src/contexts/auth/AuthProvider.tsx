@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, ReactNode, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthStateProvider } from './AuthStateContext';
@@ -19,7 +20,6 @@ import {
   deleteArbitragePlan as deleteArbPlan,
   createArbitragePlan as createArbPlan
 } from '@/services/arbitragePlans';
-import { updateUserDailyEarnings } from '@/services/auth/earnings/updateDailyEarnings';
 
 export const AuthContext = createContext<FullAuthContextType | null>(null);
 
@@ -59,23 +59,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   }, []);
 
-  useEffect(() => {
-    if (user?.id) {
-      const updateUserEarnings = async () => {
-        try {
-          await updateUserDailyEarnings(user.id);
-        } catch (error) {
-          console.error('Error updating user earnings:', error);
-        }
-      };
-      
-      updateUserEarnings();
-      
-      const intervalId = setInterval(updateUserEarnings, 24 * 60 * 60 * 1000);
-      
-      return () => clearInterval(intervalId);
-    }
-  }, [user?.id]);
+  // Removed the duplicate earnings update logic here as it's now handled by useEarningsService hook
 
   const updateArbitragePlan = async (planId: string, updates: Partial<ArbitragePlan>): Promise<void> => {
     try {
