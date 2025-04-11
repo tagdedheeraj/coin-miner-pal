@@ -1,6 +1,7 @@
 
 import React from 'react';
-import { LayoutGrid, Loader2 } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { RefreshCcw } from 'lucide-react';
 
 interface PlansHeaderProps {
   activeTab: string;
@@ -8,46 +9,22 @@ interface PlansHeaderProps {
   isRefreshing?: boolean;
 }
 
-const PlansHeader: React.FC<PlansHeaderProps> = ({ 
-  activeTab, 
-  setActiveTab,
-  isRefreshing = false 
-}) => {
+const PlansHeader: React.FC<PlansHeaderProps> = ({ activeTab, setActiveTab, isRefreshing = false }) => {
   return (
-    <div className="glass-card rounded-2xl p-6 mb-6 animate-scale-up">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center">
-          <div className="w-10 h-10 rounded-full bg-brand-orange/10 flex items-center justify-center mr-3">
-            <LayoutGrid className="text-brand-orange" size={20} />
-          </div>
-          <div>
-            <h3 className="font-semibold text-lg">Mining Plans</h3>
-            <p className="text-sm text-gray-500">Boost your mining power</p>
-          </div>
-        </div>
-        
-        {isRefreshing && (
-          <div className="text-sm text-gray-500 flex items-center">
-            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-            <span>Refreshing...</span>
-          </div>
-        )}
-      </div>
+    <div className="flex items-center justify-between mb-4">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid grid-cols-3 w-full">
+          <TabsTrigger value="plans">Plans</TabsTrigger>
+          <TabsTrigger value="active">Active</TabsTrigger>
+          <TabsTrigger value="earnings">Earnings</TabsTrigger>
+        </TabsList>
+      </Tabs>
       
-      <div className="flex space-x-2 border-b mb-6">
-        <button
-          className={`pb-2 px-4 font-medium ${activeTab === 'plans' ? 'border-b-2 border-brand-blue text-brand-blue' : 'text-gray-500'}`}
-          onClick={() => setActiveTab('plans')}
-        >
-          Plans
-        </button>
-        <button
-          className={`pb-2 px-4 font-medium ${activeTab === 'earnings' ? 'border-b-2 border-brand-blue text-brand-blue' : 'text-gray-500'}`}
-          onClick={() => setActiveTab('earnings')}
-        >
-          Earnings
-        </button>
-      </div>
+      {isRefreshing && (
+        <div className="ml-2">
+          <RefreshCcw className="h-4 w-4 animate-spin text-gray-500" />
+        </div>
+      )}
     </div>
   );
 };

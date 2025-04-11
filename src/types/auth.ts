@@ -12,6 +12,19 @@ export interface User {
   usdtEarnings?: number;
   notifications?: Array<{id: string, message: string, read: boolean, createdAt: string}>;
   isAdmin?: boolean;
+  activePlans?: UserPlan[];
+}
+
+export interface UserPlan {
+  id: string;
+  planId: string;
+  planName: string;
+  amount: number;
+  dailyEarnings: number;
+  startDate: string;
+  expiryDate: string;
+  isActive: boolean;
+  depositId: string;
 }
 
 export interface WithdrawalRequest {
@@ -69,6 +82,8 @@ export interface AuthContextType {
   getDepositRequests: () => Promise<DepositRequest[]>;
   approveDepositRequest: (requestId: string) => Promise<void>;
   rejectDepositRequest: (requestId: string) => Promise<void>;
+  getUserPlans?: () => UserPlan[];
+  getUserActiveDeposits?: () => Promise<DepositRequest[]>;
 }
 
 export interface MockUser extends User {

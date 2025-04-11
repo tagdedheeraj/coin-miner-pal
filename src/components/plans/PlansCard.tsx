@@ -5,6 +5,7 @@ import PaymentModal from './payment/PaymentModal';
 import PlansHeader from './PlansHeader';
 import PlansTabContent from './tabs/PlansTabContent';
 import EarningsTabContent from './tabs/EarningsTabContent';
+import ActivePlansTabContent from './tabs/ActivePlansTabContent';
 import PlanCategories from './cards/PlanCategories';
 
 interface PlansCardProps {
@@ -18,7 +19,7 @@ const PlansCard: React.FC<PlansCardProps> = ({
   onDepositSuccess,
   isRefreshing = false
 }) => {
-  const [activeTab, setActiveTab] = useState('plans'); // 'plans' or 'earnings'
+  const [activeTab, setActiveTab] = useState('plans'); // 'plans', 'active', or 'earnings'
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<{
     id: string;
@@ -68,6 +69,8 @@ const PlansCard: React.FC<PlansCardProps> = ({
           onOpenPaymentModal={handleOpenPaymentModal} 
           isRefreshing={isRefreshing}
         />
+      ) : activeTab === 'active' ? (
+        <ActivePlansTabContent />
       ) : (
         <EarningsTabContent getIndianTime={getIndianTime} />
       )}

@@ -46,8 +46,37 @@ export const approveDepositFunctions = (user: User | null) => {
       const userDoc = userSnapshot.docs[0];
       const userData = userDoc.data();
       const userNotifications = userData.notifications || [];
+      const userActivePlans = userData.active_plans || [];
       
-      // Update user with notification
+      // Get the plan details
+      const planRef = doc(db, 'arbitrage_plans', requestData.plan_id);
+      const planSnapshot = await getDoc(planRef);
+      
+      if (!planSnapshot.exists()) {
+        throw new Error('Plan not found');
+      }
+      
+      const planData = planSnapshot.data();
+      
+      // Calculate plan expiry date
+      const startDate = new Date();
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + (planData.duration || 30));
+      
+      // Create user plan record
+      const userPlan = {
+        id: uuidv4(),
+        planId: requestData.plan_id,
+        planName: requestData.plan_name,
+        amount: requestData.amount,
+        dailyEarnings: planData.daily_earnings || 0,
+        startDate: startDate.toISOString(),
+        expiryDate: expiryDate.toISOString(),
+        isActive: true,
+        depositId: requestId
+      };
+      
+      // Update user with notification and active plan
       await updateDoc(doc(db, 'users', userDoc.id), {
         notifications: [
           ...userNotifications,
@@ -57,7 +86,28 @@ export const approveDepositFunctions = (user: User | null) => {
             read: false,
             createdAt: new Date().toISOString()
           }
+        ],
+        active_plans: [
+          ...userActivePlans,
+          userPlan
         ]
+      });
+      
+      // Create plan history record
+      const planHistoryRef = collection(db, 'plan_history');
+      await planHistoryRef.add({
+        userId: userDoc.id,
+        userEmail: requestData.user_email,
+        userName: requestData.user_name,
+        planId: requestData.plan_id,
+        planName: requestData.plan_name,
+        amount: requestData.amount,
+        startDate: startDate.toISOString(),
+        expiryDate: expiryDate.toISOString(),
+        isActive: true,
+        dailyEarnings: planData.daily_earnings || 0,
+        depositId: requestId,
+        createdAt: new Date().toISOString()
       });
       
       toast.success('Deposit request approved successfully');
