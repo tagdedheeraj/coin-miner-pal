@@ -13,7 +13,6 @@ export const referralServiceFunctions = (
   
   const applyReferralCode = async (code: string): Promise<void> => {
     if (!user) throw new Error('Not authenticated');
-    if (user.isAdmin) throw new Error('Admin cannot apply referral code');
     
     try {
       // Check if user has already applied a referral code
@@ -41,6 +40,7 @@ export const referralServiceFunctions = (
       const referrerNotifications = referrerData.notifications || [];
       const currentCoins = referrerData.coins || 0;
       
+      // Update the referrer with bonus coins
       await updateDoc(doc(db, 'users', referrerDoc.id), {
         coins: currentCoins + 250,
         notifications: [
@@ -66,9 +66,9 @@ export const referralServiceFunctions = (
         appliedReferralCode: code
       });
       
-      toast.success('Referral code applied successfully!');
+      toast.success('Referral code applied successfully! The referrer received 250 bonus coins.');
     } catch (error) {
-      console.error(error);
+      console.error('Referral error:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to apply referral code');
       throw error;
     }

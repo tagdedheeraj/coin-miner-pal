@@ -31,7 +31,9 @@ const Referral: React.FC = () => {
       setReferralCode('');
     } catch (error) {
       console.error('Referral Error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to apply referral code');
+      // Don't show "Invalid referral code" error if the code is actually invalid
+      const errorMessage = error instanceof Error ? error.message : 'Failed to apply referral code';
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -62,11 +64,11 @@ const Referral: React.FC = () => {
                 disabled={isSubmitting}
                 className="bg-brand-indigo hover:bg-brand-indigo/90"
               >
-                Apply
+                {isSubmitting ? 'Applying...' : 'Apply'}
               </Button>
             </div>
             <p className="text-sm text-gray-500 mt-2">
-              The 250 coin bonus will be added to the referrer's account
+              The 250 coin bonus will be added to the referrer's account immediately
             </p>
           </Card>
         ) : (
