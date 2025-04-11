@@ -1,5 +1,5 @@
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { ArbitragePlan, ArbitragePlanDB } from '@/types/arbitragePlans';
 import { toast } from 'sonner';
 
@@ -39,19 +39,30 @@ export const mapPlanToDb = (plan: ArbitragePlan): ArbitragePlanDB => {
 
 export const fetchArbitragePlans = async (): Promise<ArbitragePlan[]> => {
   try {
-    // Need to use the raw query method since arbitrage_plans is not in the TypeScript definitions
+    // Use rpc for custom SQL queries instead of the typed query builder
     const { data, error } = await supabase
-      .from('arbitrage_plans')
-      .select('*')
-      .order('price', { ascending: true });
+      .rpc('get_arbitrage_plans')
+      .select();
     
+    // If rpc fails (likely because the function doesn't exist), fallback to raw query
     if (error) {
-      toast.error('Failed to fetch plans');
-      console.error('Error fetching plans:', error);
-      return [];
-    }
-    
-    if (data) {
+      console.warn('Falling back to direct table query:', error);
+      // Use the PostgrestQueryBuilder directly with any type to bypass type checking
+      const response = await (supabase as any)
+        .from('arbitrage_plans')
+        .select('*')
+        .order('price', { ascending: true });
+      
+      if (response.error) {
+        toast.error('Failed to fetch plans');
+        console.error('Error fetching plans:', response.error);
+        return [];
+      }
+      
+      if (response.data) {
+        return response.data.map((plan: any) => mapDbToPlan(plan));
+      }
+    } else if (data) {
       return data.map(plan => mapDbToPlan(plan));
     }
     
@@ -66,8 +77,8 @@ export const updateArbitragePlan = async (plan: ArbitragePlan): Promise<boolean>
   try {
     const dbPlan = mapPlanToDb(plan);
     
-    // Need to use the raw query method since arbitrage_plans is not in the TypeScript definitions
-    const { error } = await supabase
+    // Use PostgrestQueryBuilder directly with any type to bypass type checking
+    const { error } = await (supabase as any)
       .from('arbitrage_plans')
       .update(dbPlan)
       .eq('id', plan.id);
@@ -102,8 +113,8 @@ export const createArbitragePlan = async (): Promise<boolean> => {
   };
   
   try {
-    // Need to use the raw query method since arbitrage_plans is not in the TypeScript definitions
-    const { data, error } = await supabase
+    // Use PostgrestQueryBuilder directly with any type to bypass type checking
+    const { data, error } = await (supabase as any)
       .from('arbitrage_plans')
       .insert(newPlan)
       .select();
