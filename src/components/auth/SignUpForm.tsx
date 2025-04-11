@@ -11,14 +11,12 @@ import FormError from './FormError';
 import { signUpSchema, SignUpFormValues } from './schemas/authValidation';
 
 interface SignUpFormProps {
-  onSignUp: (name: string, email: string, password: string, referralCode?: string) => Promise<void>;
+  onSignUp: (name: string, email: string, password: string) => Promise<void>;
   isSubmitting: boolean;
-  referralCode?: string | null;
 }
 
-const SignUpForm: React.FC<SignUpFormProps> = ({ onSignUp, isSubmitting, referralCode }) => {
+const SignUpForm: React.FC<SignUpFormProps> = ({ onSignUp, isSubmitting }) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [manualReferralCode, setManualReferralCode] = useState<string>(referralCode || '');
   const { toast } = useToast();
   
   const form = useForm<SignUpFormValues>({
@@ -35,7 +33,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSignUp, isSubmitting, referra
     
     try {
       console.log('Starting signup process with:', { name: values.name, email: values.email });
-      await onSignUp(values.name, values.email, values.password, manualReferralCode || undefined);
+      await onSignUp(values.name, values.email, values.password);
     } catch (error) {
       console.error("Auth error:", error);
       
@@ -70,17 +68,6 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSignUp, isSubmitting, referra
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <FormItem>
-            <FormLabel>Referral Code (Optional)</FormLabel>
-            <Input 
-              placeholder="Enter referral code" 
-              disabled={isSubmitting || !!referralCode}
-              value={manualReferralCode}
-              onChange={(e) => setManualReferralCode(e.target.value)}
-            />
-            <p className="text-xs text-gray-500 mt-1">Enter a referral code if you have one</p>
-          </FormItem>
-          
           <FormField
             control={form.control}
             name="name"

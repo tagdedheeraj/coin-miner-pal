@@ -58,7 +58,7 @@ export interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (name: string, email: string, password: string, referralCode?: string) => Promise<void>;
+  signUp: (name: string, email: string, password: string) => Promise<any>;
   signOut: () => void;
   updateUser: (updates: Partial<User>) => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
@@ -80,6 +80,8 @@ export interface AuthContextType {
   rejectWithdrawalRequest: (requestId: string) => Promise<void>;
   requestPlanPurchase: (depositRequest: Omit<DepositRequest, 'id' | 'status' | 'reviewedAt'>) => Promise<void>;
   getDepositRequests: () => Promise<DepositRequest[]>;
+  approveDepositRequest: (requestId: string) => Promise<void>;
+  rejectDepositRequest: (requestId: string) => Promise<void>;
   getUserPlans?: () => UserPlan[];
   getUserActiveDeposits?: () => Promise<DepositRequest[]>;
 }
