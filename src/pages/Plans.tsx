@@ -7,40 +7,47 @@ import BottomNav from '@/components/layout/BottomNav';
 import PlansCard from '@/components/plans/PlansCard';
 import { DepositRequest } from '@/types/auth';
 import { toast } from 'sonner';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const Plans: React.FC = () => {
   const { isAuthenticated, user, getUserDepositRequests } = useAuth();
   const [depositRequests, setDepositRequests] = useState<DepositRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
   
-  const fetchDepositRequests = async () => {
-    if (isAuthenticated && getUserDepositRequests) {
-      setIsLoading(true);
-      try {
-        const requests = await getUserDepositRequests();
-        setDepositRequests(requests);
-      } catch (error) {
-        console.error('Error fetching user deposit requests:', error);
-        // Don't show toast to avoid spamming the user on RLS errors
-      } finally {
-        setIsLoading(false);
-      }
+  const fetchDepositRequests = async (showLoadingToast = false) => {
+    if (!isAuthenticated || !getUserDepositRequests) return;
+    
+    if (showLoadingToast) {
+      setIsFetching(true);
+      toast.info("Refreshing your deposit requests...");
+    }
+    
+    try {
+      const requests = await getUserDepositRequests();
+      setDepositRequests(requests);
+    } catch (error) {
+      console.error('Error fetching user deposit requests:', error);
+      // Don't show toast to avoid spamming the user on RLS errors
+    } finally {
+      setIsLoading(false);
+      setIsFetching(false);
     }
   };
   
   useEffect(() => {
+    // Fetch on initial load
     fetchDepositRequests();
     
-    // Set up periodic refresh (every 30 seconds)
-    const intervalId = setInterval(fetchDepositRequests, 30000);
+    // Set up periodic refresh (every 60 seconds instead of 30)
+    const intervalId = setInterval(() => fetchDepositRequests(), 60000);
     
     return () => clearInterval(intervalId);
   }, [isAuthenticated, getUserDepositRequests]);
 
   // Add a refresh function that PlansCard can call after successful submission
   const refreshDepositRequests = () => {
-    toast.info("Refreshing your deposit requests...");
-    fetchDepositRequests();
+    fetchDepositRequests(true);
   };
   
   if (!isAuthenticated) {
@@ -58,15 +65,16 @@ const Plans: React.FC = () => {
         </div>
         
         {isLoading ? (
-          <div className="flex justify-center py-8">
-            <div className="animate-pulse text-center">
-              <p className="text-gray-500">Loading your plans...</p>
-            </div>
+          <div className="space-y-4">
+            <Skeleton className="h-28 w-full rounded-xl mb-4" />
+            <Skeleton className="h-72 w-full rounded-xl" />
+            <Skeleton className="h-72 w-full rounded-xl" />
           </div>
         ) : (
           <PlansCard 
             userDepositRequests={depositRequests} 
             onDepositSuccess={refreshDepositRequests}
+            isRefreshing={isFetching}
           />
         )}
       </main>

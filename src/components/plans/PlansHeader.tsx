@@ -1,23 +1,37 @@
 
 import React from 'react';
-import { LayoutGrid } from 'lucide-react';
+import { LayoutGrid, Loader2 } from 'lucide-react';
 
 interface PlansHeaderProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
+  isRefreshing?: boolean;
 }
 
-const PlansHeader: React.FC<PlansHeaderProps> = ({ activeTab, setActiveTab }) => {
+const PlansHeader: React.FC<PlansHeaderProps> = ({ 
+  activeTab, 
+  setActiveTab,
+  isRefreshing = false 
+}) => {
   return (
     <div className="glass-card rounded-2xl p-6 mb-6 animate-scale-up">
-      <div className="flex items-center mb-6">
-        <div className="w-10 h-10 rounded-full bg-brand-orange/10 flex items-center justify-center mr-3">
-          <LayoutGrid className="text-brand-orange" size={20} />
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center">
+          <div className="w-10 h-10 rounded-full bg-brand-orange/10 flex items-center justify-center mr-3">
+            <LayoutGrid className="text-brand-orange" size={20} />
+          </div>
+          <div>
+            <h3 className="font-semibold text-lg">Mining Plans</h3>
+            <p className="text-sm text-gray-500">Boost your mining power</p>
+          </div>
         </div>
-        <div>
-          <h3 className="font-semibold text-lg">Mining Plans</h3>
-          <p className="text-sm text-gray-500">Boost your mining power</p>
-        </div>
+        
+        {isRefreshing && (
+          <div className="text-sm text-gray-500 flex items-center">
+            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            <span>Refreshing...</span>
+          </div>
+        )}
       </div>
       
       <div className="flex space-x-2 border-b mb-6">

@@ -10,11 +10,13 @@ import PlanCategories from './cards/PlanCategories';
 interface PlansCardProps {
   userDepositRequests?: DepositRequest[];
   onDepositSuccess?: () => void;
+  isRefreshing?: boolean;
 }
 
 const PlansCard: React.FC<PlansCardProps> = ({ 
   userDepositRequests = [],
-  onDepositSuccess
+  onDepositSuccess,
+  isRefreshing = false
 }) => {
   const [activeTab, setActiveTab] = useState('plans'); // 'plans' or 'earnings'
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -57,10 +59,14 @@ const PlansCard: React.FC<PlansCardProps> = ({
       <PlansHeader 
         activeTab={activeTab} 
         setActiveTab={setActiveTab}
+        isRefreshing={isRefreshing}
       />
       
       {activeTab === 'plans' ? (
-        <PlansTabContent onOpenPaymentModal={handleOpenPaymentModal} />
+        <PlansTabContent 
+          onOpenPaymentModal={handleOpenPaymentModal} 
+          isRefreshing={isRefreshing}
+        />
       ) : (
         <EarningsTabContent getIndianTime={getIndianTime} />
       )}

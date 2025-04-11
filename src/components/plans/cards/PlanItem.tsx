@@ -22,12 +22,13 @@ interface PlanItemProps {
     limitedTo?: number;
   };
   onSubscribe: (plan: {id: string; name: string; price: number}) => void;
+  disabled?: boolean;
 }
 
-const PlanItem: React.FC<PlanItemProps> = ({ plan, onSubscribe }) => {
+const PlanItem: React.FC<PlanItemProps> = ({ plan, onSubscribe, disabled = false }) => {
   return (
     <Card 
-      className="w-full overflow-hidden border-t-4 shadow-md animate-scale-up"
+      className={`w-full overflow-hidden border-t-4 shadow-md animate-scale-up ${disabled ? 'opacity-80' : ''}`}
       style={{ borderTopColor: getPlanBorderColor(plan.color) }}
     >
       <CardHeader className="pb-2">
@@ -80,6 +81,7 @@ const PlanItem: React.FC<PlanItemProps> = ({ plan, onSubscribe }) => {
             name: plan.name,
             price: plan.price
           })}
+          disabled={disabled}
         >
           Subscribe Now
         </Button>

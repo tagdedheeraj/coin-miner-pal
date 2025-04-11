@@ -5,9 +5,13 @@ import PlanItem from '../cards/PlanItem';
 
 interface PlansTabContentProps {
   onOpenPaymentModal: (plan: {id: string; name: string; price: number}) => void;
+  isRefreshing?: boolean;
 }
 
-const PlansTabContent: React.FC<PlansTabContentProps> = ({ onOpenPaymentModal }) => {
+const PlansTabContent: React.FC<PlansTabContentProps> = ({ 
+  onOpenPaymentModal,
+  isRefreshing = false
+}) => {
   return (
     <div className="space-y-6">
       {mockArbitragePlans.map((plan) => (
@@ -15,6 +19,7 @@ const PlansTabContent: React.FC<PlansTabContentProps> = ({ onOpenPaymentModal })
           key={plan.id} 
           plan={plan}
           onSubscribe={onOpenPaymentModal}
+          disabled={isRefreshing}
         />
       ))}
     </div>
