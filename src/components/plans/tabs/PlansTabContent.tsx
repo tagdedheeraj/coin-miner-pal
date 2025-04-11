@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import PlanItem from '../cards/PlanItem';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArbitragePlan } from '@/types/arbitragePlans';
@@ -16,22 +16,32 @@ const PlansTabContent: React.FC<PlansTabContentProps> = ({
 }) => {
   const [plans, setPlans] = useState<ArbitragePlan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Memoize the loadPlans function to prevent unnecessary re-renders
+  const loadPlans = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      console.log('Fetching arbitrage plans...');
+      const data = await fetchArbitragePlans();
+      console.log('Fetched plans:', data.length);
+      setPlans(data);
+    } catch (err) {
+      console.error('Error loading plans:', err);
+      setError('Failed to load plans. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const loadPlans = async () => {
-      setLoading(true);
-      try {
-        const data = await fetchArbitragePlans();
-        setPlans(data);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadPlans();
     
     // Set up a subscription to listen for changes in the plans table
     const planSubscription = subscribeToPlanChanges(() => {
+      console.log('Plans updated, reloading...');
       loadPlans();
     });
       
@@ -39,7 +49,7 @@ const PlansTabContent: React.FC<PlansTabContentProps> = ({
       // Clean up the subscription when component unmounts
       planSubscription.unsubscribe();
     };
-  }, []);
+  }, [loadPlans]);
 
   if (loading) {
     return (
@@ -47,6 +57,20 @@ const PlansTabContent: React.FC<PlansTabContentProps> = ({
         <Skeleton className="h-56 w-full rounded-xl" />
         <Skeleton className="h-56 w-full rounded-xl" />
         <Skeleton className="h-56 w-full rounded-xl" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center p-6 bg-red-50 rounded-xl">
+        <p className="text-red-500">{error}</p>
+        <button 
+          onClick={loadPlans}
+          className="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg"
+        >
+          Try Again
+        </button>
       </div>
     );
   }
@@ -71,4 +95,4 @@ const PlansTabContent: React.FC<PlansTabContentProps> = ({
   );
 };
 
-export default PlansTabContent;
+export default React.memo(PlansTabContent); // Use memo for performance

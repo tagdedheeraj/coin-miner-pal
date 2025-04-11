@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { DepositRequest } from '@/types/auth';
 import PaymentModal from './payment/PaymentModal';
 import PlansHeader from './PlansHeader';
@@ -27,7 +27,7 @@ const PlansCard: React.FC<PlansCardProps> = ({
   } | null>(null);
 
   // Get Indian time formatted as a string
-  const getIndianTime = () => {
+  const getIndianTime = useCallback(() => {
     const options: Intl.DateTimeFormatOptions = {
       timeZone: 'Asia/Kolkata',
       hour12: true,
@@ -35,24 +35,25 @@ const PlansCard: React.FC<PlansCardProps> = ({
       minute: 'numeric',
     };
     return new Date().toLocaleString('en-IN', options) + ' IST';
-  };
+  }, []);
 
-  const handleOpenPaymentModal = (plan: {id: string; name: string; price: number}) => {
+  const handleOpenPaymentModal = useCallback((plan: {id: string; name: string; price: number}) => {
+    console.log('Opening payment modal for plan:', plan.name);
     setSelectedPlan(plan);
     setPaymentModalOpen(true);
-  };
+  }, []);
 
-  const handleClosePaymentModal = () => {
+  const handleClosePaymentModal = useCallback(() => {
     setPaymentModalOpen(false);
     setSelectedPlan(null);
-  };
+  }, []);
 
-  const handleDepositSuccess = () => {
+  const handleDepositSuccess = useCallback(() => {
     // Call the parent component's refresh function if provided
     if (onDepositSuccess) {
       onDepositSuccess();
     }
-  };
+  }, [onDepositSuccess]);
 
   return (
     <div className="w-full">
@@ -87,4 +88,4 @@ const PlansCard: React.FC<PlansCardProps> = ({
   );
 };
 
-export default PlansCard;
+export default React.memo(PlansCard); // Use memo for performance

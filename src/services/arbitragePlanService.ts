@@ -3,6 +3,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { ArbitragePlan, ArbitragePlanDB } from '@/types/arbitragePlans';
 import { toast } from 'sonner';
 
+// Performance optimization: Add caching for plans
+let plansCache: ArbitragePlan[] | null = null;
+let lastFetchTime = 0;
+const CACHE_DURATION = 60000; // 1 minute cache
+
 // Map the database columns to our frontend model
 export const mapDbToPlan = (dbPlan: Record<string, any>): ArbitragePlan => {
   return {
@@ -37,28 +42,53 @@ export const mapPlanToDb = (plan: ArbitragePlan): ArbitragePlanDB => {
   };
 };
 
+// Helper function to retry a failed request
+const retryOperation = async (operation: () => Promise<any>, retries = 3, delay = 1000): Promise<any> => {
+  try {
+    return await operation();
+  } catch (error) {
+    if (retries <= 0) throw error;
+    await new Promise(resolve => setTimeout(resolve, delay));
+    return retryOperation(operation, retries - 1, delay * 1.5);
+  }
+};
+
 export const fetchArbitragePlans = async (): Promise<ArbitragePlan[]> => {
   try {
-    // Use the any type assertion to bypass TypeScript's type checking
-    const { data, error } = await (supabase as any)
-      .from('arbitrage_plans')
-      .select('*')
-      .order('price', { ascending: true });
+    const now = Date.now();
+    
+    // Return cached data if available and not expired
+    if (plansCache && (now - lastFetchTime < CACHE_DURATION)) {
+      console.log('Using cached plans data');
+      return plansCache;
+    }
+    
+    // Retry mechanism with a timeout
+    const { data, error } = await retryOperation(async () => {
+      return await (supabase as any)
+        .from('arbitrage_plans')
+        .select('*')
+        .order('price', { ascending: true });
+    });
     
     if (error) {
       toast.error('Failed to fetch plans');
       console.error('Error fetching plans:', error);
-      return [];
+      return plansCache || []; // Return cached data if available, even if expired
     }
     
     if (data) {
-      return data.map((plan: any) => mapDbToPlan(plan));
+      const plans = data.map((plan: any) => mapDbToPlan(plan));
+      // Update the cache
+      plansCache = plans;
+      lastFetchTime = now;
+      return plans;
     }
     
-    return [];
+    return plansCache || [];
   } catch (error) {
     console.error('Error fetching plans:', error);
-    return [];
+    return plansCache || []; // Return cached data if available, even if expired
   }
 };
 
@@ -66,17 +96,23 @@ export const updateArbitragePlan = async (plan: ArbitragePlan): Promise<boolean>
   try {
     const dbPlan = mapPlanToDb(plan);
     
-    // Use the any type assertion to bypass TypeScript's type checking
-    const { error } = await (supabase as any)
-      .from('arbitrage_plans')
-      .update(dbPlan)
-      .eq('id', plan.id);
+    // Retry mechanism
+    const { error } = await retryOperation(async () => {
+      return await (supabase as any)
+        .from('arbitrage_plans')
+        .update(dbPlan)
+        .eq('id', plan.id);
+    });
     
     if (error) {
       toast.error('Failed to update plan');
       console.error('Error updating plan:', error);
       return false;
     }
+    
+    // Invalidate cache
+    plansCache = null;
+    lastFetchTime = 0;
     
     toast.success('Plan updated successfully');
     return true;
@@ -102,11 +138,13 @@ export const createArbitragePlan = async (): Promise<boolean> => {
   };
   
   try {
-    // Use the any type assertion to bypass TypeScript's type checking
-    const { data, error } = await (supabase as any)
-      .from('arbitrage_plans')
-      .insert(newPlan)
-      .select();
+    // Retry mechanism
+    const { data, error } = await retryOperation(async () => {
+      return await (supabase as any)
+        .from('arbitrage_plans')
+        .insert(newPlan)
+        .select();
+    });
     
     if (error) {
       toast.error('Failed to create new plan');
@@ -115,6 +153,10 @@ export const createArbitragePlan = async (): Promise<boolean> => {
     }
     
     if (data && data[0]) {
+      // Invalidate cache
+      plansCache = null;
+      lastFetchTime = 0;
+      
       toast.success('New plan created');
       return true;
     }
@@ -128,12 +170,20 @@ export const createArbitragePlan = async (): Promise<boolean> => {
 };
 
 export const subscribeToPlanChanges = (callback: () => void) => {
-  return supabase
+  // Subscribe to changes
+  const subscription = supabase
     .channel('arbitrage_plans_changes')
     .on('postgres_changes', { 
       event: '*', 
       schema: 'public', 
       table: 'arbitrage_plans' 
-    }, callback)
+    }, () => {
+      // Invalidate cache when changes are detected
+      plansCache = null;
+      lastFetchTime = 0;
+      callback();
+    })
     .subscribe();
+  
+  return subscription;
 };
