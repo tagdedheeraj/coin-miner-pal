@@ -10,7 +10,7 @@ import { mockUsers } from '@/data/mockUsers';
 import { useToast } from "@/hooks/use-toast";
 import { FullAuthContextType } from './customTypes';
 import { authFunctions } from '@/services/authService';
-import { adminServiceFunctions } from '@/services/auth/adminService';
+import { adminServiceFunctions } from '@/services/auth/admin'; // Updated import path
 import { auth } from '@/integrations/firebase/client';
 import { onAuthStateChanged } from 'firebase/auth';
 import { toast } from 'sonner';
