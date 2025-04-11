@@ -19,8 +19,8 @@ const Mining: React.FC = () => {
       
       <main className="container px-4 py-6 max-w-lg mx-auto">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold mb-1">Mining</h1>
-          <p className="text-gray-500">Mine 2 coins per hour, up to 48 coins daily</p>
+          <h1 className="text-2xl font-bold mb-1">माइनिंग</h1>
+          <p className="text-gray-500">प्रति घंटे 2 सिक्के माइन करें, दैनिक 48 सिक्कों तक</p>
         </div>
         
         <MiningCard />

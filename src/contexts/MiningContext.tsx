@@ -33,37 +33,61 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Load saved mining state on mount
   useEffect(() => {
     const savedState = localStorage.getItem('miningState');
-    if (savedState) {
+    if (savedState && user) {
       try {
         const { 
           isMining: savedIsMining, 
           miningProgress: savedProgress, 
           lastMiningDate: savedLastMiningDate,
           coinsMinedInSession: savedCoinsMinedInSession,
-          totalCoinsFromMining: savedTotalCoinsFromMining
+          totalCoinsFromMining: savedTotalCoinsFromMining,
+          userId
         } = JSON.parse(savedState);
         
-        setIsMining(savedIsMining);
-        setMiningProgress(savedProgress);
-        setLastMiningDate(savedLastMiningDate ? new Date(savedLastMiningDate) : null);
-        setCoinsMinedInSession(savedCoinsMinedInSession || 0);
-        setTotalCoinsFromMining(savedTotalCoinsFromMining || 0);
+        // Only restore state if it belongs to the current user
+        if (userId === user.id) {
+          setIsMining(savedIsMining);
+          setMiningProgress(savedProgress);
+          setLastMiningDate(savedLastMiningDate ? new Date(savedLastMiningDate) : null);
+          setCoinsMinedInSession(savedCoinsMinedInSession || 0);
+          setTotalCoinsFromMining(savedTotalCoinsFromMining || 0);
+        } else {
+          // Reset for new user
+          resetMiningState();
+        }
       } catch (error) {
         console.error('Failed to parse saved mining state', error);
+        resetMiningState();
       }
+    } else {
+      // Reset for new user
+      resetMiningState();
     }
-  }, []);
+  }, [user?.id]);
+  
+  // Reset mining state for new users
+  const resetMiningState = () => {
+    setIsMining(false);
+    setMiningProgress(0);
+    setTimeUntilNextMining(null);
+    setCoinsMinedInSession(0);
+    setLastMiningDate(null);
+    setTotalCoinsFromMining(0);
+  };
   
   // Save mining state when it changes
   useEffect(() => {
-    localStorage.setItem('miningState', JSON.stringify({
-      isMining,
-      miningProgress,
-      lastMiningDate: lastMiningDate?.toISOString(),
-      coinsMinedInSession,
-      totalCoinsFromMining
-    }));
-  }, [isMining, miningProgress, lastMiningDate, coinsMinedInSession, totalCoinsFromMining]);
+    if (user) {
+      localStorage.setItem('miningState', JSON.stringify({
+        isMining,
+        miningProgress,
+        lastMiningDate: lastMiningDate?.toISOString(),
+        coinsMinedInSession,
+        totalCoinsFromMining,
+        userId: user.id
+      }));
+    }
+  }, [isMining, miningProgress, lastMiningDate, coinsMinedInSession, totalCoinsFromMining, user?.id]);
   
   // Mining progress effect
   useEffect(() => {
@@ -90,14 +114,14 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           // Set cooldown time
           setLastMiningDate(new Date());
           
-          toast.success(`Mining completed! You earned ${coins} Infinium coins.`);
+          toast.success(`माइनिंग पूरी हुई! आपने ${coins} Infinium सिक्के कमाए.`);
           return 0;
         }
         
         // Every hour (when progress increases by 100/24), award coins
         if (Math.floor((newProgress * miningDuration) / 100) > Math.floor((prev * miningDuration) / 100)) {
           // Every hour milestone reached
-          toast.success(`You mined ${miningRate} Infinium coins!`);
+          toast.success(`आपने ${miningRate} Infinium सिक्के माइन किए!`);
         }
         
         return newProgress;
@@ -130,28 +154,28 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   
   const startMining = () => {
     if (timeUntilNextMining !== null) {
-      toast.error('Mining is on cooldown. Please wait until the cooldown ends.');
+      toast.error('माइनिंग कूलडाउन पर है। कृपया कूलडाउन समाप्त होने तक प्रतीक्षा करें।');
       return;
     }
     
     setIsMining(true);
     setMiningProgress(0);
     setCoinsMinedInSession(0);
-    toast.success('Mining started!');
+    toast.success('माइनिंग शुरू हुई!');
   };
   
   const stopMining = () => {
     if (!isMining) return;
     
     setIsMining(false);
-    toast.info('Mining stopped.');
+    toast.info('माइनिंग रुक गई।');
   };
   
   const resetMiningCooldown = () => {
     // This would normally require admin privileges or be a paid feature
     setLastMiningDate(null);
     setTimeUntilNextMining(null);
-    toast.success('Mining cooldown reset!');
+    toast.success('माइनिंग कूलडाउन रीसेट किया गया!');
   };
   
   const value = {
