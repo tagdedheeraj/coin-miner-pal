@@ -2,7 +2,7 @@
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
 import { User } from '@/types/auth';
-import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 
 export const approveWithdrawalFunctions = (user: User | null) => {
   const db = getFirestore();
@@ -66,6 +66,16 @@ export const approveWithdrawalFunctions = (user: User | null) => {
             createdAt: new Date().toISOString()
           }
         ]
+      });
+      
+      // Add to transaction history
+      await addDoc(collection(db, 'transaction_history'), {
+        user_id: userDoc.id,
+        type: 'withdrawal',
+        amount: requestData.amount,
+        status: 'completed',
+        created_at: new Date().toISOString(),
+        description: `Withdrawal to ${requestData.address.substring(0, 6)}...${requestData.address.substring(requestData.address.length - 4)}`
       });
       
       toast.success('Withdrawal request approved successfully');

@@ -2,7 +2,7 @@
 import { User } from '@/types/auth';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
-import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 
 export const rejectWithdrawalFunctions = (user: User | null) => {
   const db = getFirestore();
@@ -57,6 +57,16 @@ export const rejectWithdrawalFunctions = (user: User | null) => {
             createdAt: new Date().toISOString()
           }
         ]
+      });
+      
+      // Add to transaction history
+      await addDoc(collection(db, 'transaction_history'), {
+        user_id: userDoc.id,
+        type: 'withdrawal_rejected',
+        amount: requestData.amount,
+        status: 'rejected',
+        created_at: new Date().toISOString(),
+        description: 'Withdrawal request rejected'
       });
       
       toast.success('Withdrawal request rejected successfully');

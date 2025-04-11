@@ -66,6 +66,49 @@ export const getWithdrawalRequestsFunctions = (user: User | null) => {
     }
   };
 
+  // Function to get user's own withdrawal requests (for non-admin users)
+  const getUserWithdrawalRequests = async (): Promise<WithdrawalRequest[]> => {
+    if (!user) {
+      return [];
+    }
+    
+    try {
+      console.log(`Fetching withdrawal requests for user ${user.id}`);
+      
+      // Fetch from Firebase
+      const withdrawalRequestsRef = collection(db, 'withdrawal_requests');
+      const querySnapshot = await getDocs(
+        query(
+          withdrawalRequestsRef, 
+          where('user_id', '==', user.id),
+          orderBy('created_at', 'desc')
+        )
+      );
+      
+      const withdrawals: WithdrawalRequest[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        withdrawals.push({
+          id: doc.id,
+          userId: data.user_id || '',
+          userEmail: data.user_email || '',
+          userName: data.user_name || '',
+          amount: data.amount || 0,
+          address: data.address || '',
+          status: data.status || 'pending',
+          createdAt: data.created_at || new Date().toISOString(),
+          updatedAt: data.updated_at || null
+        });
+      });
+      
+      return withdrawals;
+    } catch (error) {
+      console.error('Error fetching user withdrawal requests:', error);
+      toast.error('Failed to fetch your withdrawal requests');
+      return [];
+    }
+  };
+
   // Function to set up real-time listener for withdrawal requests
   const subscribeToWithdrawalRequests = (callback: (withdrawals: WithdrawalRequest[]) => void) => {
     if (!user?.isAdmin) {
@@ -107,6 +150,7 @@ export const getWithdrawalRequestsFunctions = (user: User | null) => {
 
   return { 
     getWithdrawalRequests,
+    getUserWithdrawalRequests,
     subscribeToWithdrawalRequests
   };
 };
