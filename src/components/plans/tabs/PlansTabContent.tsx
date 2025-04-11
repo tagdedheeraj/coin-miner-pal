@@ -25,8 +25,9 @@ const PlansTabContent: React.FC<PlansTabContentProps> = ({
     
     try {
       console.log('Fetching arbitrage plans...');
-      const data = await fetchArbitragePlans();
-      console.log('Fetched plans:', data.length);
+      // Force fresh data to ensure we're showing the latest plans
+      const data = await fetchArbitragePlans(true);
+      console.log('Fetched plans:', data);
       setPlans(data);
     } catch (err) {
       console.error('Error loading plans:', err);
@@ -37,6 +38,7 @@ const PlansTabContent: React.FC<PlansTabContentProps> = ({
   }, []);
 
   useEffect(() => {
+    // Load plans immediately when component mounts
     loadPlans();
     
     // Set up a subscription to listen for changes in the plans table

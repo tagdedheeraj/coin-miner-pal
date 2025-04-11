@@ -39,7 +39,7 @@ export const updateCoinsFunctions = (user: User | null) => {
         throw new Error('User not found');
       }
       
-      // Update user in Firestore
+      // Update user in Firestore - use the correct field name 'coins'
       await updateDoc(userRef, {
         coins: amount,
         notifications: [

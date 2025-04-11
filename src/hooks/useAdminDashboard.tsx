@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { WithdrawalRequest, DepositRequest } from '@/types/auth';
-import { mockUsers } from '@/data/mockUsers';
 
 export const useAdminDashboard = () => {
   const { 
@@ -29,6 +28,7 @@ export const useAdminDashboard = () => {
     if (user?.isAdmin) {
       fetchWithdrawalRequests();
       fetchDepositRequests();
+      fetchUsers();
     }
   }, [user]);
   
@@ -37,10 +37,28 @@ export const useAdminDashboard = () => {
     calculateDashboardStats();
   }, [withdrawalRequests, depositRequests]);
   
+  // Fetch all users
+  const fetchUsers = async () => {
+    if (!getAllUsers) return;
+    
+    try {
+      const users = await getAllUsers();
+      setDashboardStats(prev => ({
+        ...prev,
+        totalUsers: users.length,
+        activeUsers: users.filter(u => u.coins > 0).length
+      }));
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
+  
   // Fetch withdrawal requests
   const fetchWithdrawalRequests = async () => {
     try {
+      console.log("Fetching withdrawal requests from admin dashboard");
       const requests = await getWithdrawalRequests();
+      console.log("Received withdrawal requests:", requests);
       setWithdrawalRequests(requests);
       setLoadingWithdrawals(false);
     } catch (error) {
@@ -52,7 +70,9 @@ export const useAdminDashboard = () => {
   // Fetch deposit requests
   const fetchDepositRequests = async () => {
     try {
+      console.log("Fetching deposit requests from admin dashboard");
       const requests = await getDepositRequests();
+      console.log("Received deposit requests:", requests);
       setDepositRequests(requests);
       setLoadingDeposits(false);
     } catch (error) {
@@ -63,15 +83,14 @@ export const useAdminDashboard = () => {
   
   // Calculate dashboard statistics
   const calculateDashboardStats = () => {
-    setDashboardStats({
-      totalUsers: mockUsers.length,
-      activeUsers: mockUsers.filter(u => u.coins > 0).length,
+    setDashboardStats(prev => ({
+      ...prev,
       totalRevenue: depositRequests
         .filter(req => req.status === 'approved')
         .reduce((total, req) => total + req.amount, 0),
       pendingWithdrawals: withdrawalRequests.filter(req => req.status === 'pending').length,
       pendingDeposits: depositRequests.filter(req => req.status === 'pending').length
-    });
+    }));
   };
 
   return {

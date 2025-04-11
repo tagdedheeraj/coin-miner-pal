@@ -46,7 +46,7 @@ let lastFetchTime = 0;
 // Function to fetch all arbitrage plans
 export const fetchArbitragePlans = async (forceFresh = false): Promise<ArbitragePlan[]> => {
   const currentTime = Date.now();
-  const cacheExpired = (currentTime - lastFetchTime) > (5 * 60 * 1000); // 5 minutes cache
+  const cacheExpired = (currentTime - lastFetchTime) > (1 * 60 * 1000); // 1 minute cache (reduced from 5)
   
   if (!forceFresh && !cacheExpired && cachedPlans.length > 0) {
     console.log("Returning cached plans", cachedPlans);
@@ -107,10 +107,9 @@ export const updateArbitragePlan = async (plan: ArbitragePlan): Promise<boolean>
     // Update in Firestore
     await updateDoc(planRef, planData);
     
-    // Also update our cache
-    cachedPlans = cachedPlans.map(p => 
-      p.id === plan.id ? plan : p
-    );
+    // Invalidate cache to force refresh on next fetch
+    lastFetchTime = 0;
+    cachedPlans = [];
     
     toast.success("योजना सफलतापूर्वक अपडेट की गई");
     return true;
@@ -146,6 +145,7 @@ export const createArbitragePlan = async (): Promise<boolean> => {
     
     // Invalidate cache
     lastFetchTime = 0;
+    cachedPlans = [];
     
     toast.success("नई योजना बनाई गई");
     return true;
@@ -163,6 +163,7 @@ export const subscribeToPlanChanges = (callback: () => void) => {
     
     // Clear cache to force a refresh
     lastFetchTime = 0;
+    cachedPlans = [];
     
     // Call the callback
     callback();
