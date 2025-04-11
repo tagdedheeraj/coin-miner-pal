@@ -15,7 +15,7 @@ const ReferralCard: React.FC = () => {
     navigator.clipboard.writeText(user.referralCode);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-    toast.success('Referral code copied to clipboard');
+    toast.success('Referral code copied to clipboard!');
   };
   
   const shareReferral = () => {
