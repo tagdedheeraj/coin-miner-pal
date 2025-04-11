@@ -16,6 +16,7 @@ export interface FullAuthContextType {
   signOut: () => void;
   updateUser: (updates: Partial<User>) => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<boolean>;
   setupPin: (pin: string) => Promise<void>;
   toggleBiometrics: () => Promise<void>;
   setWithdrawalAddress: (address: string) => void;

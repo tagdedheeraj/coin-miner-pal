@@ -13,9 +13,10 @@ import { signInSchema, SignInFormValues } from './schemas/authValidation';
 interface SignInFormProps {
   onSignIn: (email: string, password: string) => Promise<void>;
   isSubmitting: boolean;
+  onForgotPassword: () => void;
 }
 
-const SignInForm: React.FC<SignInFormProps> = ({ onSignIn, isSubmitting }) => {
+const SignInForm: React.FC<SignInFormProps> = ({ onSignIn, isSubmitting, onForgotPassword }) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { toast } = useToast();
   
@@ -92,6 +93,16 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSignIn, isSubmitting }) => {
               </FormItem>
             )}
           />
+          <div className="flex justify-end">
+            <Button 
+              type="button" 
+              variant="link" 
+              className="px-0 h-auto"
+              onClick={onForgotPassword}
+            >
+              Forgot password?
+            </Button>
+          </div>
           <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? (
               <span className="flex items-center gap-2">
