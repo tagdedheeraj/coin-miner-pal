@@ -5,6 +5,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useAuth } from '@/hooks/useAuth';
 import { formatToIndianTime } from '@/utils/formatters';
 import { WithdrawalRequest } from '@/types/auth';
+import { getFirestore, collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import app from '@/integrations/firebase/client';
 
 const HistoryTab: React.FC = () => {
   const { user } = useAuth();
@@ -16,15 +18,17 @@ const HistoryTab: React.FC = () => {
       if (!user) return;
       
       try {
-        // In a real implementation, this would fetch the user's withdrawal history from Firebase
-        const db = window.firebase?.firestore();
-        if (!db) return;
+        // Properly access Firebase Firestore
+        const db = getFirestore(app);
         
-        const withdrawalsRef = db.collection('withdrawal_requests');
-        const userWithdrawals = await withdrawalsRef
-          .where('userId', '==', user.id)
-          .orderBy('createdAt', 'desc')
-          .get();
+        const withdrawalsRef = collection(db, 'withdrawal_requests');
+        const userWithdrawals = await getDocs(
+          query(
+            withdrawalsRef,
+            where('user_id', '==', user.id),
+            orderBy('created_at', 'desc')
+          )
+        );
           
         const history: WithdrawalRequest[] = [];
         userWithdrawals.forEach(doc => {
