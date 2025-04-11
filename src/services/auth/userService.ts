@@ -18,14 +18,23 @@ export const userServiceFunctions = (
       
       // Update in Firestore
       const userRef = doc(db, 'users', user.id);
-      await updateDoc(userRef, {
-        ...Object.entries(updates).reduce((acc, [key, value]) => {
-          // Convert camelCase to snake_case
-          const snakeKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
-          acc[snakeKey] = value;
-          return acc;
-        }, {} as Record<string, any>)
-      });
+      
+      // Convert camelCase to snake_case for Firestore
+      const firestoreUpdates: Record<string, any> = {};
+      
+      if ('name' in updates) firestoreUpdates.name = updates.name;
+      if ('email' in updates) firestoreUpdates.email = updates.email;
+      if ('coins' in updates) firestoreUpdates.coins = updates.coins;
+      if ('referralCode' in updates) firestoreUpdates.referral_code = updates.referralCode;
+      if ('hasSetupPin' in updates) firestoreUpdates.has_setup_pin = updates.hasSetupPin;
+      if ('hasBiometrics' in updates) firestoreUpdates.has_biometrics = updates.hasBiometrics;
+      if ('withdrawalAddress' in updates) firestoreUpdates.withdrawal_address = updates.withdrawalAddress;
+      if ('appliedReferralCode' in updates) firestoreUpdates.applied_referral_code = updates.appliedReferralCode;
+      if ('usdtEarnings' in updates) firestoreUpdates.usdt_earnings = updates.usdtEarnings;
+      if ('notifications' in updates) firestoreUpdates.notifications = updates.notifications;
+      if ('isAdmin' in updates) firestoreUpdates.is_admin = updates.isAdmin;
+      
+      await updateDoc(userRef, firestoreUpdates);
       
       // Update localStorage for persistence
       localStorage.setItem('user', JSON.stringify(updatedUser));

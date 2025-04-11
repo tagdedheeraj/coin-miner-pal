@@ -3,7 +3,7 @@ import { Dispatch, SetStateAction } from 'react';
 import { User } from '@/types/auth';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
-import { getFirestore, collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { getFirestore, collection, query, where, getDocs, doc, updateDoc, getDoc } from 'firebase/firestore';
 
 export const referralServiceFunctions = (
   user: User | null,
@@ -39,9 +39,10 @@ export const referralServiceFunctions = (
       const referrerDoc = referrerSnapshot.docs[0];
       const referrerData = referrerDoc.data();
       const referrerNotifications = referrerData.notifications || [];
+      const currentCoins = referrerData.coins || 0;
       
       await updateDoc(doc(db, 'users', referrerDoc.id), {
-        coins: (referrerData.coins || 0) + 250,
+        coins: currentCoins + 250,
         notifications: [
           ...referrerNotifications,
           {

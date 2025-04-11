@@ -47,7 +47,7 @@ export const updateUserCoinsFn = async (
     const notificationMessage = `Your coin balance has been updated from ${userData.coins || 0} to ${amount} by admin.`;
     const notification = createNotification(notificationMessage);
     
-    // Update user in Firestore - use the correct field name 'coins'
+    // Update user in Firestore
     await updateDoc(userRef, {
       coins: amount,
       notifications: [

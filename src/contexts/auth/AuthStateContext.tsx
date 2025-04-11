@@ -6,6 +6,8 @@ import { generateReferralCode } from '@/utils/referral';
 import { AuthStateType } from './types';
 import { auth } from '@/integrations/firebase/client';
 import { onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc, getFirestore, setDoc } from 'firebase/firestore';
+import { mapDbToUser } from '@/utils/firebaseUtils';
 
 // Create context for auth state
 export const AuthStateContext = createContext<AuthStateType | null>(null);
@@ -32,47 +34,83 @@ export const AuthStateProvider: React.FC<AuthStateProviderProps> = ({ children }
       }
     }
 
-    // Set up Firebase auth listener
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      if (firebaseUser) {
-        // Check if we have this user in localStorage with the correct email
-        const storedUserData = localStorage.getItem('user');
-        if (storedUserData) {
-          try {
-            const parsedStoredUser = JSON.parse(storedUserData) as User;
-            if (parsedStoredUser.email === firebaseUser.email) {
-              // Make sure the ID matches
-              if (parsedStoredUser.id !== firebaseUser.uid) {
-                parsedStoredUser.id = firebaseUser.uid;
-                localStorage.setItem('user', JSON.stringify(parsedStoredUser));
-              }
-              setUser(parsedStoredUser);
-              setIsLoading(false);
-              return;
-            }
-          } catch (error) {
-            console.error('Error parsing stored user:', error);
-          }
-        }
+    const db = getFirestore();
 
-        // If not in localStorage, create new user
-        const newUser = {
-          id: firebaseUser.uid,
-          name: firebaseUser.displayName || 'New User',
-          email: firebaseUser.email || '',
-          coins: 200,
-          referralCode: generateReferralCode(),
-          hasSetupPin: false,
-          hasBiometrics: false,
-          withdrawalAddress: null,
-          isAdmin: false,
-          usdtEarnings: 0,
-          notifications: []
-        };
-        
-        // Save to localStorage for persistence
-        localStorage.setItem('user', JSON.stringify(newUser));
-        setUser(newUser);
+    // Set up Firebase auth listener
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          // Try to get user profile from Firestore
+          const userRef = doc(db, 'users', firebaseUser.uid);
+          const userDoc = await getDoc(userRef);
+          
+          if (userDoc.exists()) {
+            // User exists in Firestore
+            const userData = userDoc.data();
+            const fullUser = mapDbToUser({
+              id: firebaseUser.uid,
+              ...userData
+            });
+            
+            setUser(fullUser);
+            localStorage.setItem('user', JSON.stringify(fullUser));
+            setIsLoading(false);
+            return;
+          }
+          
+          // If not in Firestore, create new user
+          const newUser = {
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName || 'New User',
+            email: firebaseUser.email || '',
+            coins: 200,
+            referralCode: generateReferralCode(),
+            hasSetupPin: false,
+            hasBiometrics: false,
+            withdrawalAddress: null,
+            isAdmin: false,
+            usdtEarnings: 0,
+            notifications: []
+          };
+          
+          // Save to Firestore
+          await setDoc(userRef, {
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName || 'New User',
+            email: firebaseUser.email || '',
+            coins: 200,
+            referral_code: newUser.referralCode,
+            has_setup_pin: false,
+            has_biometrics: false,
+            withdrawal_address: null,
+            is_admin: false,
+            usdt_earnings: 0,
+            notifications: [],
+            created_at: new Date().toISOString()
+          });
+          
+          // Save to localStorage for persistence
+          localStorage.setItem('user', JSON.stringify(newUser));
+          setUser(newUser);
+        } catch (error) {
+          console.error('Error getting user data from Firestore:', error);
+          // Fallback to basic user
+          const basicUser = {
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName || 'New User',
+            email: firebaseUser.email || '',
+            coins: 200,
+            referralCode: generateReferralCode(),
+            hasSetupPin: false,
+            hasBiometrics: false,
+            withdrawalAddress: null,
+            isAdmin: false,
+            usdtEarnings: 0,
+            notifications: []
+          };
+          setUser(basicUser);
+          localStorage.setItem('user', JSON.stringify(basicUser));
+        }
       } else {
         // User is signed out
         localStorage.removeItem('user');

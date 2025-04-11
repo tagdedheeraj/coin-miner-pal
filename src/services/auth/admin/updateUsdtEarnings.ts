@@ -2,6 +2,7 @@
 import { User } from '@/types/auth';
 import { toast } from 'sonner';
 import { collection, getDocs, query, where, getFirestore, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { createNotification } from './notifications/notificationHelpers';
 
 export const updateUsdtEarningsFunctions = (user: User | null) => {
   // Initialize Firestore
@@ -41,17 +42,16 @@ export const updateUsdtEarningsFunctions = (user: User | null) => {
       
       const oldEarnings = userData.usdt_earnings || 0;
       
-      // Update user in Firestore - use the field name 'usdt_earnings'
+      // Create notification message
+      const notificationMessage = `Your USDT earnings have been updated from ${oldEarnings} to ${amount} by admin.`;
+      const notification = createNotification(notificationMessage);
+      
+      // Update user in Firestore - use the correct field name 'usdt_earnings'
       await updateDoc(userRef, {
-        usdt_earnings: amount,  // This is the critical field to update
+        usdt_earnings: amount,
         notifications: [
           ...userNotifications,
-          {
-            id: Date.now().toString(),
-            message: `Your USDT earnings have been updated from ${oldEarnings} to ${amount} by admin.`,
-            read: false,
-            createdAt: new Date().toISOString()
-          }
+          notification
         ]
       });
       

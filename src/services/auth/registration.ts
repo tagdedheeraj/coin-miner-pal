@@ -47,7 +47,7 @@ export const createRegistrationService = (
         notifications: []
       };
       
-      // Save to Firestore
+      // Save to Firestore with snake_case field names
       await setDoc(doc(db, 'users', firebaseUser.uid), {
         id: firebaseUser.uid,
         name,

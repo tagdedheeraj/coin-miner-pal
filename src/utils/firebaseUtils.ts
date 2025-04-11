@@ -8,14 +8,14 @@ export const mapDbToUser = (data: any): User => {
     name: data.name || '',
     email: data.email || '',
     coins: data.coins || 0,
-    referralCode: data.referralCode || '',
-    hasSetupPin: data.hasSetupPin || false,
-    hasBiometrics: data.hasBiometrics || false,
-    withdrawalAddress: data.withdrawalAddress || null,
-    appliedReferralCode: data.appliedReferralCode || undefined,
-    usdtEarnings: data.usdtEarnings || 0,
+    referralCode: data.referral_code || '',
+    hasSetupPin: data.has_setup_pin || false,
+    hasBiometrics: data.has_biometrics || false,
+    withdrawalAddress: data.withdrawal_address || null,
+    appliedReferralCode: data.applied_referral_code || undefined,
+    usdtEarnings: data.usdt_earnings || 0,
     notifications: data.notifications || [],
-    isAdmin: data.isAdmin || false
+    isAdmin: data.is_admin || false
   };
 };
 
