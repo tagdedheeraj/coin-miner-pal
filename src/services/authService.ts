@@ -6,7 +6,7 @@ import { coreAuthFunctions } from './auth/core';
 import { userServiceFunctions } from './auth/userService';
 import { referralServiceFunctions } from './auth/referralService';
 import { notificationServiceFunctions } from './auth/notificationService';
-import { adminServiceFunctions } from './auth/adminService';
+import { adminServiceFunctions } from './auth/admin'; // Updated import path
 import { withdrawalServiceFunctions } from './auth/withdrawalService';
 import { depositServiceFunctions } from './auth/depositService';
 
