@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Card, 
@@ -17,7 +16,7 @@ import {
   updateArbitragePlan,
   createArbitragePlan,
   subscribeToPlanChanges
-} from '@/services/arbitragePlanService';
+} from '@/services/arbitragePlans';
 import { toast } from 'sonner';
 
 const ArbitragePlanManagement: React.FC = () => {

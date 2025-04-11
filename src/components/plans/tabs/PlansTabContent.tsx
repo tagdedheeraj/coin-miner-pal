@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import PlanItem from '../cards/PlanItem';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArbitragePlan } from '@/types/arbitragePlans';
-import { fetchArbitragePlans, subscribeToPlanChanges } from '@/services/arbitragePlanService';
+import { fetchArbitragePlans, subscribeToPlanChanges } from '@/services/arbitragePlans';
 
 interface PlansTabContentProps {
   onOpenPaymentModal: (plan: {id: string; name: string; price: number}) => void;
@@ -18,14 +17,12 @@ const PlansTabContent: React.FC<PlansTabContentProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Memoize the loadPlans function to prevent unnecessary re-renders
   const loadPlans = useCallback(async () => {
     setLoading(true);
     setError(null);
     
     try {
       console.log('Fetching arbitrage plans...');
-      // Force fresh data to ensure we're showing the latest plans
       const data = await fetchArbitragePlans(true);
       console.log('Fetched plans:', data);
       setPlans(data);
@@ -38,17 +35,14 @@ const PlansTabContent: React.FC<PlansTabContentProps> = ({
   }, []);
 
   useEffect(() => {
-    // Load plans immediately when component mounts
     loadPlans();
     
-    // Set up a subscription to listen for changes in the plans table
     const planSubscription = subscribeToPlanChanges(() => {
       console.log('Plans updated, reloading...');
       loadPlans();
     });
       
     return () => {
-      // Clean up the subscription when component unmounts
       planSubscription.unsubscribe();
     };
   }, [loadPlans]);

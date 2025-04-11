@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, ReactNode, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthStateProvider } from './AuthStateContext';
@@ -14,7 +13,7 @@ import { adminServiceFunctions } from '@/services/auth/admin'; // Updated import
 import { auth } from '@/integrations/firebase/client';
 import { onAuthStateChanged } from 'firebase/auth';
 import { toast } from 'sonner';
-import { fetchArbitragePlans, updateArbitragePlan as updateArbPlan } from '@/services/arbitragePlanService';
+import { fetchArbitragePlans, updateArbitragePlan as updateArbPlan } from '@/services/arbitragePlans';
 
 export const AuthContext = createContext<FullAuthContextType | null>(null);
 
@@ -101,7 +100,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Update local state
       setArbitragePlans(prevPlans => prevPlans.filter(plan => plan.id !== planId));
-      toast.success('योजना सफलतापूर्वक हटा दी गई');
+      toast.success('योजना सफलतापूर्वक हटा द��� गई');
     } catch (error) {
       console.error('Error deleting plan:', error);
       toast.error('योजना हटाने में विफल');
