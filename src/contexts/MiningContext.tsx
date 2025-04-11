@@ -108,20 +108,22 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           
           // Add coins to user's balance
           if (user) {
-            updateUser({ coins: (user.coins || 0) + coins });
+            const newCoins = (user.coins || 0) + coins;
+            console.log(`Mining completed. Adding ${coins} coins to user. New total: ${newCoins}`);
+            updateUser({ coins: newCoins });
           }
           
           // Set cooldown time
           setLastMiningDate(new Date());
           
-          toast.success(`माइनिंग पूरी हुई! आपने ${coins} Infinium सिक्के कमाए.`);
+          toast.success(`Mining completed! You earned ${coins} Infinium coins.`);
           return 0;
         }
         
         // Every hour (when progress increases by 100/24), award coins
         if (Math.floor((newProgress * miningDuration) / 100) > Math.floor((prev * miningDuration) / 100)) {
           // Every hour milestone reached
-          toast.success(`आपने ${miningRate} Infinium सिक्के माइन किए!`);
+          toast.success(`You mined ${miningRate} Infinium coins!`);
         }
         
         return newProgress;
@@ -154,28 +156,28 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   
   const startMining = () => {
     if (timeUntilNextMining !== null) {
-      toast.error('माइनिंग कूलडाउन पर है। कृपया कूलडाउन समाप्त होने तक प्रतीक्षा करें।');
+      toast.error('Mining is on cooldown. Please wait until the cooldown period ends.');
       return;
     }
     
     setIsMining(true);
     setMiningProgress(0);
     setCoinsMinedInSession(0);
-    toast.success('माइनिंग शुरू हुई!');
+    toast.success('Mining started!');
   };
   
   const stopMining = () => {
     if (!isMining) return;
     
     setIsMining(false);
-    toast.info('माइनिंग रुक गई।');
+    toast.info('Mining stopped.');
   };
   
   const resetMiningCooldown = () => {
     // This would normally require admin privileges or be a paid feature
     setLastMiningDate(null);
     setTimeUntilNextMining(null);
-    toast.success('माइनिंग कूलडाउन रीसेट किया गया!');
+    toast.success('Mining cooldown reset!');
   };
   
   const value = {

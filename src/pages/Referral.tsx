@@ -27,8 +27,10 @@ const Referral: React.FC = () => {
     
     setIsSubmitting(true);
     try {
+      console.log('Applying referral code:', referralCode.trim());
       await applyReferralCode(referralCode.trim());
       setReferralCode('');
+      toast.success('Referral code applied successfully! The referrer received 250 bonus coins.');
     } catch (error) {
       console.error('Referral Error:', error);
       // Don't show "Invalid referral code" error if the code is actually invalid

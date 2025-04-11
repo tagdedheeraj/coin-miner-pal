@@ -34,11 +34,13 @@ export const referralServiceFunctions = (
         throw new Error('Invalid referral code');
       }
       
-      // Update the referrer's coins and add notification
+      // Get the referrer document and data
       const referrerDoc = referrerSnapshot.docs[0];
       const referrerData = referrerDoc.data();
       const referrerNotifications = referrerData.notifications || [];
       const currentCoins = referrerData.coins || 0;
+      
+      console.log('Found referrer:', referrerDoc.id, 'Current coins:', currentCoins);
       
       // Update the referrer with bonus coins
       await updateDoc(doc(db, 'users', referrerDoc.id), {
@@ -53,6 +55,8 @@ export const referralServiceFunctions = (
           }
         ]
       });
+      
+      console.log('Updated referrer coins to:', currentCoins + 250);
       
       // Update current user with applied referral code
       const userRef = doc(db, 'users', user.id);
