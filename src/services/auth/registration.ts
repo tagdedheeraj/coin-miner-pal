@@ -15,7 +15,7 @@ export const createRegistrationService = (
 ) => {
   const db = getFirestore();
   
-  const signUp = async (name: string, email: string, password: string, referralCode?: string) => {
+  const signUp = async (name: string, email: string, password: string, referralCode?: string): Promise<void> => {
     setIsLoading(true);
     console.log('Attempting to sign up with Firebase');
     
@@ -111,8 +111,8 @@ export const createRegistrationService = (
       
       toast.success('Account created successfully! You received 200 coins as a signup bonus.');
       
-      // Return the user credential
-      return userCredential;
+      // We don't need to return the user credential anymore
+      return;
     } catch (error) {
       console.error('Signup process error:', error);
       

@@ -12,7 +12,7 @@ export interface FullAuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (name: string, email: string, password: string) => Promise<UserCredential>;
+  signUp: (name: string, email: string, password: string, referralCode?: string) => Promise<void>;
   signOut: () => void;
   updateUser: (updates: Partial<User>) => void;
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>;
