@@ -7,9 +7,6 @@ import {
   CardHeader, 
   CardTitle 
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Search, Plus, RefreshCw, AlertTriangle, Filter } from 'lucide-react';
 import { ArbitragePlan } from '@/types/arbitragePlans';
 import PlansTable from './plans/PlansTable';
 import { 
@@ -20,18 +17,11 @@ import {
   subscribeToPlanChanges
 } from '@/services/arbitragePlans';
 import { toast } from 'sonner';
-import { useAuth } from '@/hooks/useAuth';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Switch } from "@/components/ui/switch";
+import { AlertTriangle } from 'lucide-react';
+import PlanFilterControls from './plans/PlanFilterControls';
+import PlanActionButtons from './plans/PlanActionButtons';
+import DeletePlanDialog from './plans/DeletePlanDialog';
+import PlanErrorDisplay from './plans/PlanErrorDisplay';
 
 const ArbitragePlanManagement: React.FC = () => {
   const [plans, setPlans] = useState<ArbitragePlan[]>([]);
@@ -213,52 +203,21 @@ const ArbitragePlanManagement: React.FC = () => {
         <CardDescription>Manage all arbitrage plans in the system</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center gap-4 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-            <Input 
-              placeholder="Search plans..." 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-gray-400" />
-            <div className="flex items-center gap-2">
-              <Switch 
-                checked={showOnlyActive} 
-                onCheckedChange={handleActiveFilterChange} 
-                id="active-filter"
-              />
-              <label htmlFor="active-filter" className="text-sm">
-                Show active plans only
-              </label>
-            </div>
-          </div>
-          <Button 
-            className="flex items-center gap-1"
-            onClick={handleRefreshPlans}
-            variant="outline"
-            disabled={loading}
-          >
-            <RefreshCw className="h-4 w-4" /> Refresh
-          </Button>
-          <Button 
-            className="flex items-center gap-1"
-            onClick={handleCreateNewPlan}
-            disabled={loading}
-          >
-            <Plus className="h-4 w-4" /> Add New Plan
-          </Button>
+        <div className="flex items-center gap-4 mb-6 flex-wrap">
+          <PlanFilterControls 
+            searchTerm={searchTerm}
+            showOnlyActive={showOnlyActive}
+            onSearchChange={setSearchTerm}
+            onActiveFilterChange={handleActiveFilterChange}
+          />
+          <PlanActionButtons 
+            onRefresh={handleRefreshPlans}
+            onCreate={handleCreateNewPlan}
+            loading={loading}
+          />
         </div>
         
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-md p-4 mb-4 flex items-center text-red-800">
-            <AlertTriangle className="h-5 w-5 mr-2 flex-shrink-0" />
-            <p>{error}</p>
-          </div>
-        )}
+        <PlanErrorDisplay error={error} />
         
         <PlansTable
           plans={plans}
@@ -273,23 +232,11 @@ const ArbitragePlanManagement: React.FC = () => {
           onCancelEdit={handleCancelEdit}
         />
 
-        {/* Delete Confirmation Dialog */}
-        <AlertDialog open={!!planToDelete} onOpenChange={(open) => !open && setPlanToDelete(null)}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>क्या आप वाकई इस योजना को हटाना चाहते हैं?</AlertDialogTitle>
-              <AlertDialogDescription>
-                यह क्रिया अपरिवर्तनीय है। योजना के सभी डेटा स्थायी रूप से हटा दिए जाएंगे।
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>रद्द करें</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeletePlan} className="bg-destructive text-destructive-foreground">
-                हां, हटाएं
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <DeletePlanDialog 
+          planToDelete={planToDelete}
+          onClose={() => setPlanToDelete(null)}
+          onConfirm={handleDeletePlan}
+        />
       </CardContent>
     </Card>
   );
