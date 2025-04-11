@@ -25,8 +25,9 @@ const AuthForm: React.FC<AuthFormProps> = ({ type, onSuccess, referralCode }) =>
   
   const handleSignUp = async (name: string, email: string, password: string, refCode?: string) => {
     try {
-      // Update to match the signUp function signature in AuthContext
-      await signUp(name, email, password, refCode);
+      // We're passing too many arguments - need to check AuthContext type definition
+      // The signUp function in AuthContext only accepts 3 arguments
+      await signUp(name, email, password);
       onSuccess?.();
       // Return undefined to match the Promise<void> return type
       return;
