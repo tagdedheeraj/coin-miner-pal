@@ -1,15 +1,16 @@
 
 import { Dispatch, SetStateAction } from 'react';
 import { User, WithdrawalRequest } from '@/types/auth';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
-import { mapWithdrawalToDb } from '@/utils/supabaseUtils';
+import { getFirestore, collection, addDoc } from 'firebase/firestore';
 
 export const createWithdrawalRequestFunctions = (
   user: User | null,
   setUser: Dispatch<SetStateAction<User | null>>
 ) => {
+  const db = getFirestore();
+  
   const requestWithdrawal = async (amount: number): Promise<void> => {
     if (!user) {
       throw new Error('Not authenticated');
@@ -36,42 +37,19 @@ export const createWithdrawalRequestFunctions = (
         createdAt: new Date().toISOString()
       };
       
-      // First, ensure the user is authenticated
-      const { data: authUser, error: authError } = await supabase.auth.getUser();
+      console.log('Creating withdrawal request in Firebase');
       
-      if (authError || !authUser.user) {
-        throw new Error('Authentication verification failed. Please try again.');
-      }
-      
-      console.log('Creating withdrawal request directly');
-      
-      // Convert to supabase format
-      const dbData = mapWithdrawalToDb(request);
-      
-      // Ensure all required fields are present
-      if (!dbData.user_id || !dbData.user_email || !dbData.user_name || 
-          !dbData.amount || !dbData.address) {
-        throw new Error('Missing required withdrawal request fields');
-      }
-      
-      // Now create the withdrawal request with properly typed data
-      const { error } = await supabase
-        .from('withdrawal_requests')
-        .insert({
-          id: dbData.id,
-          user_id: dbData.user_id,
-          user_email: dbData.user_email,
-          user_name: dbData.user_name,
-          amount: dbData.amount,
-          address: dbData.address,
-          status: dbData.status || 'pending',
-          created_at: dbData.created_at || new Date().toISOString()
-        });
-      
-      if (error) {
-        console.error('Supabase insert error:', error);
-        throw new Error(`Failed to submit withdrawal request: ${error.message}`);
-      }
+      // Add withdrawal request to Firestore
+      await addDoc(collection(db, 'withdrawal_requests'), {
+        id: request.id,
+        user_id: request.userId,
+        user_email: request.userEmail,
+        user_name: request.userName,
+        amount: request.amount,
+        address: request.address,
+        status: request.status,
+        created_at: request.createdAt
+      });
       
       // Add notification to user
       const notification = {

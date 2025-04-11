@@ -5,14 +5,14 @@ import { auth } from '@/integrations/firebase/client';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { toast } from 'sonner';
 import { generateReferralCode } from '@/utils/referral';
-import { supabase } from '@/integrations/supabase/client';
-import { mapUserToDb } from '@/utils/supabaseUtils';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
 export const createRegistrationService = (
   user: User | null, 
   setUser: Dispatch<SetStateAction<User | null>>,
   setIsLoading: Dispatch<SetStateAction<boolean>>
 ) => {
+  const db = getFirestore();
   
   const signUp = async (name: string, email: string, password: string) => {
     setIsLoading(true);
@@ -47,25 +47,23 @@ export const createRegistrationService = (
         notifications: []
       };
       
-      // Map the user object for Supabase - ensure it has all required fields
-      const supabaseUserData = mapUserToDb({
-        ...newUser,
-        isAdmin: false
+      // Save to Firestore
+      await setDoc(doc(db, 'users', firebaseUser.uid), {
+        id: firebaseUser.uid,
+        name,
+        email,
+        coins: 200,
+        referral_code: referralCode,
+        has_setup_pin: false,
+        has_biometrics: false,
+        withdrawal_address: null,
+        usdt_earnings: 0,
+        notifications: [],
+        is_admin: false,
+        created_at: new Date().toISOString()
       });
       
-      console.log('Supabase user data:', supabaseUserData);
-      
-      // Also save to Supabase for admin panel visibility
-      const { error: supabaseError } = await supabase
-        .from('users')
-        .insert(supabaseUserData);
-      
-      if (supabaseError) {
-        console.error('Failed to save user to Supabase:', supabaseError);
-        // Continue anyway since Firebase auth is successful
-      } else {
-        console.log('User successfully saved to Supabase');
-      }
+      console.log('User successfully saved to Firestore');
       
       // Save in local state
       setUser(newUser);

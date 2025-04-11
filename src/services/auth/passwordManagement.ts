@@ -1,7 +1,8 @@
 
 import { User } from '@/types/auth';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { auth } from '@/integrations/firebase/client';
+import { EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 
 export const createPasswordService = (user: User | null) => {
   
@@ -10,25 +11,38 @@ export const createPasswordService = (user: User | null) => {
     if (user.isAdmin) throw new Error('Admin password cannot be changed');
     
     try {
-      // Verify current password
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password: currentPassword
-      });
+      const firebaseUser = auth.currentUser;
+      if (!firebaseUser) {
+        throw new Error('Firebase user not found');
+      }
       
-      if (signInError) throw new Error('Current password is incorrect');
+      // Verify current password
+      const credential = EmailAuthProvider.credential(
+        user.email,
+        currentPassword
+      );
+      
+      await reauthenticateWithCredential(firebaseUser, credential);
       
       // Update password
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword
-      });
-      
-      if (error) throw error;
+      await updatePassword(firebaseUser, newPassword);
       
       toast.success('Password changed successfully');
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : 'Failed to change password');
+      let errorMessage = 'Failed to change password';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('auth/wrong-password')) {
+          errorMessage = 'Current password is incorrect';
+        } else if (error.message.includes('auth/weak-password')) {
+          errorMessage = 'New password is too weak';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      toast.error(errorMessage);
       throw error;
     }
   };

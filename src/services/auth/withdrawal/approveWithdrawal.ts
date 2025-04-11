@@ -1,11 +1,12 @@
 
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
-import { User, WithdrawalRequest } from '@/types/auth';
-import { mapWithdrawalToDb, mapUserToDb, mapDbToUser, mapDbToWithdrawal } from '@/utils/supabaseUtils';
+import { User } from '@/types/auth';
+import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 export const approveWithdrawalFunctions = (user: User | null) => {
+  const db = getFirestore();
+  
   const approveWithdrawalRequest = async (requestId: string): Promise<void> => {
     if (!user?.isAdmin) {
       toast.error('Only admins can approve withdrawal requests');
@@ -14,70 +15,58 @@ export const approveWithdrawalFunctions = (user: User | null) => {
     
     try {
       // Get the withdrawal request
-      const { data: requestData, error: requestError } = await supabase
-        .from('withdrawal_requests')
-        .select('*')
-        .eq('id', requestId)
-        .single();
+      const requestRef = doc(db, 'withdrawal_requests', requestId);
+      const requestSnapshot = await getDoc(requestRef);
       
-      if (requestError) throw new Error('Withdrawal request not found');
-      if (!requestData) throw new Error('Withdrawal request data is empty');
+      if (!requestSnapshot.exists()) {
+        throw new Error('Withdrawal request not found');
+      }
       
-      const request = mapDbToWithdrawal(requestData);
+      const requestData = requestSnapshot.data();
       
-      if (request.status !== 'pending') {
+      if (requestData.status !== 'pending') {
         throw new Error('This request has already been processed');
       }
       
       // Update request status
-      const updateData = mapWithdrawalToDb({
+      await updateDoc(requestRef, {
         status: 'approved',
-        updatedAt: new Date().toISOString()
+        updated_at: new Date().toISOString()
       });
       
-      await supabase
-        .from('withdrawal_requests')
-        .update(updateData as any)
-        .eq('id', requestId);
+      // Find the user
+      const usersRef = collection(db, 'users');
+      const userQuery = query(usersRef, where('email', '==', requestData.user_email));
+      const userSnapshot = await getDocs(userQuery);
       
-      // Find the user and update their balance
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', request.userEmail)
-        .single();
+      if (userSnapshot.empty) {
+        throw new Error('User not found');
+      }
       
-      if (userError) throw new Error('User not found');
-      if (!userData) throw new Error('User data is empty');
-      
-      const targetUser = mapDbToUser(userData);
-      const userNotifications = targetUser.notifications || [];
-      const currentBalance = targetUser.usdtEarnings || 0;
+      const userDoc = userSnapshot.docs[0];
+      const userData = userDoc.data();
+      const userNotifications = userData.notifications || [];
+      const currentBalance = userData.usdt_earnings || 0;
       
       // Ensure balance is sufficient
-      if (request.amount > currentBalance) {
-        throw new Error(`User has insufficient balance: ${currentBalance} < ${request.amount}`);
+      if (requestData.amount > currentBalance) {
+        throw new Error(`User has insufficient balance: ${currentBalance} < ${requestData.amount}`);
       }
       
       // Update user balance
-      const newBalance = currentBalance - request.amount;
-      const userUpdate = mapUserToDb({
-        usdtEarnings: newBalance,
+      const newBalance = currentBalance - requestData.amount;
+      await updateDoc(doc(db, 'users', userDoc.id), {
+        usdt_earnings: newBalance,
         notifications: [
           ...userNotifications,
           {
             id: uuidv4(),
-            message: `Your withdrawal request for $${request.amount.toFixed(2)} USDT has been approved and processed.`,
+            message: `Your withdrawal request for $${requestData.amount.toFixed(2)} USDT has been approved and processed.`,
             read: false,
             createdAt: new Date().toISOString()
           }
         ]
       });
-      
-      await supabase
-        .from('users')
-        .update(userUpdate as any)
-        .eq('id', targetUser.id);
       
       toast.success('Withdrawal request approved successfully');
     } catch (error) {

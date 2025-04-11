@@ -1,7 +1,7 @@
-
 import { ArbitragePlan, ArbitragePlanDB } from '@/types/arbitragePlans';
 import { toast } from 'sonner';
 import { mockArbitragePlans } from '@/data/mockArbitragePlans';
+import { getFirestore, collection, getDocs, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 // Performance optimization: Add caching for plans
 let plansCache: ArbitragePlan[] | null = null;
@@ -61,15 +61,48 @@ export const fetchArbitragePlans = async (forceFresh = false): Promise<Arbitrage
     
     console.log(forceFresh ? 'Forced refresh of plans data' : 'Cache expired, fetching fresh plans data');
     
-    // Use mock data directly instead of database
-    const plans = await simulateAsyncOperation(mockArbitragePlans);
-    
-    console.log('Received fresh plans data:', plans);
-    
-    // Update the cache
-    plansCache = plans;
-    lastFetchTime = now;
-    return plans;
+    try {
+      const db = getFirestore();
+      const plansCollection = collection(db, 'arbitrage_plans');
+      const snapshot = await getDocs(plansCollection);
+      
+      if (snapshot.empty) {
+        console.log('No plans found in Firebase, using mock data');
+        plansCache = mockArbitragePlans;
+        lastFetchTime = now;
+        return mockArbitragePlans;
+      }
+      
+      const plans: ArbitragePlan[] = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        plans.push({
+          id: doc.id,
+          name: data.name,
+          price: data.price,
+          duration: data.duration,
+          dailyEarnings: data.daily_earnings,
+          miningSpeed: data.mining_speed,
+          totalEarnings: data.total_earnings,
+          withdrawal: data.withdrawal,
+          color: data.color || 'blue',
+          limited: data.limited || false,
+          limitedTo: data.limited_to
+        });
+      });
+      
+      console.log('Retrieved plans from Firebase:', plans);
+      plansCache = plans;
+      lastFetchTime = now;
+      return plans;
+    } catch (error) {
+      console.error('Error getting plans from Firebase:', error);
+      // Fallback to mock data
+      console.log('Falling back to mock data');
+      plansCache = mockArbitragePlans;
+      lastFetchTime = now;
+      return mockArbitragePlans;
+    }
   } catch (error) {
     console.error('Error fetching plans:', error);
     toast.error('योजनाओं को लोड करने में विफल');
@@ -86,8 +119,28 @@ export const updateArbitragePlan = async (plan: ArbitragePlan): Promise<boolean>
       plansCache = plansCache.map(p => p.id === plan.id ? plan : p);
     }
     
-    // Simulate successful operation
-    await simulateAsyncOperation(true);
+    try {
+      const db = getFirestore();
+      const planRef = doc(db, 'arbitrage_plans', plan.id);
+      
+      await updateDoc(planRef, {
+        name: plan.name,
+        price: plan.price,
+        duration: plan.duration,
+        daily_earnings: plan.dailyEarnings,
+        mining_speed: plan.miningSpeed,
+        total_earnings: plan.totalEarnings,
+        withdrawal: plan.withdrawal,
+        color: plan.color,
+        limited: plan.limited,
+        limited_to: plan.limitedTo
+      });
+      
+      console.log('Plan updated successfully in Firebase');
+    } catch (error) {
+      console.error('Error updating plan in Firebase:', error);
+      // Continue even if Firebase update fails - we'll keep using the in-memory cache
+    }
     
     console.log('Plan updated successfully');
     toast.success('योजना सफलतापूर्वक अपडेट की गई');
@@ -122,8 +175,27 @@ export const createArbitragePlan = async (): Promise<boolean> => {
       plansCache = [...plansCache, newPlan];
     }
     
-    // Simulate successful operation
-    await simulateAsyncOperation(true);
+    try {
+      const db = getFirestore();
+      const plansCollection = collection(db, 'arbitrage_plans');
+      
+      await addDoc(plansCollection, {
+        name: newPlan.name,
+        price: newPlan.price,
+        duration: newPlan.duration,
+        daily_earnings: newPlan.dailyEarnings,
+        mining_speed: newPlan.miningSpeed,
+        total_earnings: newPlan.totalEarnings,
+        withdrawal: newPlan.withdrawal,
+        color: newPlan.color,
+        limited: newPlan.limited
+      });
+      
+      console.log('Plan added successfully to Firebase');
+    } catch (error) {
+      console.error('Error adding plan to Firebase:', error);
+      // Continue even if Firebase add fails - we'll keep using the in-memory cache
+    }
     
     console.log('New plan created successfully');
     toast.success('नई योजना बनाई गई');

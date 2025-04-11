@@ -12,6 +12,7 @@ import { FullAuthContextType } from './customTypes';
 import { authFunctions } from '@/services/authService';
 import { adminServiceFunctions } from '@/services/auth/adminService';
 import { auth } from '@/integrations/firebase/client';
+import { onAuthStateChanged } from 'firebase/auth';
 import { toast } from 'sonner';
 
 export const AuthContext = createContext<FullAuthContextType | null>(null);
@@ -26,14 +27,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const { toast: uiToast } = useToast();
 
   // Get all auth functions from the service
-  const auth = authFunctions(user, setUser, setIsLoading);
+  const authFns = authFunctions(user, setUser, setIsLoading);
   
   // Get admin functions
   const adminFunctions = adminServiceFunctions(user);
 
   // Listen to auth state changes in Firebase
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       console.log('Firebase auth state changed:', firebaseUser?.uid);
       // You can handle auth state changes here if needed
     });
@@ -97,7 +98,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Combine auth service functions with local state functions and admin functions
   const contextValue: FullAuthContextType = {
-    ...auth,
+    ...authFns,
     ...adminFunctions,
     user,
     isAuthenticated: !!user,

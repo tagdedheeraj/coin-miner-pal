@@ -1,15 +1,15 @@
 
 import { Dispatch, SetStateAction } from 'react';
 import { User } from '@/types/auth';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { v4 as uuidv4 } from 'uuid';
-import { mapUserToDb, mapDbToUser } from '@/utils/supabaseUtils';
+import { getFirestore, doc, collection, query, getDocs, updateDoc } from 'firebase/firestore';
 
 export const notificationServiceFunctions = (
   user: User | null,
   setUser: Dispatch<SetStateAction<User | null>>
 ) => {
+  const db = getFirestore();
 
   const sendNotificationToAllUsers = async (message: string) => {
     if (!user?.isAdmin) {
@@ -26,25 +26,23 @@ export const notificationServiceFunctions = (
         createdAt: new Date().toISOString()
       };
       
-      // Get all users from Supabase
-      const { data: users, error: usersError } = await supabase
-        .from('users')
-        .select('*');
-      
-      if (usersError) throw usersError;
+      // Get all users from Firebase
+      const usersRef = collection(db, 'users');
+      const querySnapshot = await getDocs(usersRef);
       
       // Update each user with the notification
-      for (const userData of users) {
-        const userObj = mapDbToUser(userData);
-        const userNotifications = userObj.notifications || [];
+      const batch = [];
+      querySnapshot.forEach((docSnapshot) => {
+        const userData = docSnapshot.data();
+        const userNotifications = userData.notifications || [];
         
-        await supabase
-          .from('users')
-          .update(mapUserToDb({
-            notifications: [...userNotifications, notification]
-          }))
-          .eq('id', userObj.id);
-      }
+        batch.push(updateDoc(doc(db, 'users', docSnapshot.id), {
+          notifications: [...userNotifications, notification]
+        }));
+      });
+      
+      // Execute all updates
+      await Promise.all(batch);
       
       // Update current admin user's state if they have notifications
       if (user && user.isAdmin) {
@@ -79,18 +77,19 @@ export const notificationServiceFunctions = (
         notifications: updatedNotifications
       });
       
-      // Skip Supabase update for admin users
+      // Skip Firebase update for admin users 
       if (user.isAdmin) return;
       
-      // Update in Supabase
-      const { error } = await supabase
-        .from('users')
-        .update(mapUserToDb({
+      // Update in Firebase
+      try {
+        const userRef = doc(db, 'users', user.id);
+        await updateDoc(userRef, {
           notifications: updatedNotifications
-        }))
-        .eq('id', user.id);
-        
-      if (error) throw error;
+        });
+      } catch (firestoreError) {
+        console.error('Firebase update error:', firestoreError);
+        // Continue even if Firebase update fails
+      }
     } catch (error) {
       console.error(error);
       toast.error('Failed to mark notification as read');

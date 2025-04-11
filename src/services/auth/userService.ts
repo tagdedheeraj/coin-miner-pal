@@ -1,14 +1,14 @@
 
 import { Dispatch, SetStateAction } from 'react';
 import { User } from '@/types/auth';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { mapUserToDb, mapDbToUser } from '@/utils/supabaseUtils';
+import { getFirestore, doc, updateDoc, getDoc, collection, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 
 export const userServiceFunctions = (
   user: User | null, 
   setUser: Dispatch<SetStateAction<User | null>>
 ) => {
+  const db = getFirestore();
   
   const updateUser = async (updates: Partial<User>) => {
     if (!user) return;
@@ -16,16 +16,16 @@ export const userServiceFunctions = (
     try {
       const updatedUser = { ...user, ...updates };
       
-      // Update in Supabase
-      const { error } = await supabase
-        .from('users')
-        .update(mapUserToDb(updates))
-        .eq('id', user.id);
-      
-      if (error) {
-        console.error('Supabase error updating user:', error);
-        // Still proceed with local update even if Supabase fails
-      }
+      // Update in Firestore
+      const userRef = doc(db, 'users', user.id);
+      await updateDoc(userRef, {
+        ...Object.entries(updates).reduce((acc, [key, value]) => {
+          // Convert camelCase to snake_case
+          const snakeKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
+          acc[snakeKey] = value;
+          return acc;
+        }, {} as Record<string, any>)
+      });
       
       // Update localStorage for persistence
       localStorage.setItem('user', JSON.stringify(updatedUser));
@@ -82,12 +82,8 @@ export const userServiceFunctions = (
     }
 
     try {
-      const { error } = await supabase
-        .from('users')
-        .delete()
-        .eq('id', userId);
-      
-      if (error) throw error;
+      const userRef = doc(db, 'users', userId);
+      await deleteDoc(userRef);
       
       toast.success('User deleted successfully');
     } catch (error) {
@@ -96,17 +92,28 @@ export const userServiceFunctions = (
     }
   };
 
-  const fetchUserBySupabaseId = async (supabaseId: string): Promise<User | null> => {
+  const fetchUserBySupabaseId = async (firebaseId: string): Promise<User | null> => {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', supabaseId)
-        .single();
+      const userRef = doc(db, 'users', firebaseId);
+      const userSnapshot = await getDoc(userRef);
       
-      if (error) return null;
+      if (!userSnapshot.exists()) return null;
       
-      return data ? mapDbToUser(data) : null;
+      const data = userSnapshot.data();
+      return {
+        id: data.id,
+        name: data.name,
+        email: data.email,
+        coins: data.coins,
+        referralCode: data.referral_code,
+        hasSetupPin: data.has_setup_pin,
+        hasBiometrics: data.has_biometrics,
+        withdrawalAddress: data.withdrawal_address,
+        appliedReferralCode: data.applied_referral_code,
+        usdtEarnings: data.usdt_earnings,
+        notifications: data.notifications,
+        isAdmin: data.is_admin
+      };
     } catch (error) {
       console.error('Error fetching user:', error);
       return null;
@@ -115,17 +122,31 @@ export const userServiceFunctions = (
 
   const findUserByEmail = async (email: string): Promise<{userId: string, userData: User} | null> => {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .single();
+      const usersRef = collection(db, 'users');
+      const userQuery = query(usersRef, where('email', '==', email));
+      const userSnapshot = await getDocs(userQuery);
       
-      if (error || !data) return null;
+      if (userSnapshot.empty) return null;
+      
+      const userDoc = userSnapshot.docs[0];
+      const data = userDoc.data();
       
       return { 
-        userId: data.id, 
-        userData: mapDbToUser(data) 
+        userId: userDoc.id, 
+        userData: {
+          id: data.id,
+          name: data.name,
+          email: data.email,
+          coins: data.coins,
+          referralCode: data.referral_code,
+          hasSetupPin: data.has_setup_pin,
+          hasBiometrics: data.has_biometrics,
+          withdrawalAddress: data.withdrawal_address,
+          appliedReferralCode: data.applied_referral_code,
+          usdtEarnings: data.usdt_earnings,
+          notifications: data.notifications,
+          isAdmin: data.is_admin
+        }
       };
     } catch (error) {
       console.error('Error finding user by email:', error);
