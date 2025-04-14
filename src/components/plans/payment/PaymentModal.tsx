@@ -131,19 +131,19 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   
   return (
     <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader className="flex flex-row items-center">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="flex flex-row items-center gap-2">
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={onClose} 
-            className="mr-2 h-8 w-8"
+            className="mr-auto h-8 w-8 rounded-full"
             aria-label="Back"
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <DialogTitle>Complete your payment</DialogTitle>
+          <div className="flex-1">
+            <DialogTitle className="text-xl">Complete your payment</DialogTitle>
             <DialogDescription>
               Send ${planPrice} USDT to activate {planName} plan
             </DialogDescription>
@@ -166,7 +166,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           />
         </div>
         
-        <DialogFooter className="sm:justify-between">
+        <DialogFooter className="sm:justify-between mt-4 pt-2 border-t">
           <Button variant="outline" onClick={onClose} disabled={isSubmitting}>
             Cancel
           </Button>
