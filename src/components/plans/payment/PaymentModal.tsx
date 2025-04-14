@@ -8,6 +8,7 @@ import PaymentAddress from './PaymentAddress';
 import PaymentQRCode from './PaymentQRCode';
 import TransactionIdInput from './TransactionIdInput';
 import PaymentTimer from './PaymentTimer';
+import { ArrowLeft } from 'lucide-react';
 
 interface PaymentModalProps {
   open: boolean;
@@ -131,11 +132,22 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
   return (
     <Dialog open={open} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Complete your payment</DialogTitle>
-          <DialogDescription>
-            Send ${planPrice} USDT to activate {planName} plan
-          </DialogDescription>
+        <DialogHeader className="flex flex-row items-center">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={onClose} 
+            className="mr-2 h-8 w-8"
+            aria-label="Back"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <DialogTitle>Complete your payment</DialogTitle>
+            <DialogDescription>
+              Send ${planPrice} USDT to activate {planName} plan
+            </DialogDescription>
+          </div>
         </DialogHeader>
         
         <div className="space-y-4 py-4">
