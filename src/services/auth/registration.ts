@@ -5,7 +5,7 @@ import { auth } from '@/integrations/firebase/client';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { toast } from 'sonner';
 import { generateReferralCode } from '@/utils/referral';
-import { getFirestore, doc, setDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
 export const createRegistrationService = (
   user: User | null, 
@@ -19,6 +19,15 @@ export const createRegistrationService = (
     console.log('Attempting to sign up with Firebase');
     
     try {
+      // First check if email already exists
+      const usersRef = collection(db, 'users');
+      const emailQuery = query(usersRef, where('email', '==', email));
+      const querySnapshot = await getDocs(emailQuery);
+      
+      if (!querySnapshot.empty) {
+        throw new Error('auth/email-already-in-use');
+      }
+      
       // Register with Firebase
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const firebaseUser = userCredential.user;
@@ -38,7 +47,7 @@ export const createRegistrationService = (
         id: firebaseUser.uid,
         name,
         email,
-        coins: 200, // Sign-up bonus
+        coins: 200,
         referralCode,
         hasSetupPin: false,
         hasBiometrics: false,
@@ -81,7 +90,9 @@ export const createRegistrationService = (
       let errorMessage = 'Failed to sign up';
       if (error instanceof Error) {
         if (error.message.includes('auth/email-already-in-use')) {
-          errorMessage = 'This email is already registered. Please sign in instead.';
+          errorMessage = 'यह ईमेल पहले से पंजीकृत है। कृपया साइन इन करें।';
+          toast.error(errorMessage);
+          throw new Error(errorMessage);
         } else if (error.message.includes('auth/network-request-failed')) {
           errorMessage = 'Network error. Please check your internet connection and try again.';
         } else {
