@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Pickaxe, Wallet, Gift, Share2, LayoutGrid } from 'lucide-react';
+import { Pickaxe, Wallet, Gift, Share2, LayoutGrid, MessageCircle } from 'lucide-react';
 
 const BottomNav: React.FC = () => {
   const navigate = useNavigate();
@@ -13,6 +13,12 @@ const BottomNav: React.FC = () => {
     { icon: Gift, label: 'Rewards', path: '/rewards' },
     { icon: Share2, label: 'Refer', path: '/referral' },
     { icon: Wallet, label: 'Wallet', path: '/wallet' },
+    { 
+      icon: MessageCircle, 
+      label: 'Support', 
+      onClick: () => window.location.href = 'mailto:infiniumnetwork.space',
+      path: '#'
+    },
   ];
   
   const isActive = (path: string) => location.pathname === path;
@@ -26,7 +32,7 @@ const BottomNav: React.FC = () => {
             className={`flex flex-col items-center justify-center flex-1 py-1 transition-colors ${
               isActive(item.path) ? 'text-brand-blue' : 'text-gray-400'
             }`}
-            onClick={() => navigate(item.path)}
+            onClick={item.onClick || (() => navigate(item.path))}
           >
             <item.icon 
               size={20} 
