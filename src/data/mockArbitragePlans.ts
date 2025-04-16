@@ -75,4 +75,4 @@ export const mockArbitragePlans: ArbitragePlan[] = [
     limited: true,
     limitedTo: 300
   }
-];
+].sort((a, b) => a.price - b.price); // Sort plans by price in ascending order

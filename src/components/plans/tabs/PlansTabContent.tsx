@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import PlanItem from '../cards/PlanItem';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -25,7 +26,8 @@ const PlansTabContent: React.FC<PlansTabContentProps> = ({
       console.log('Fetching arbitrage plans...');
       const data = await fetchArbitragePlans(true);
       console.log('Fetched plans:', data);
-      setPlans(data);
+      // Sort plans by price before setting state
+      setPlans(data.sort((a, b) => a.price - b.price));
     } catch (err) {
       console.error('Error loading plans:', err);
       setError('Failed to load plans. Please try again.');
@@ -91,4 +93,4 @@ const PlansTabContent: React.FC<PlansTabContentProps> = ({
   );
 };
 
-export default React.memo(PlansTabContent); // Use memo for performance
+export default React.memo(PlansTabContent);
