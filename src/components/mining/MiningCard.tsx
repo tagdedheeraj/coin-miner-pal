@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { Pickaxe, Clock, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { useMining } from '@/contexts/MiningContext';
+import { useMining } from '@/contexts/mining/MiningContext';
 import { formatTimeRemaining, formatCoins } from '@/utils/formatters';
 
 const MiningCard: React.FC = () => {
