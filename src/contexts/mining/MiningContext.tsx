@@ -1,10 +1,11 @@
+
 import React, { createContext, useContext, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'sonner';
 import { MiningContextType } from './types';
 import { useMiningOperations } from './useMiningOperations';
-import { loadMiningState, HOUR_IN_MS } from './utils';
+import { loadMiningState } from './utils';
 import { useMiningCooldown } from './hooks/useMiningCooldown';
+import { useMiningNotifications } from '@/components/mining/MiningNotifications';
 
 const MiningContext = createContext<MiningContextType | undefined>(undefined);
 
@@ -25,6 +26,13 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   } = useMiningOperations();
 
   const { timeUntilNextMining, setTimeUntilNextMining } = useMiningCooldown(lastMiningDate);
+
+  const notifications = useMiningNotifications({
+    isMining,
+    miningProgress,
+    miningRate,
+    coinsMinedInSession
+  });
   
   // Load saved mining state on mount
   useEffect(() => {
@@ -50,27 +58,27 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   
   const startMining = () => {
     if (timeUntilNextMining !== null) {
-      toast.error('Mining is on cooldown. Please wait until the cooldown period ends.');
+      notifications.handleCooldownError();
       return;
     }
     
     setIsMining(true);
     setMiningProgress(0);
     setCoinsMinedInSession(0);
-    toast.success('Mining started!');
+    notifications.handleMiningStart();
   };
   
   const stopMining = () => {
     if (!isMining) return;
     
     setIsMining(false);
-    toast.info('Mining stopped.');
+    notifications.handleMiningStop();
   };
   
   const resetMiningCooldown = () => {
     setLastMiningDate(null);
     setTimeUntilNextMining(null);
-    toast.success('Mining cooldown reset!');
+    notifications.handleCooldownReset();
   };
   
   const value = {
