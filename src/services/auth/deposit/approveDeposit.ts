@@ -58,9 +58,10 @@ export const approveDepositFunctions = (user: User | null) => {
       
       const planData = planSnapshot.data();
       
-      // Calculate plan expiry date
+      // Calculate plan expiry date based on the current date and plan duration
       const startDate = new Date();
       const expiryDate = new Date();
+      // Use the plan's duration property to set the correct expiry date
       expiryDate.setDate(expiryDate.getDate() + (planData.duration || 30));
       
       // Create user plan record
@@ -73,7 +74,8 @@ export const approveDepositFunctions = (user: User | null) => {
         startDate: startDate.toISOString(),
         expiryDate: expiryDate.toISOString(),
         isActive: true,
-        depositId: requestId
+        depositId: requestId,
+        miningSpeed: planData.mining_speed || '1x'
       };
       
       // Update user with notification and active plan
@@ -95,7 +97,6 @@ export const approveDepositFunctions = (user: User | null) => {
       
       // Create plan history record
       const planHistoryRef = collection(db, 'plan_history');
-      // Fix: Use addDoc instead of .add() method
       await addDoc(planHistoryRef, {
         userId: userDoc.id,
         userEmail: requestData.user_email,

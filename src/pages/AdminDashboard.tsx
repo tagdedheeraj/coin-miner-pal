@@ -6,6 +6,7 @@ import { useAdminDashboard } from '@/hooks/useAdminDashboard';
 import Header from '@/components/layout/Header';
 import DashboardStats from '@/components/admin/dashboard/DashboardStats';
 import AdminTabs from '@/components/admin/AdminTabs';
+import InfiniumValueManager from '@/components/admin/coins/InfiniumValueManager';
 
 const AdminDashboard: React.FC = () => {
   const { 
@@ -75,6 +76,9 @@ const AdminDashboard: React.FC = () => {
           totalRevenue={dashboardStats.totalRevenue}
           pendingRequests={dashboardStats.pendingWithdrawals + dashboardStats.pendingDeposits}
         />
+        
+        {/* Infinium Coin Value Manager */}
+        <InfiniumValueManager />
         
         {/* Main Admin Tabs */}
         <AdminTabs 
