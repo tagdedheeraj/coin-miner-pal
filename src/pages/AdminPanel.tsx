@@ -138,16 +138,16 @@ const AdminPanel: React.FC = () => {
         </div>
 
         {/* Dashboard Stats - Responsive grid */}
-        <div className={`grid ${isMobile ? 'grid-cols-1 gap-3' : 'grid-cols-2 md:grid-cols-4 gap-4'} mb-6`}>
+        <div className={`grid ${isMobile ? 'grid-cols-2 gap-2' : 'grid-cols-2 md:grid-cols-4 gap-4'} mb-6`}>
           {stats.map((stat, index) => (
-            <Card key={index} className="p-4 transition-shadow hover:shadow-md">
+            <Card key={index} className="p-3 transition-shadow hover:shadow-md">
               <div className="flex items-center justify-between">
                 <div className="overflow-hidden">
-                  <p className={`text-xs ${isMobile ? 'text-xs' : 'text-sm'} font-medium text-gray-600 truncate`}>{stat.title}</p>
-                  <p className={`${isMobile ? 'text-xl' : 'text-2xl'} font-semibold mt-1`}>{stat.value}</p>
+                  <p className="text-xs font-medium text-gray-600 truncate">{stat.title}</p>
+                  <p className="text-xl font-semibold mt-1">{stat.value}</p>
                 </div>
-                <div className={`${isMobile ? 'w-10 h-10' : 'w-12 h-12'} ${stat.bgColor} rounded-full flex items-center justify-center flex-shrink-0`}>
-                  <stat.icon className={`${isMobile ? 'w-5 h-5' : 'w-6 h-6'} ${stat.color}`} />
+                <div className={`w-10 h-10 ${stat.bgColor} rounded-full flex items-center justify-center flex-shrink-0`}>
+                  <stat.icon className="w-5 h-5 ${stat.color}" />
                 </div>
               </div>
             </Card>
@@ -170,7 +170,7 @@ const AdminPanel: React.FC = () => {
             <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full"></div>
           </div>
         ) : (
-          <Card className={`${isMobile ? 'p-2' : 'p-4'} overflow-hidden`}>
+          <Card className="p-0 sm:p-2 md:p-4 overflow-hidden">
             <AdminTabs 
               pendingWithdrawalsCount={pendingWithdrawals.length}
               pendingDepositsCount={pendingDeposits.length}

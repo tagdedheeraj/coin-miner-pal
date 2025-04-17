@@ -10,6 +10,7 @@ import WithdrawalRequestManager from './withdrawals/WithdrawalRequestManager';
 import DepositRequestManager from './deposits/DepositRequestManager';
 import ArbitragePlanManagement from './ArbitragePlanManagement';
 import { WithdrawalRequest, DepositRequest, User as UserType } from '@/types/auth';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface AdminTabsProps {
   pendingWithdrawalsCount: number;
@@ -40,38 +41,53 @@ const AdminTabs: React.FC<AdminTabsProps> = ({
   getDepositRequests,
   approveDepositRequest,
   rejectDepositRequest,
-  users // Add the users prop here
+  users
 }) => {
+  const isMobile = useIsMobile();
+  
   return (
     <Tabs defaultValue="users" className="w-full">
-      <TabsList className="mb-6 flex flex-wrap gap-1">
-        <TabsTrigger value="users" className="flex items-center gap-2">
-          <User className="h-4 w-4" /> Users
+      <TabsList className={`${isMobile ? 'flex-wrap grid grid-cols-3 gap-1 h-auto p-1' : 'flex flex-wrap gap-1'} mb-6`}>
+        <TabsTrigger value="users" className="flex items-center gap-1 text-xs md:text-sm py-1.5 h-auto">
+          <User className="h-3 w-3 md:h-4 md:w-4" /> 
+          <span className="truncate">Users</span>
         </TabsTrigger>
-        <TabsTrigger value="plans" className="flex items-center gap-2">
-          <LayoutGrid className="h-4 w-4" /> Arbitrage Plans
+        
+        <TabsTrigger value="plans" className="flex items-center gap-1 text-xs md:text-sm py-1.5 h-auto">
+          <LayoutGrid className="h-3 w-3 md:h-4 md:w-4" /> 
+          <span className="truncate">Plans</span>
         </TabsTrigger>
-        <TabsTrigger value="usdt" className="flex items-center gap-2">
-          <DollarSign className="h-4 w-4" /> USDT Earnings
+        
+        <TabsTrigger value="usdt" className="flex items-center gap-1 text-xs md:text-sm py-1.5 h-auto">
+          <DollarSign className="h-3 w-3 md:h-4 md:w-4" /> 
+          <span className="truncate">USDT</span>
         </TabsTrigger>
-        <TabsTrigger value="coins" className="flex items-center gap-2">
-          <Coins className="h-4 w-4" /> Coins
+        
+        <TabsTrigger value="coins" className="flex items-center gap-1 text-xs md:text-sm py-1.5 h-auto">
+          <Coins className="h-3 w-3 md:h-4 md:w-4" /> 
+          <span className="truncate">Coins</span>
         </TabsTrigger>
-        <TabsTrigger value="notifications" className="flex items-center gap-2">
-          <BellRing className="h-4 w-4" /> Notifications
+        
+        <TabsTrigger value="notifications" className="flex items-center gap-1 text-xs md:text-sm py-1.5 h-auto">
+          <BellRing className="h-3 w-3 md:h-4 md:w-4" /> 
+          <span className="truncate">Notif.</span>
         </TabsTrigger>
-        <TabsTrigger value="withdrawals" className="flex items-center gap-2">
-          <FileText className="h-4 w-4" /> Withdrawals
+        
+        <TabsTrigger value="withdrawals" className="flex items-center gap-1 text-xs md:text-sm py-1.5 h-auto">
+          <FileText className="h-3 w-3 md:h-4 md:w-4" /> 
+          <span className="truncate">Withdrawals</span>
           {pendingWithdrawalsCount > 0 && (
-            <span className="ml-1 px-2 py-0.5 text-xs bg-red-500 text-white rounded-full">
+            <span className="ml-0.5 px-1.5 py-0.5 text-[10px] md:text-xs bg-red-500 text-white rounded-full">
               {pendingWithdrawalsCount}
             </span>
           )}
         </TabsTrigger>
-        <TabsTrigger value="deposits" className="flex items-center gap-2">
-          <CreditCard className="h-4 w-4" /> Deposits
+        
+        <TabsTrigger value="deposits" className="flex items-center gap-1 text-xs md:text-sm py-1.5 h-auto">
+          <CreditCard className="h-3 w-3 md:h-4 md:w-4" /> 
+          <span className="truncate">Deposits</span>
           {pendingDepositsCount > 0 && (
-            <span className="ml-1 px-2 py-0.5 text-xs bg-red-500 text-white rounded-full">
+            <span className="ml-0.5 px-1.5 py-0.5 text-[10px] md:text-xs bg-red-500 text-white rounded-full">
               {pendingDepositsCount}
             </span>
           )}
