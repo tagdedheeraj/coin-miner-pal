@@ -31,9 +31,9 @@ export const mockArbitragePlans: ArbitragePlan[] = [
     name: "Pro Miner Plan",
     price: 50,
     duration: 28,
-    dailyEarnings: 4.46,
+    dailyEarnings: 2.14,  // Updated daily earnings
     totalEarnings: 125,
-    miningSpeed: "2x",
+    miningSpeed: "2x",    // Updated mining speed
     withdrawal: "24 hour",
     color: "green",
     limited: false
@@ -75,4 +75,4 @@ export const mockArbitragePlans: ArbitragePlan[] = [
     limited: true,
     limitedTo: 300
   }
-].sort((a, b) => a.price - b.price); // Sort plans by price in ascending order
+].sort((a, b) => a.price - b.price);

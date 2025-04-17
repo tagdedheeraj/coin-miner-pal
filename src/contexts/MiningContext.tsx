@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -26,7 +25,20 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const [lastMiningDate, setLastMiningDate] = useState<Date | null>(null);
   const [totalCoinsFromMining, setTotalCoinsFromMining] = useState(0);
   
-  const miningRate = 2; // 2 coins per hour
+  const calculateMiningRate = () => {
+    if (!user?.activePlans?.length) return 2; // Base rate: 2 coins per hour
+    
+    // Find the highest mining speed multiplier from active plans
+    const highestSpeedMultiplier = user.activePlans.reduce((maxSpeed, plan) => {
+      const speedValue = parseFloat(plan.miningSpeed.replace('x', ''));
+      return Math.max(maxSpeed, speedValue);
+    }, 1);
+    
+    // Return base rate multiplied by the speed multiplier
+    return 2 * highestSpeedMultiplier;
+  };
+  
+  const miningRate = calculateMiningRate();
   const miningDuration = 24; // 24 hours
   const hourInMs = 3600000; // 1 hour in milliseconds
   
@@ -101,7 +113,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           // Mining completed
           setIsMining(false);
           
-          // Calculate coins mined
+          // Calculate coins mined based on mining rate
           const coins = miningRate * miningDuration;
           setCoinsMinedInSession(coins);
           setTotalCoinsFromMining(prevTotal => prevTotal + coins);
@@ -120,9 +132,8 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           return 0;
         }
         
-        // Every hour (when progress increases by 100/24), award coins
+        // Every hour (when progress increases by 100/24), award coins based on mining rate
         if (Math.floor((newProgress * miningDuration) / 100) > Math.floor((prev * miningDuration) / 100)) {
-          // Every hour milestone reached
           toast.success(`You mined ${miningRate} Infinium coins!`);
         }
         

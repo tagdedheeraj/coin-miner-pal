@@ -1,4 +1,3 @@
-
 import { User } from '@/types/auth';
 import { toast } from 'sonner';
 import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs } from 'firebase/firestore';
@@ -25,18 +24,22 @@ export const updateUserDailyEarnings = async (userId: string): Promise<boolean> 
     
     // Get the last earnings update timestamp
     const lastEarningsUpdate = userData.last_earnings_update ? new Date(userData.last_earnings_update) : null;
-    const currentDate = new Date();
     
-    // Check if we already updated earnings today
+    // Convert current time to IST
+    const currentDate = new Date();
+    const istOptions = { timeZone: 'Asia/Kolkata' };
+    const istDate = new Date(currentDate.toLocaleString('en-US', istOptions));
+    
+    // Check if we already updated earnings today in IST
     if (lastEarningsUpdate) {
       const lastUpdateDay = new Date(lastEarningsUpdate);
       lastUpdateDay.setHours(0, 0, 0, 0);
       
-      const today = new Date(currentDate);
+      const today = new Date(istDate);
       today.setHours(0, 0, 0, 0);
       
       if (lastUpdateDay.getTime() === today.getTime()) {
-        console.log(`User ${userId} earnings already updated today`);
+        console.log(`User ${userId} earnings already updated today (IST)`);
         return false;
       }
     }
@@ -57,9 +60,6 @@ export const updateUserDailyEarnings = async (userId: string): Promise<boolean> 
         // Plan is still active
         totalDailyEarnings += plan.dailyEarnings;
         updatedActivePlans.push(plan);
-      } else {
-        // Plan has expired, don't include it in active plans anymore
-        console.log(`Plan ${plan.planId} has expired`);
       }
     }
     
@@ -70,7 +70,7 @@ export const updateUserDailyEarnings = async (userId: string): Promise<boolean> 
       await updateDoc(userRef, {
         usdt_earnings: newUsdtEarnings,
         active_plans: updatedActivePlans,
-        last_earnings_update: currentDate.toISOString(),
+        last_earnings_update: istDate.toISOString(),
         notifications: [
           ...notifications,
           {
@@ -83,15 +83,6 @@ export const updateUserDailyEarnings = async (userId: string): Promise<boolean> 
       });
       
       console.log(`Updated user ${userId} earnings by +$${totalDailyEarnings}`);
-      return true;
-    }
-    
-    // If plans were updated (some expired) but no earnings were added
-    if (updatedActivePlans.length !== activePlans.length) {
-      await updateDoc(userRef, {
-        active_plans: updatedActivePlans,
-        last_earnings_update: currentDate.toISOString()
-      });
       return true;
     }
     
