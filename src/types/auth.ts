@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -26,6 +25,7 @@ export interface UserPlan {
   expiryDate: string;
   isActive: boolean;
   depositId: string;
+  miningSpeed: string; // Added this property to match what's being accessed
 }
 
 export interface WithdrawalRequest {
