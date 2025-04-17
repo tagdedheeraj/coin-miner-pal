@@ -1,4 +1,3 @@
-
 import { User, WithdrawalRequest, DepositRequest, UserPlan } from '@/types/auth';
 
 // Firebase document mapping utilities
@@ -107,6 +106,7 @@ export const mapDbToUserPlan = (data: any): UserPlan => {
     startDate: data.startDate || '',
     expiryDate: data.expiryDate || '',
     isActive: data.isActive || false,
-    depositId: data.depositId || ''
+    depositId: data.depositId || '',
+    miningSpeed: data.mining_speed || '1x'  // Added default value
   };
 };
