@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Pickaxe, Clock, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,6 @@ const MiningCard: React.FC = () => {
   const { 
     isMining, 
     startMining, 
-    stopMining, 
     miningProgress, 
     timeUntilNextMining,
     timeUntilMiningCompletes,
@@ -95,23 +93,17 @@ const MiningCard: React.FC = () => {
           </div>
         </div>
         
-        {isMining ? (
-          <Button 
-            onClick={stopMining}
-            variant="outline" 
-            className="w-full rounded-xl h-12 border-gray-200 hover:bg-gray-100 hover:text-gray-700 transition-all duration-300"
-          >
-            Stop Mining
-          </Button>
-        ) : (
-          <Button 
-            onClick={startMining}
-            disabled={timeUntilNextMining !== null}
-            className="w-full rounded-xl h-12 bg-brand-blue hover:bg-brand-blue/90 font-medium transition-all transform hover:scale-[1.02] active:scale-[0.98]"
-          >
-            {timeUntilNextMining !== null ? 'Cooldown in Progress' : 'Start Mining'}
-          </Button>
-        )}
+        <Button 
+          onClick={isMining ? undefined : startMining}
+          disabled={timeUntilNextMining !== null || isMining}
+          className={`w-full rounded-xl h-12 ${
+            isMining 
+              ? 'bg-gray-100 text-gray-700 cursor-not-allowed hover:bg-gray-100'
+              : 'bg-brand-blue hover:bg-brand-blue/90'
+          } font-medium transition-all transform hover:scale-[1.02] active:scale-[0.98]`}
+        >
+          {isMining ? 'Mining in Progress' : timeUntilNextMining !== null ? 'Cooldown in Progress' : 'Start Mining'}
+        </Button>
       </div>
       
       <div className="glass-card rounded-2xl p-6 animate-scale-up animation-delay-100">
