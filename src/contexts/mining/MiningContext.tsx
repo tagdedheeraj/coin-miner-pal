@@ -1,9 +1,9 @@
 
-import React, { createContext, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { MiningContextType } from './types';
 import { useMiningOperations } from './useMiningOperations';
-import { loadMiningState } from './utils';
+import { loadMiningState, saveMiningState, calculateTimeUntilCompletion } from './utils';
 import { useMiningCooldown } from './hooks/useMiningCooldown';
 import { useMiningNotifications } from '@/components/mining/MiningNotifications';
 
@@ -11,6 +11,8 @@ const MiningContext = createContext<MiningContextType | undefined>(undefined);
 
 export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  
   const {
     isMining,
     setIsMining,
@@ -22,7 +24,9 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setLastMiningDate,
     totalCoinsFromMining,
     setTotalCoinsFromMining,
-    miningRate
+    miningRate,
+    miningStartTime,
+    setMiningStartTime
   } = useMiningOperations();
 
   const { timeUntilNextMining, setTimeUntilNextMining } = useMiningCooldown(lastMiningDate);
@@ -34,16 +38,24 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     coinsMinedInSession
   });
   
-  // Load saved mining state on mount
+  // Load saved mining state on mount or when user changes
   useEffect(() => {
-    if (user) {
+    if (user && !initialLoadComplete) {
       const savedState = loadMiningState(user.id);
+      
       if (savedState) {
+        // Restore mining state
         setIsMining(savedState.isMining);
         setMiningProgress(savedState.miningProgress);
         setLastMiningDate(savedState.lastMiningDate ? new Date(savedState.lastMiningDate) : null);
         setCoinsMinedInSession(savedState.coinsMinedInSession || 0);
         setTotalCoinsFromMining(savedState.totalCoinsFromMining || 0);
+        setMiningStartTime(savedState.miningStartTime ? new Date(savedState.miningStartTime) : null);
+        
+        // If user was mining but app closed, show a notification
+        if (savedState.isMining && savedState.miningProgress > 0 && !savedState.miningStartTime) {
+          notifications.handleMiningContinued();
+        }
       } else {
         // Reset for new user
         setIsMining(false);
@@ -52,9 +64,40 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         setCoinsMinedInSession(0);
         setLastMiningDate(null);
         setTotalCoinsFromMining(0);
+        setMiningStartTime(null);
       }
+      
+      setInitialLoadComplete(true);
     }
   }, [user?.id]);
+  
+  // Save state whenever it changes
+  useEffect(() => {
+    if (user && initialLoadComplete) {
+      saveMiningState({
+        isMining,
+        miningProgress,
+        lastMiningDate: lastMiningDate?.toISOString() || null,
+        miningStartTime: miningStartTime?.toISOString() || null,
+        coinsMinedInSession,
+        totalCoinsFromMining
+      }, user.id);
+    }
+  }, [
+    isMining, 
+    miningProgress, 
+    lastMiningDate, 
+    miningStartTime,
+    coinsMinedInSession, 
+    totalCoinsFromMining, 
+    user?.id,
+    initialLoadComplete
+  ]);
+  
+  // Calculate time until mining completes
+  const timeUntilMiningCompletes = miningStartTime 
+    ? calculateTimeUntilCompletion(miningStartTime.toISOString(), miningProgress) 
+    : null;
   
   const startMining = () => {
     if (timeUntilNextMining !== null) {
@@ -62,9 +105,11 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
     
+    const now = new Date();
     setIsMining(true);
     setMiningProgress(0);
     setCoinsMinedInSession(0);
+    setMiningStartTime(now);
     notifications.handleMiningStart();
   };
   
@@ -72,6 +117,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!isMining) return;
     
     setIsMining(false);
+    setMiningStartTime(null);
     notifications.handleMiningStop();
   };
   
@@ -87,10 +133,12 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     stopMining,
     miningProgress,
     timeUntilNextMining,
+    timeUntilMiningCompletes,
     coinsMinedInSession,
     miningRate,
     totalCoinsFromMining,
     resetMiningCooldown,
+    miningStartTime
   };
   
   return <MiningContext.Provider value={value}>{children}</MiningContext.Provider>;

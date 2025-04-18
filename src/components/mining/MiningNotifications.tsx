@@ -37,6 +37,10 @@ export const useMiningNotifications = ({
   const handleCooldownReset = () => {
     toast.success('Mining cooldown reset!');
   };
+  
+  const handleMiningContinued = () => {
+    toast.info('Your mining session was continued from where you left off.');
+  };
 
   return {
     handleMiningStart,
@@ -45,5 +49,6 @@ export const useMiningNotifications = ({
     handleHourlyReward,
     handleCooldownError,
     handleCooldownReset,
+    handleMiningContinued
   };
 };

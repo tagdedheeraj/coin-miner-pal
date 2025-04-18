@@ -1,6 +1,7 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { calculateMiningRate, MINING_DURATION, saveMiningState } from './utils';
+import { calculateMiningRate, MINING_DURATION, HOUR_IN_MS, saveMiningState } from './utils';
 import { useMiningNotifications } from '@/components/mining/MiningNotifications';
 
 export const useMiningOperations = () => {
@@ -11,6 +12,7 @@ export const useMiningOperations = () => {
   const [coinsMinedInSession, setCoinsMinedInSession] = useState(0);
   const [lastMiningDate, setLastMiningDate] = useState<Date | null>(null);
   const [totalCoinsFromMining, setTotalCoinsFromMining] = useState(0);
+  const [miningStartTime, setMiningStartTime] = useState<Date | null>(null);
   
   const miningRate = calculateMiningRate(user);
   
@@ -23,52 +25,62 @@ export const useMiningOperations = () => {
 
   // Mining progress effect
   useEffect(() => {
-    if (!isMining) return;
+    if (!isMining || !miningStartTime) return;
+    
+    // Calculate initial progress based on start time
+    const calculateInitialProgress = () => {
+      const now = new Date();
+      const elapsedMs = now.getTime() - miningStartTime.getTime();
+      const elapsedHours = elapsedMs / HOUR_IN_MS;
+      return Math.min((elapsedHours / MINING_DURATION) * 100, 99.9);
+    };
+    
+    // Set initial progress
+    if (miningProgress === 0) {
+      const initialProgress = calculateInitialProgress();
+      if (initialProgress > 0) {
+        setMiningProgress(initialProgress);
+      }
+    }
     
     const interval = setInterval(() => {
-      setMiningProgress(prev => {
-        const newProgress = prev + (100 / (MINING_DURATION * 60));
+      const now = new Date();
+      const elapsedMs = now.getTime() - miningStartTime.getTime();
+      const elapsedHours = elapsedMs / HOUR_IN_MS;
+      const newProgress = Math.min((elapsedHours / MINING_DURATION) * 100, 100);
+      
+      setMiningProgress(newProgress);
+      
+      if (newProgress >= 100) {
+        setIsMining(false);
+        setMiningStartTime(null);
+        const coins = miningRate * MINING_DURATION;
+        setCoinsMinedInSession(coins);
+        setTotalCoinsFromMining(prevTotal => prevTotal + coins);
         
-        if (newProgress >= 100) {
-          setIsMining(false);
-          const coins = miningRate * MINING_DURATION;
-          setCoinsMinedInSession(coins);
-          setTotalCoinsFromMining(prevTotal => prevTotal + coins);
-          
-          if (user) {
-            const newCoins = (user.coins || 0) + coins;
-            console.log(`Mining completed. Adding ${coins} coins to user. New total: ${newCoins}`);
-            updateUser({ coins: newCoins });
-          }
-          
-          setLastMiningDate(new Date());
-          notifications.handleMiningComplete(coins);
-          return 0;
+        if (user) {
+          const newCoins = (user.coins || 0) + coins;
+          console.log(`Mining completed. Adding ${coins} coins to user. New total: ${newCoins}`);
+          updateUser({ coins: newCoins });
         }
         
-        if (Math.floor((newProgress * MINING_DURATION) / 100) > Math.floor((prev * MINING_DURATION) / 100)) {
-          notifications.handleHourlyReward();
-        }
-        
-        return newProgress;
-      });
-    }, 60000);
+        setLastMiningDate(new Date());
+        notifications.handleMiningComplete(coins);
+        clearInterval(interval);
+        return;
+      }
+      
+      // Hourly rewards notification
+      const prevHours = Math.floor(((newProgress - (100 / (MINING_DURATION * 60))) * MINING_DURATION) / 100);
+      const currHours = Math.floor((newProgress * MINING_DURATION) / 100);
+      
+      if (currHours > prevHours) {
+        notifications.handleHourlyReward();
+      }
+    }, 60000); // Update every minute
     
     return () => clearInterval(interval);
-  }, [isMining, user, updateUser, miningRate, notifications]);
-  
-  // Save state whenever it changes
-  useEffect(() => {
-    if (user) {
-      saveMiningState({
-        isMining,
-        miningProgress,
-        lastMiningDate: lastMiningDate?.toISOString(),
-        coinsMinedInSession,
-        totalCoinsFromMining,
-      }, user.id);
-    }
-  }, [isMining, miningProgress, lastMiningDate, coinsMinedInSession, totalCoinsFromMining, user?.id]);
+  }, [isMining, user, updateUser, miningRate, notifications, miningStartTime, miningProgress]);
   
   return {
     isMining,
@@ -83,6 +95,8 @@ export const useMiningOperations = () => {
     setLastMiningDate,
     totalCoinsFromMining,
     setTotalCoinsFromMining,
-    miningRate
+    miningRate,
+    miningStartTime,
+    setMiningStartTime
   };
 };

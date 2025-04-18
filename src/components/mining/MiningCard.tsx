@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Pickaxe, Clock, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ const MiningCard: React.FC = () => {
     stopMining, 
     miningProgress, 
     timeUntilNextMining,
+    timeUntilMiningCompletes,
     coinsMinedInSession,
     miningRate,
     totalCoinsFromMining
@@ -41,6 +43,13 @@ const MiningCard: React.FC = () => {
             <div className="flex items-center bg-orange-50 text-orange-600 px-3 py-1 rounded-full text-xs font-medium">
               <Clock size={14} className="mr-1" />
               <span>{formatTimeRemaining(timeUntilNextMining)}</span>
+            </div>
+          )}
+          
+          {isMining && timeUntilMiningCompletes !== null && (
+            <div className="flex items-center bg-green-50 text-green-600 px-3 py-1 rounded-full text-xs font-medium">
+              <Clock size={14} className="mr-1" />
+              <span>{formatTimeRemaining(timeUntilMiningCompletes)}</span>
             </div>
           )}
         </div>

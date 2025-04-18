@@ -30,22 +30,100 @@ export const calculateMiningRate = (user: User | null): number => {
 export const MINING_DURATION = 24; // 24 hours
 export const HOUR_IN_MS = 3600000; // 1 hour in milliseconds
 
-export const saveMiningState = (state: any, userId: string) => {
-  localStorage.setItem('miningState', JSON.stringify({
+export interface PersistentMiningState {
+  isMining: boolean;
+  miningProgress: number;
+  lastMiningDate: string | null; // ISO string
+  miningStartTime: string | null; // ISO string
+  coinsMinedInSession: number;
+  totalCoinsFromMining: number;
+  userId: string;
+}
+
+export const saveMiningState = (state: Omit<PersistentMiningState, 'userId'>, userId: string) => {
+  const persistentState: PersistentMiningState = {
     ...state,
     userId
-  }));
+  };
+  
+  localStorage.setItem('miningState', JSON.stringify(persistentState));
 };
 
-export const loadMiningState = (userId: string) => {
+export const loadMiningState = (userId: string): PersistentMiningState | null => {
   const savedState = localStorage.getItem('miningState');
   if (!savedState) return null;
   
   try {
-    const state = JSON.parse(savedState);
-    return state.userId === userId ? state : null;
+    const state = JSON.parse(savedState) as PersistentMiningState;
+    
+    // Only restore if it's the same user
+    if (state.userId !== userId) return null;
+    
+    // Calculate current progress if mining was in progress
+    if (state.isMining && state.miningStartTime) {
+      const startTime = new Date(state.miningStartTime).getTime();
+      const currentTime = new Date().getTime();
+      const elapsedHours = (currentTime - startTime) / HOUR_IN_MS;
+      
+      // If elapsed time is more than 24 hours, mining is complete
+      if (elapsedHours >= MINING_DURATION) {
+        // Mining completed while app was closed
+        return {
+          ...state,
+          isMining: false,
+          miningProgress: 0,
+          lastMiningDate: new Date().toISOString(),
+          miningStartTime: null,
+          coinsMinedInSession: calculateSessionCoins(elapsedHours, userId)
+        };
+      }
+      
+      // Update progress based on elapsed time
+      const progress = Math.min((elapsedHours / MINING_DURATION) * 100, 99.9);
+      return {
+        ...state,
+        miningProgress: progress
+      };
+    }
+    
+    return state;
   } catch (error) {
     console.error('Failed to parse saved mining state', error);
     return null;
   }
+};
+
+// Helper function to calculate coins mined in a session
+export const calculateSessionCoins = (elapsedHours: number, userId: string): number => {
+  // Get user from localStorage to calculate rate
+  const userJson = localStorage.getItem('user');
+  if (!userJson) return 0;
+  
+  try {
+    const user = JSON.parse(userJson) as User;
+    if (user.id !== userId) return 0;
+    
+    const miningRate = calculateMiningRate(user);
+    const hours = Math.min(elapsedHours, MINING_DURATION);
+    return miningRate * hours;
+  } catch (error) {
+    console.error('Failed to calculate session coins', error);
+    return 0;
+  }
+};
+
+// Calculate time until mining completes
+export const calculateTimeUntilCompletion = (
+  startTime: string | null, 
+  progress: number
+): number | null => {
+  if (!startTime) return null;
+  
+  const start = new Date(startTime).getTime();
+  const currentTime = new Date().getTime();
+  const elapsedTime = currentTime - start;
+  const totalDuration = MINING_DURATION * HOUR_IN_MS;
+  const remainingTime = totalDuration - elapsedTime;
+  
+  return Math.max(0, remainingTime);
 };

@@ -5,10 +5,12 @@ export interface MiningContextType {
   stopMining: () => void;
   miningProgress: number;
   timeUntilNextMining: number | null;
+  timeUntilMiningCompletes: number | null;
   coinsMinedInSession: number;
   miningRate: number;
   totalCoinsFromMining: number;
   resetMiningCooldown: () => void;
+  miningStartTime: Date | null;
 }
 
 export interface MiningState {
@@ -17,4 +19,5 @@ export interface MiningState {
   lastMiningDate: Date | null;
   coinsMinedInSession: number;
   totalCoinsFromMining: number;
+  miningStartTime: Date | null;
 }
