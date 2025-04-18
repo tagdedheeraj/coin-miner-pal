@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useAuth } from '@/hooks/useAuth';
 import { formatToIndianTime } from '@/utils/formatters';
 import { WithdrawalRequest } from '@/types/auth';
-import { getFirestore, collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { getFirestore, collection, query, where, orderBy, getDocs, onSnapshot } from 'firebase/firestore';
 import app from '@/integrations/firebase/client';
 
 const HistoryTab: React.FC = () => {
@@ -21,35 +21,48 @@ const HistoryTab: React.FC = () => {
         // Properly access Firebase Firestore
         const db = getFirestore(app);
         
+        // Create a real-time listener for withdrawal requests
         const withdrawalsRef = collection(db, 'withdrawal_requests');
-        const userWithdrawals = await getDocs(
-          query(
-            withdrawalsRef,
-            where('user_id', '==', user.id),
-            orderBy('created_at', 'desc')
-          )
+        const userWithdrawalsQuery = query(
+          withdrawalsRef,
+          where('user_id', '==', user.id)
         );
-          
-        const history: WithdrawalRequest[] = [];
-        userWithdrawals.forEach(doc => {
-          const data = doc.data();
-          history.push({
-            id: doc.id,
-            userId: data.user_id,
-            userEmail: data.user_email,
-            userName: data.user_name,
-            amount: data.amount,
-            address: data.address,
-            status: data.status,
-            createdAt: data.created_at,
-            updatedAt: data.updated_at
+        
+        // Set up real-time listener
+        const unsubscribe = onSnapshot(userWithdrawalsQuery, (snapshot) => {
+          const history: WithdrawalRequest[] = [];
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            history.push({
+              id: doc.id,
+              userId: data.user_id,
+              userEmail: data.user_email,
+              userName: data.user_name,
+              amount: data.amount,
+              address: data.address,
+              status: data.status,
+              createdAt: data.created_at,
+              updatedAt: data.updated_at
+            });
           });
+          
+          // Sort by date (newest first)
+          history.sort((a, b) => {
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          });
+          
+          setWithdrawalHistory(history);
+          setIsLoading(false);
+        }, (error) => {
+          console.error('Error fetching withdrawal history:', error);
+          setIsLoading(false);
         });
         
-        setWithdrawalHistory(history);
+        // Clean up listener on component unmount
+        return () => unsubscribe();
+        
       } catch (error) {
         console.error('Error fetching withdrawal history:', error);
-      } finally {
         setIsLoading(false);
       }
     };

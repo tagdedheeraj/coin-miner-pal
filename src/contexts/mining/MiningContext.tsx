@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
 import { MiningContextType } from './types';
 import { useMiningOperations } from './useMiningOperations';
 import { useMiningCooldown } from './hooks/useMiningCooldown';
@@ -28,7 +28,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   } = useMiningOperations();
 
   const { timeUntilNextMining, setTimeUntilNextMining } = useMiningCooldown(lastMiningDate);
-  const { isLoadingMiningState, initialLoadComplete } = useInitialMiningState();
+  const { isLoadingMiningState, initialLoadComplete, miningStateData } = useInitialMiningState();
 
   // Initialize Firebase sync
   useMiningSync({
@@ -40,6 +40,19 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     totalCoinsFromMining,
     initialLoadComplete
   });
+
+  // Initialize state from Firebase or localStorage when loaded
+  useEffect(() => {
+    if (miningStateData && initialLoadComplete) {
+      console.log("Initializing mining state from loaded data:", miningStateData);
+      setIsMining(miningStateData.isMining);
+      setMiningProgress(miningStateData.miningProgress);
+      setLastMiningDate(miningStateData.lastMiningDate);
+      setCoinsMinedInSession(miningStateData.coinsMinedInSession);
+      setTotalCoinsFromMining(miningStateData.totalCoinsFromMining);
+      setMiningStartTime(miningStateData.miningStartTime);
+    }
+  }, [miningStateData, initialLoadComplete]);
 
   const { startMining, resetMiningCooldown } = useMiningActions({
     setIsMining,

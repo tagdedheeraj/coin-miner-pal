@@ -9,6 +9,7 @@ export const useInitialMiningState = () => {
   const { user } = useAuth();
   const [isLoadingMiningState, setIsLoadingMiningState] = useState(true);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+  const [miningStateData, setMiningStateData] = useState(null);
   const notifications = useMiningNotifications({
     isMining: false,
     miningProgress: 0,
@@ -26,6 +27,8 @@ export const useInitialMiningState = () => {
       
       if (docSnap.exists()) {
         const serverData = docSnap.data();
+        console.log("Loaded mining state from Firebase:", serverData);
+        
         return {
           isMining: serverData.isMining || false,
           miningProgress: serverData.miningProgress || 0,
@@ -34,30 +37,37 @@ export const useInitialMiningState = () => {
           totalCoinsFromMining: serverData.totalCoinsFromMining || 0,
           miningStartTime: serverData.miningStartTime ? new Date(serverData.miningStartTime) : null,
         };
+      } else {
+        console.log("No mining state found in Firebase for user:", user.id);
       }
     } catch (error) {
       console.error("Error loading mining state from Firebase:", error);
     }
     
     // Fall back to localStorage
-    return loadMiningState(user.id);
+    const localState = loadMiningState(user.id);
+    console.log("Loaded mining state from localStorage:", localState);
+    return localState;
   };
 
   useEffect(() => {
     const initializeMiningState = async () => {
       setIsLoadingMiningState(true);
       const state = await loadMiningStateFromFirebase();
+      setMiningStateData(state);
       setIsLoadingMiningState(false);
       setInitialLoadComplete(true);
-      return state;
     };
 
-    initializeMiningState();
+    if (user?.id) {
+      initializeMiningState();
+    }
   }, [user?.id]);
 
   return {
     isLoadingMiningState,
     initialLoadComplete,
+    miningStateData,
     loadMiningStateFromFirebase
   };
 };
