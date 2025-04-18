@@ -6,7 +6,8 @@ export const calculateMiningRate = (user: User | null): number => {
   
   // Find the highest mining speed multiplier from active plans
   const highestSpeedMultiplier = user.activePlans.reduce((maxSpeed, plan) => {
-    const speedValue = parseFloat(plan.miningSpeed.replace('x', ''));
+    // Check if plan and miningSpeed exist before trying to access replace
+    const speedValue = plan.miningSpeed ? parseFloat(plan.miningSpeed.replace('x', '')) : 1;
     return Math.max(maxSpeed, speedValue);
   }, 1);
   
