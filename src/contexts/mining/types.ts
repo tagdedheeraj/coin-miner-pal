@@ -11,6 +11,7 @@ export interface MiningContextType {
   totalCoinsFromMining: number;
   resetMiningCooldown: () => void;
   miningStartTime: Date | null;
+  isLoadingMiningState: boolean;
 }
 
 export interface MiningState {
@@ -20,4 +21,5 @@ export interface MiningState {
   coinsMinedInSession: number;
   totalCoinsFromMining: number;
   miningStartTime: Date | null;
+  serverTimestamp?: string; // Track server time to prevent manipulation
 }

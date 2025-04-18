@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { calculateMiningRate, MINING_DURATION, HOUR_IN_MS, saveMiningState } from './utils';
 import { useMiningNotifications } from '@/components/mining/MiningNotifications';
+import { getFirestore, doc, updateDoc } from 'firebase/firestore';
 
 export const useMiningOperations = () => {
   const { user, updateUser } = useAuth();
@@ -62,6 +63,22 @@ export const useMiningOperations = () => {
           const newCoins = (user.coins || 0) + coins;
           console.log(`Mining completed. Adding ${coins} coins to user. New total: ${newCoins}`);
           updateUser({ coins: newCoins });
+          
+          // Update mining state in Firebase
+          const db = getFirestore();
+          const miningStateRef = doc(db, 'mining_states', user.id);
+          
+          updateDoc(miningStateRef, {
+            isMining: false,
+            miningProgress: 100,
+            miningStartTime: null,
+            lastMiningDate: new Date().toISOString(),
+            coinsMinedInSession: coins,
+            totalCoinsFromMining: (totalCoinsFromMining || 0) + coins,
+            updatedAt: new Date().toISOString(),
+          }).catch(error => {
+            console.error("Error updating mining state after completion:", error);
+          });
         }
         
         setLastMiningDate(new Date());
@@ -76,11 +93,32 @@ export const useMiningOperations = () => {
       
       if (currHours > prevHours) {
         notifications.handleHourlyReward();
+        
+        // Add hourly reward to user's coins
+        if (user) {
+          const hourlyReward = miningRate;
+          const newCoins = (user.coins || 0) + hourlyReward;
+          console.log(`Hourly reward. Adding ${hourlyReward} coins to user. New total: ${newCoins}`);
+          updateUser({ coins: newCoins });
+        }
+      }
+      
+      // Update mining progress in Firebase every 5 minutes
+      if (user && newProgress % 5 === 0) {
+        const db = getFirestore();
+        const miningStateRef = doc(db, 'mining_states', user.id);
+        
+        updateDoc(miningStateRef, {
+          miningProgress: newProgress,
+          updatedAt: new Date().toISOString(),
+        }).catch(error => {
+          console.error("Error updating mining progress in Firebase:", error);
+        });
       }
     }, 60000); // Update every minute
     
     return () => clearInterval(interval);
-  }, [isMining, user, updateUser, miningRate, notifications, miningStartTime, miningProgress]);
+  }, [isMining, user, updateUser, miningRate, notifications, miningStartTime, miningProgress, totalCoinsFromMining]);
   
   return {
     isMining,

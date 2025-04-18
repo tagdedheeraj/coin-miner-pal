@@ -71,7 +71,7 @@ export const loadMiningState = (userId: string): PersistentMiningState | null =>
         return {
           ...state,
           isMining: false,
-          miningProgress: 0,
+          miningProgress: 100,
           lastMiningDate: new Date().toISOString(),
           miningStartTime: null,
           coinsMinedInSession: calculateSessionCoins(elapsedHours, userId)
@@ -105,7 +105,7 @@ export const calculateSessionCoins = (elapsedHours: number, userId: string): num
     
     const miningRate = calculateMiningRate(user);
     const hours = Math.min(elapsedHours, MINING_DURATION);
-    return miningRate * hours;
+    return miningRate * Math.floor(hours); // Only count full hours
   } catch (error) {
     console.error('Failed to calculate session coins', error);
     return 0;
@@ -126,4 +126,34 @@ export const calculateTimeUntilCompletion = (
   const remainingTime = totalDuration - elapsedTime;
   
   return Math.max(0, remainingTime);
+};
+
+// Validate mining session to prevent client-side manipulation
+export const validateMiningSession = (
+  startTime: Date | null,
+  progress: number,
+  rate: number
+): {
+  isValid: boolean;
+  actualProgress: number;
+  coinsEarned: number;
+} => {
+  if (!startTime) {
+    return { isValid: false, actualProgress: 0, coinsEarned: 0 };
+  }
+  
+  const now = new Date();
+  const elapsedMs = now.getTime() - startTime.getTime();
+  const elapsedHours = elapsedMs / HOUR_IN_MS;
+  
+  // Calculate what the progress should be based on elapsed time
+  const actualProgress = Math.min((elapsedHours / MINING_DURATION) * 100, 100);
+  
+  // If the reported progress is significantly higher than actual, it's likely manipulation
+  const isValid = Math.abs(actualProgress - progress) < 5; // Allow 5% tolerance
+  
+  // Calculate the coins that should have been earned
+  const coinsEarned = Math.floor(elapsedHours) * rate;
+  
+  return { isValid, actualProgress, coinsEarned };
 };

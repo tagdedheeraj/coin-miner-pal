@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Pickaxe, Clock, ChevronRight } from 'lucide-react';
+import { Pickaxe, Clock, ChevronRight, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { useMining } from '@/contexts/mining/MiningContext';
@@ -16,8 +16,20 @@ const MiningCard: React.FC = () => {
     timeUntilMiningCompletes,
     coinsMinedInSession,
     miningRate,
-    totalCoinsFromMining
+    totalCoinsFromMining,
+    isLoadingMiningState
   } = useMining();
+  
+  if (isLoadingMiningState) {
+    return (
+      <div className="w-full">
+        <div className="glass-card rounded-2xl p-6 mb-6 animate-scale-up flex flex-col items-center justify-center min-h-[200px]">
+          <Loader2 className="w-12 h-12 text-brand-blue animate-spin mb-4" />
+          <p className="text-gray-500">Loading mining data...</p>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="w-full">
@@ -25,7 +37,7 @@ const MiningCard: React.FC = () => {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center">
             <div className="w-10 h-10 rounded-full bg-brand-teal/10 flex items-center justify-center mr-3">
-              <Pickaxe className="text-brand-teal" size={20} />
+              <Pickaxe className={`${isMining ? 'animate-pulse text-brand-teal' : 'text-brand-teal'}`} size={20} />
             </div>
             <div>
               <h3 className="font-semibold text-lg">Mining Status</h3>
@@ -61,6 +73,9 @@ const MiningCard: React.FC = () => {
               <span className="font-medium">{Math.floor(miningProgress)}%</span>
             </div>
             <Progress value={miningProgress} className="h-2" />
+            <p className="text-xs text-gray-500 mt-2 text-center">
+              Mining continues even when app is closed
+            </p>
           </div>
         )}
         
