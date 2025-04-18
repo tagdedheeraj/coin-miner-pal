@@ -21,5 +21,6 @@ export interface MiningState {
   coinsMinedInSession: number;
   totalCoinsFromMining: number;
   miningStartTime: Date | null;
-  serverTimestamp?: string; // Track server time to prevent manipulation
+  serverTimestamp?: string;
 }
+

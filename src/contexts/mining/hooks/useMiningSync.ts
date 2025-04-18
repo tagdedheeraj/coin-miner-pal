@@ -1,8 +1,7 @@
 
 import { useEffect } from 'react';
-import { getFirestore, doc, setDoc, updateDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc } from 'firebase/firestore';
 import { useAuth } from '@/hooks/useAuth';
-import { MiningState } from '../types';
 
 interface UseMiningSync {
   isMining: boolean;

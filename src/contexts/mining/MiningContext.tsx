@@ -57,6 +57,7 @@ export const MiningProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const value = {
     isMining,
     startMining,
+    stopMining: () => {}, // Added to satisfy type but not used since we removed the stop functionality
     miningProgress,
     timeUntilNextMining,
     timeUntilMiningCompletes,
